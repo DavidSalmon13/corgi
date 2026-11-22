@@ -39,7 +39,27 @@ public interface StripeGateway {
     /** Confirms an intent with a card this customer used before. Stripe answers with the intent's new status. */
     ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId);
 
-    record CreatedIntent(String id, String clientSecret) {}
+    /**
+     * Sends {@code amountCents} back to the card that paid {@code paymentIntentId}. The idempotency key is per refund
+     * attempt, so a repeated call for the same attempt never sends the money twice. Stripe's answer only says the
+     * refund was accepted: it settles through the {@code refund.*} webhooks.
+     *
+     * @throws RefundRefused when Stripe won't send it (or payments are off); the message says why, for the broker
+     */
+    CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
+            Map<String, String> metadata);
+
+        record CreatedIntent(String id, String clientSecret) {}
+
+    /** A refund Stripe accepted: its id (re_…) and status (usually pending or succeeded). */
+    record CreatedRefund(String id, String status) {}
+
+    /** Stripe didn't take the refund. The message is shown to the broker next to the failed refund. */
+    class RefundRefused extends RuntimeException {
+        public RefundRefused(String message) {
+            super(message);
+        }
+    }
 
     /** An intent as Stripe sees it now. */
     record IntentState(String status, String clientSecret) {

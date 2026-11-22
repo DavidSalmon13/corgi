@@ -5,11 +5,13 @@ import com.stripe.exception.InvalidRequestException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.PaymentIntentCancelParams;
 import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.param.RefundCreateParams;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,6 +138,31 @@ class StripeJavaGateway implements StripeGateway {
             return new ConfirmedIntent("requires_payment_method", null);
         } catch (StripeException e) {
             throw confirmProblem(e);
+        }
+    }
+
+    @Override
+    public CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
+            Map<String, String> metadata) {
+        if (client == null) {
+            throw new RefundRefused("Card payments aren't set up on this demo, so Stripe couldn't be asked to send it.");
+        }
+        try {
+            Refund refund = client.v1().refunds().create(
+                    RefundCreateParams.builder()
+                            .setPaymentIntent(paymentIntentId)
+                            .setAmount(amountCents)
+                            .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER)
+                            .putAllMetadata(metadata)
+                            .build(),
+                    RequestOptions.builder().setIdempotencyKey(idempotencyKey).build());
+            return new CreatedRefund(refund.getId(), refund.getStatus());
+        } catch (StripeException e) {
+            log.warn("Stripe refund failed: {} [request {}]", e.getMessage(), e.getRequestId());
+            String reason = e.getStripeError() != null && e.getStripeError().getMessage() != null
+                    ? e.getStripeError().getMessage()
+                    : "We couldn't reach Stripe.";
+            throw new RefundRefused(reason);
         }
     }
 

@@ -93,7 +93,7 @@ public class FakeStripeGateway implements StripeGateway {
         return confirms.stream().filter(c -> c.intentId().equals(intentId)).toList();
     }
 
-    // --- refunds: T6 wires createRefund into StripeGateway; until then nothing records calls here ---
+    // --- refunds ---
 
     public record RefundCall(String refundId, String intentId, long amountCents, String idempotencyKey,
             Map<String, String> metadata) {}
@@ -106,12 +106,17 @@ public class FakeStripeGateway implements StripeGateway {
         this.refundFailure = message;
     }
 
-    String refundFailure() {
-        return refundFailure;
-    }
-
-    void recordRefund(RefundCall call) {
-        refunds.add(call);
+    /** Records every call, refused or not, so a test can see each attempt's idempotency key. */
+    @Override
+    public CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
+            Map<String, String> metadata) {
+        String id = "re_fake_" + counter.incrementAndGet();
+        refunds.add(new RefundCall(id, paymentIntentId, amountCents, idempotencyKey, Map.copyOf(metadata)));
+        String failure = refundFailure;
+        if (failure != null) {
+            throw new RefundRefused(failure);
+        }
+        return new CreatedRefund(id, "pending");
     }
 
     public List<RefundCall> refundsFor(String intentId) {

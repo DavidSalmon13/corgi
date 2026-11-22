@@ -1,6 +1,6 @@
 # Playbook project config — see playbook/README.md
 version: 1.4.1
-customer: TBD
+customer: corgi
 # customer_root: ../<customer>-os   # uncomment if customer docs live in a hub repo
 default_branch: main
 

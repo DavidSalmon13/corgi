@@ -25,14 +25,14 @@
 - [x] T11 `client.ts` + `types.ts`: `/api/auth/session`, `SignedInUser`; update `client.test.ts`
 - [x] T12 Rebuild `SignIn.tsx` as an email/password form with the Demo accounts box (AC1, AC2, AC12)
 - [x] T13 New `SignUp.tsx` + `/signup` route with field errors (AC3–AC5)
-- [ ] T14 Sign-out calls `DELETE /api/auth/session` and clears the cache (AC8); B3 shows the owner's signed-up status (AC11); B2 shows the duplicate email error (AC6)
+- [x] T14 Sign-out calls `DELETE /api/auth/session` and clears the cache (AC8); B3 shows the owner's signed-up status (AC11); B2 shows the duplicate email error (AC6)
 
 ## Docs
 
-- [ ] T15 DECISIONS.md entry replacing "Demo sign-in is simulated" (AC13); README demo credentials and integrations table; `SESSION_COOKIE_SECURE=true` noted for Railway
+- [x] T15 DECISIONS.md entry replacing "Demo sign-in is simulated" (AC13); README demo credentials and integrations table; `SESSION_COOKIE_SECURE=true` noted for Railway
 
 ## Verification
 
-- [ ] T16 Run the test suites and coverage on changed files (testing skill)
+- [x] T16 Run the test suites and coverage on changed files (testing skill)
 - [ ] T17 Security review of the auth, session and password path (security-reviewer agent)
 - [ ] T18 Run QA against acceptance criteria (qa skill)

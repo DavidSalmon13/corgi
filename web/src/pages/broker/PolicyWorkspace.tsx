@@ -9,6 +9,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
 import { formatDate } from '../../lib/dates';
 import { balanceNote, balanceText, policyStatus } from '../../lib/policyCopy';
+import { ownerAccountLine } from '../../lib/accountCopy';
 
 const COVER_NAME: Record<CoverKind, string> = {
   BASE: 'Base cover',
@@ -64,7 +65,12 @@ export function PolicyWorkspace() {
                 General Liability
               </Term>
             </span>
-            <span>{p.customer.ownerName}</span>
+            <span>
+              {p.customer.ownerName} ·{' '}
+              <span className={p.customer.ownerSignedUpAt ? '' : 'font-semibold text-wait'}>
+                {ownerAccountLine(p.customer.ownerName, p.customer.ownerSignedUpAt)}
+              </span>
+            </span>
             <span className="tabular-nums">
               {formatDate(p.start)} → {formatDate(p.end)}
               {cancelled && ' (cancelled)'}

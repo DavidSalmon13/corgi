@@ -8,6 +8,19 @@ Business insurance, explained in plain language. A policy administration platfor
 
 All people, businesses and money in this app are fictional. Payments use Stripe test mode.
 
+## Demo accounts
+
+Every demo account uses the password `plainly-demo-2026` (a test credential for fictional people). The sign-in page lists them too, with a button that fills the form.
+
+| Role | Email | Who |
+|---|---|---|
+| Broker | `sam@plainly.test` | Sam Reyes, who issues and manages policies |
+| Policyholder | `maya@juniperandrye.test` | Maya Okafor, owner of Juniper & Rye Bakery LLC, with a policy Sam issued |
+
+To try the owner's first visit: sign in as Sam, create a customer with any email, sign out, then choose **Create your account** on the sign-in page and use that email. Owners can't sign up until their broker has entered their email ([why](DECISIONS.md)).
+
+Sign-in is real: BCrypt password hashes and server-side sessions. What's simplified is that sign-up has no email confirmation, and there's no password reset or rate limiting. See `DECISIONS.md`.
+
 ## Run locally
 
 Requirements: Java 21, Docker, Node 20.19+.
@@ -26,5 +39,10 @@ Tests run against a throwaway Postgres started by Testcontainers, so Docker must
 ```bash
 cd api && ./gradlew test
 ```
+
+Settings for a deployment (Railway):
+
+- `SESSION_COOKIE_SECURE=true`: send the session cookie only over HTTPS.
+- `PLAINLY_DEMO_SEED`: on by default. At startup it adds Maya's demo policy and account if they're missing; set it to `false` to skip.
 
 To start over with an empty database: `docker compose down -v`. The ledger is append-only even locally, so this is the only way to remove ledger rows.

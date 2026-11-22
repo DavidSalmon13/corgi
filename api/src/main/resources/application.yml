@@ -16,3 +16,9 @@ plainly:
   zone: America/New_York
   # Optional fixed "today" (yyyy-MM-dd) for demos and tests. Empty = the real date.
   today: ${PLAINLY_TODAY:}
+  session:
+    # Send the session cookie only over HTTPS. Set SESSION_COOKIE_SECURE=true on Railway.
+    secure-cookie: ${SESSION_COOKIE_SECURE:false}
+  demo:
+    # Seed Maya Okafor's demo policy and account at startup (real-sign-in AC12). Off in tests.
+    seed: ${PLAINLY_DEMO_SEED:true}

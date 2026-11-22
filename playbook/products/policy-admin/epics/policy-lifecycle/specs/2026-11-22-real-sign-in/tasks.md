@@ -17,7 +17,7 @@
 - [x] T6 `Accounts` (from DemoUsers) with `signUp` claiming the unclaimed owner row in one transaction
 - [x] T7 `AuthFilter` + `AuthController` (`/api/auth/signin|signup|session`), `SignedInUser`; delete Demo* classes and `/api/demo/*`; update MyCoverController and BrokerIssueController
 - [x] T8 `IssuePolicyService`: duplicate owner-email field error; set the owner user's email; expose `ownerSignedUpAt` through PolicyQueries/PolicyViews
-- [ ] T9 `DemoSeeder` (Maya's policy via IssuePolicyService, demo password; `plainly.demo.seed`, off in `@IntegrationTest`); `plainly.session.secure-cookie` config
+- [x] T9 `DemoSeeder` (Maya's policy via IssuePolicyService, demo password; `plainly.demo.seed`, off in `@IntegrationTest`); `plainly.session.secure-cookie` config
 - [ ] T10 Move MyCoverTest, BrokerIssueEndpointsTest, BrokerPolicyReadTest, IssueAtomicityTest onto the helpers; whole API suite green
 
 ## Web

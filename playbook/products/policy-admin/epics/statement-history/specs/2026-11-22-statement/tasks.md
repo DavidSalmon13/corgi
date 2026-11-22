@@ -9,7 +9,7 @@
 - [x] T1 Failing StatementServiceTest for AC2–AC7: running balance = ledger balance, pending payment/refund rows outside the balance, declined $0 line, correction grouping (Oct 15 → Oct 8 and → Oct 22), trace per kind with refs (testing skill, TDD)
 - [x] T2 PolicyTransactionRepository read of actor names per transaction (created_by → app_users), exposed through PolicyService (repository + service)
 - [x] T3 Statement records + StatementService.forPolicy in app.plainly.statement: rows, pending rows, corrections, traces, banner state; shared due-reason helper used by MyCoverService too; T1 passes (service)
-- [ ] T4 MyStatementController GET /api/me/statement; StatementEndpointTest incl. 403 for a broker and own-policy-only (controller)
+- [x] T4 MyStatementController GET /api/me/statement; StatementEndpointTest incl. 403 for a broker and own-policy-only (controller)
 
 ## Web
 

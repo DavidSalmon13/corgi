@@ -1,5 +1,6 @@
 package app.plainly.statement;
 
+import app.plainly.auth.SignedInUser;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.RefundListing;
 import app.plainly.common.NotFoundException;
@@ -48,8 +49,17 @@ public class StatementService {
 
     /** The statement for a policy, every amount traced back to its change, payment or refund. */
     public Statement forPolicy(long policyId) {
-        PolicyViews.Detail p = policies.detail(policyId);
-        return new Builder(p, policies.actorNames(policyId), payments.sentForPolicy(policyId)).build();
+        return build(policies.detail(policyId));
+    }
+
+    /** P3 for the signed-in owner: the statement of their own (latest) policy, never anyone else's. */
+    public Statement forOwner(SignedInUser me) {
+        return build(policies.latestForCustomer(me.customerId())
+                .orElseThrow(() -> new NotFoundException("You don't have a policy yet.")));
+    }
+
+    private Statement build(PolicyViews.Detail p) {
+        return new Builder(p, policies.actorNames(p.policyId()), payments.sentForPolicy(p.policyId())).build();
     }
 
     /** One build: the lookups every row needs, made once. */

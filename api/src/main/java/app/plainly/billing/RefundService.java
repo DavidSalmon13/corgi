@@ -59,6 +59,11 @@ public class RefundService {
         return result;
     }
 
+    /** The policy's refunds, oldest first, with the card each goes back to and the correction that owed it. */
+    public List<RefundListing> listForPolicy(long policyId) {
+        return refunds.findByPolicy(policyId);
+    }
+
     /** Refunds already promised on the policy that the ledger doesn't show yet (pending, or failed awaiting retry). */
     public long unsettledTotal(long policyId) {
         return refunds.unsettledTotal(policyId);

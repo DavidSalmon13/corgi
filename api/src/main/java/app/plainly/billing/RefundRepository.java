@@ -22,10 +22,6 @@ public class RefundRepository {
     public record Locked(long id, String displayId, long policyId, long paymentId, String intentId, String cardLast4,
             long amountCents, String status, int attempt, String stripeRefundId) {}
 
-    /** A refund as B3 lists it, with the card it goes back to and the correction that owed it. */
-    public record Listed(long id, String displayId, String status, long amountCents, String cardLast4, int attempt,
-            String policyTransactionDisplayId, String stripeRefundId, String failureReason) {}
-
     /** How much has gone, or is on its way, back to one payment's card (failed refunds don't count). */
     public record Refunded(long paymentId, long amountCents) {}
 
@@ -102,7 +98,7 @@ public class RefundRepository {
     }
 
     /** Oldest first. */
-    public List<Listed> findByPolicy(long policyId) {
+    public List<RefundListing> findByPolicy(long policyId) {
         return jdbc.sql("""
                 select r.id, r.display_id, r.status, r.amount_cents, p.card_last4, r.attempt, t.display_id,
                        r.stripe_refund_id, r.failure_reason
@@ -111,7 +107,7 @@ public class RefundRepository {
                 join policy_transactions t on t.id = r.policy_transaction_id
                 where r.policy_id = ? order by r.id""")
                 .param(policyId)
-                .query((rs, n) -> new Listed(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getLong(4),
+                .query((rs, n) -> new RefundListing(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getLong(4),
                         rs.getString(5), rs.getInt(6), rs.getString(7), rs.getString(8), rs.getString(9)))
                 .list();
     }

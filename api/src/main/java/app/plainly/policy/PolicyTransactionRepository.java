@@ -31,11 +31,11 @@ public class PolicyTransactionRepository {
 
     public List<PolicyViews.Transaction> listForPolicy(long policyId) {
         return jdbc.sql("""
-                select display_id, type, effective_date, recorded_on
+                select display_id, type, effective_date, recorded_on, reason
                 from policy_transactions where policy_id = ? order by id""")
                 .param(policyId)
                 .query((rs, n) -> new PolicyViews.Transaction(rs.getString(1), rs.getString(2),
-                        rs.getObject(3, LocalDate.class), rs.getObject(4, LocalDate.class)))
+                        rs.getObject(3, LocalDate.class), rs.getObject(4, LocalDate.class), rs.getString(5)))
                 .list();
     }
 

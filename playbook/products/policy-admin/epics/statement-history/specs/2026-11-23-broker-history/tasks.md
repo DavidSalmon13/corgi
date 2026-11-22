@@ -8,7 +8,7 @@
 - [x] T1 Failing HistoryServiceTest for AC2–AC6 and AC8: one action per change/payment/refund oldest first, actor names, correction card net (Oct 15 → Oct 8 = +$14.00), settled sum = ledger balance = statement last balance, pending outside the sum, failed refund + decline reason (testing skill, TDD)
 - [x] T2 Add failureReason to PaymentService.Sent via PaymentRepository.sentForPolicy (repository + service)
 - [x] T3 History records + HistoryService.forPolicy in app.plainly.statement, grouping StatementService rows by action; T1 passes (service)
-- [ ] T4 BrokerHistoryController GET /api/broker/policies/{id}/history; BrokerHistoryEndpointTest incl. 403 for a policyholder and 404 for an unknown policy (controller)
+- [x] T4 BrokerHistoryController GET /api/broker/policies/{id}/history; BrokerHistoryEndpointTest incl. 403 for a policyholder and 404 for an unknown policy (controller)
 
 ## Web
 - [ ] T5 api/types.ts History types + lib/historyCopy.ts with historyCopy.test.ts first: card titles with IDs, detail lines (sums / Stripe status), status words (Refund failed, decline reason, pending), net wording

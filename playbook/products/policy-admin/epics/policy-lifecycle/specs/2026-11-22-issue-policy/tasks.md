@@ -8,7 +8,7 @@
 
 - [x] T1 Scaffold `api/`: Spring Boot 4 / Java 21, Gradle Kotlin DSL, Flyway, JdbcClient, Testcontainers; `GET /api/health`
 - [x] T2 Add `docker-compose.yml` (Postgres 16) and `.env.example`; README "Run locally" section
-- [ ] T3 Scaffold `web/`: Vite + React 18 + TS + Tailwind v4 + React Router + TanStack Query; dev proxy to the API
+- [x] T3 Scaffold `web/`: Vite + React 18 + TS + Tailwind v4 + React Router + TanStack Query; dev proxy to the API
 - [ ] T3.1 Port Plainly design tokens to `web/src/theme.css` (`@theme`, `.dark` variant, Source Sans 3, tabular nums) and a dark-mode toggle
 
 ## Money core

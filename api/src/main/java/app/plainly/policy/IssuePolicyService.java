@@ -65,8 +65,11 @@ public class IssuePolicyService {
                 .params(legalName, cmd.businessDescription().strip(), ownerName, cmd.ownerEmail().strip())
                 .query(Long.class).single();
 
-        jdbc.sql("insert into app_users (role, display_name, subtitle, customer_id) values ('POLICYHOLDER', ?, ?, ?)")
-                .params(ownerName, "Owner, " + legalName, customerId).update();
+        // The owner's account waits with their email and no password until they sign up (real-sign-in AC4).
+        jdbc.sql("""
+                insert into app_users (role, display_name, subtitle, customer_id, email)
+                values ('POLICYHOLDER', ?, ?, ?, lower(trim(?)))""")
+                .params(ownerName, "Owner, " + legalName, customerId, cmd.ownerEmail()).update();
 
         var policy = jdbc.sql("""
                 insert into policies (policy_number, customer_id, start_date, end_date)

@@ -23,8 +23,8 @@ class LedgerAppendOnlyTest {
     void postOneEntry() {
         long customerId = jdbc.sql("""
                 insert into customers (legal_name, business_description, owner_name, owner_email)
-                values ('Trigger Test LLC', 'a test shop', 'Test Owner', 'owner@example.com') returning id""")
-                .query(Long.class).single();
+                values ('Trigger Test LLC', 'a test shop', 'Test Owner', ?) returning id""")
+                .param(app.plainly.TestData.uniqueEmail("owner")).query(Long.class).single();
         long policyId = jdbc.sql("""
                 insert into policies (policy_number, customer_id, start_date, end_date)
                 values ('TEST-' || nextval('policy_number_seq'), ?, date '2026-09-01', date '2027-09-01') returning id""")

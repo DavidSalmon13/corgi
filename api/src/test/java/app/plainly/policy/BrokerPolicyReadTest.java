@@ -32,7 +32,7 @@ class BrokerPolicyReadTest {
         long brokerId = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
         broker = new Cookie(DemoAuthFilter.COOKIE, Long.toString(brokerId));
         juniper = issue.issue(new IssuePolicyCommand("Read Test Bakery LLC", "a neighborhood bakery", "Maya Okafor",
-                "maya@example.com", LocalDate.of(2026, 9, 1), true), brokerId);
+                app.plainly.TestData.uniqueEmail("maya"), LocalDate.of(2026, 9, 1), true), brokerId);
     }
 
     @Test

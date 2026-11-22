@@ -28,7 +28,7 @@ class MyCoverTest {
     Cookie ownerOf(String business, boolean extra) {
         long broker = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
         long policyId = issue.issue(new IssuePolicyCommand(business, "a neighborhood bakery", "Maya Okafor",
-                "maya@example.com", LocalDate.of(2026, 9, 1), extra), broker).policyId();
+                app.plainly.TestData.uniqueEmail("maya"), LocalDate.of(2026, 9, 1), extra), broker).policyId();
         long user = jdbc.sql("select u.id from app_users u join policies p on p.customer_id = u.customer_id where p.id = ?")
                 .param(policyId).query(Long.class).single();
         return new Cookie(DemoAuthFilter.COOKIE, Long.toString(user));

@@ -38,7 +38,7 @@ class DemoAuthTest {
     void users() {
         brokerId = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
         long policyId = issue.issue(new IssuePolicyCommand("Auth Test Bakery LLC", "a bakery", "Pat Owner",
-                "pat@example.com", LocalDate.of(2026, 9, 1), false), brokerId).policyId();
+                app.plainly.TestData.uniqueEmail("pat"), LocalDate.of(2026, 9, 1), false), brokerId).policyId();
         policyholderId = jdbc.sql("""
                 select u.id from app_users u join policies p on p.customer_id = u.customer_id where p.id = ?""")
                 .param(policyId).query(Long.class).single();

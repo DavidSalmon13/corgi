@@ -2,7 +2,6 @@ package app.plainly.ledger;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,10 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LedgerPostingService {
 
-    private final JdbcClient jdbc;
+    private final LedgerRepository ledger;
 
-    public LedgerPostingService(JdbcClient jdbc) {
-        this.jdbc = jdbc;
+    public LedgerPostingService(LedgerRepository ledger) {
+        this.ledger = ledger;
     }
 
     /** Posts all lines or none. Joins the caller's transaction when there is one. */
@@ -25,30 +24,7 @@ public class LedgerPostingService {
         List<PostedEntry> posted = new ArrayList<>(entries.size());
         for (NewEntry e : entries) {
             check(policyId, policyTransactionId, e);
-            posted.add(jdbc.sql("""
-                    insert into ledger_entries (policy_id, policy_transaction_id, coverage_id, entry_type, entry_date,
-                        description, amount_cents, calc_annual_cents, calc_days, calc_term_days, cover_from, cover_to,
-                        reverses_entry_id, payment_id, stripe_event_id)
-                    values (:policyId, :ptxId, :coverageId, :type, :entryDate, :description, :amount, :calcAnnual,
-                        :calcDays, :calcTermDays, :coverFrom, :coverTo, :reverses, :paymentId, :stripeEventId)
-                    returning id, display_id""")
-                    .param("policyId", policyId)
-                    .param("ptxId", policyTransactionId)
-                    .param("coverageId", e.coverageId())
-                    .param("type", e.type().name())
-                    .param("entryDate", e.entryDate())
-                    .param("description", e.description())
-                    .param("amount", e.amountCents())
-                    .param("calcAnnual", e.calc() == null ? null : e.calc().annualCents())
-                    .param("calcDays", e.calc() == null ? null : Math.toIntExact(e.calc().days()))
-                    .param("calcTermDays", e.calc() == null ? null : Math.toIntExact(e.calc().termDays()))
-                    .param("coverFrom", e.coverFrom())
-                    .param("coverTo", e.coverTo())
-                    .param("reverses", e.reversesEntryId())
-                    .param("paymentId", e.paymentId())
-                    .param("stripeEventId", e.stripeEventId())
-                    .query((rs, n) -> new PostedEntry(rs.getLong("id"), rs.getString("display_id")))
-                    .single());
+            posted.add(ledger.insert(policyId, policyTransactionId, e));
         }
         return posted;
     }
@@ -65,8 +41,7 @@ public class LedgerPostingService {
             if (e.paymentId() == null || e.stripeEventId() == null || e.stripeEventId().isBlank()) {
                 throw new IllegalArgumentException("a payment line must name its payment and the Stripe event that settled it");
             }
-            long paymentPolicy = jdbc.sql("select policy_id from payments where id = ?").param(e.paymentId())
-                    .query(Long.class).optional()
+            long paymentPolicy = ledger.policyOfPayment(e.paymentId())
                     .orElseThrow(() -> new IllegalArgumentException("no payment " + e.paymentId()));
             if (paymentPolicy != policyId || e.amountCents() > 0) {
                 throw new IllegalArgumentException("a payment line must be a credit on its payment's own policy");
@@ -76,12 +51,9 @@ public class LedgerPostingService {
             if (e.reversesEntryId() == null) {
                 throw new IllegalArgumentException("a reversal must name the line it undoes");
             }
-            var original = jdbc.sql("select policy_id, amount_cents from ledger_entries where id = ?")
-                    .param(e.reversesEntryId())
-                    .query((rs, n) -> new long[] {rs.getLong("policy_id"), rs.getLong("amount_cents")})
-                    .optional()
+            LedgerRepository.Original original = ledger.findOriginal(e.reversesEntryId())
                     .orElseThrow(() -> new IllegalArgumentException("no ledger line " + e.reversesEntryId()));
-            if (original[0] != policyId || e.amountCents() != -original[1]) {
+            if (original.policyId() != policyId || e.amountCents() != -original.amountCents()) {
                 throw new IllegalArgumentException("a reversal must exactly undo a line on the same policy");
             }
         }

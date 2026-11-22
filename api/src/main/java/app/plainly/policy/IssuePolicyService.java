@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class IssuePolicyService {
 
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private static final int MAX_TEXT = 200;
+    static final String EMAIL_TAKEN = "Another customer already uses this email.";
 
     private final JdbcClient jdbc;
     private final LedgerPoster ledger;
@@ -59,11 +61,16 @@ public class IssuePolicyService {
         String legalName = cmd.legalName().strip();
         String ownerName = cmd.ownerName().strip();
 
-        long customerId = jdbc.sql("""
+        long customerId;
+        try {
+            customerId = jdbc.sql("""
                 insert into customers (legal_name, business_description, owner_name, owner_email)
                 values (?, ?, ?, ?) returning id""")
                 .params(legalName, cmd.businessDescription().strip(), ownerName, cmd.ownerEmail().strip())
                 .query(Long.class).single();
+        } catch (DuplicateKeyException e) {
+            throw new ValidationException(Map.of("ownerEmail", EMAIL_TAKEN));
+        }
 
         // The owner's account waits with their email and no password until they sign up (real-sign-in AC4).
         jdbc.sql("""
@@ -122,11 +129,21 @@ public class IssuePolicyService {
         String email = cmd.ownerEmail() == null ? "" : cmd.ownerEmail().strip();
         if (!EMAIL.matcher(email).matches() || email.length() > MAX_TEXT) {
             errors.put("ownerEmail", "Enter an email like name@business.com.");
+        } else if (emailTaken(email)) {
+            errors.put("ownerEmail", EMAIL_TAKEN);
         }
         checkStart(cmd.startDate(), errors);
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
+    }
+
+    /** One email belongs to one person, so sign-up knows whose policy it claims (real-sign-in AC6). */
+    private boolean emailTaken(String email) {
+        return jdbc.sql("""
+                select exists (select 1 from customers where lower(owner_email) = lower(?))
+                    or exists (select 1 from app_users where email = lower(?))""")
+                .params(email, email).query(Boolean.class).single();
     }
 
     private static void text(String value, String field, String message, Map<String, String> errors) {

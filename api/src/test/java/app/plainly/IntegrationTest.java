@@ -17,5 +17,5 @@ import org.springframework.test.context.TestPropertySource;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-@TestPropertySource(properties = "plainly.today=2026-11-22")
+@TestPropertySource(properties = {"plainly.today=2026-11-22", "plainly.demo.seed=false"})
 public @interface IntegrationTest {}

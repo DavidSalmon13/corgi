@@ -121,6 +121,8 @@ export function NewPolicyPage() {
   });
   const [extra, setExtra] = useState(false);
   const [errors, setErrors] = useState<{ message: string; fields: Partial<Record<Field, string>> } | null>(null);
+  // Bumped once per failed save, so focus moves to the summary then — not again while fields are being fixed.
+  const [failedSaves, setFailedSaves] = useState(0);
 
   const set = (field: Field) => (value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -128,16 +130,25 @@ export function NewPolicyPage() {
     setErrors((e) => (e && e.fields[field] ? { ...e, fields: { ...e.fields, [field]: undefined } } : e));
   };
 
-  const priced = useDebounced({ startDate: form.startDate, productLiability: extra }, 250);
+  // Debounce the two primitives, not an object literal: a fresh object every render would never settle.
+  const pricedStart = useDebounced(form.startDate, 250);
+  const pricedExtra = useDebounced(extra, 250);
   const preview = useQuery({
-    queryKey: ['issue-preview', priced.startDate, priced.productLiability],
-    queryFn: () => api<IssuePlan>('/api/broker/policies/preview', { method: 'POST', body: JSON.stringify(priced) }),
-    enabled: priced.startDate !== '',
+    queryKey: ['issue-preview', pricedStart, pricedExtra],
+    queryFn: () =>
+      api<IssuePlan>('/api/broker/policies/preview', {
+        method: 'POST',
+        body: JSON.stringify({ startDate: pricedStart, productLiability: pricedExtra }),
+      }),
+    enabled: pricedStart !== '',
     placeholderData: keepPreviousData,
     retry: false,
   });
   const previewProblem = validationOf(preview.error)?.fields.startDate;
+  const previewFailed = preview.isError && !previewProblem;
   const plan = form.startDate && !preview.isError ? preview.data : undefined;
+  // True while the panel may not yet match the inputs, so Create can't issue a price the broker hasn't seen.
+  const repricing = form.startDate !== '' && (pricedStart !== form.startDate || pricedExtra !== extra || preview.isFetching);
 
   const create = useMutation({
     mutationFn: () => api<Issued>('/api/broker/policies', { method: 'POST', body: JSON.stringify({ ...form, productLiability: extra }) }),
@@ -149,12 +160,13 @@ export function NewPolicyPage() {
     onError: (e) => {
       const v = validationOf(e);
       setErrors(v ? { message: v.message, fields: v.fields as Partial<Record<Field, string>> } : { message: "We couldn't save the policy. Try again.", fields: {} });
+      setFailedSaves((n) => n + 1);
     },
   });
 
   useEffect(() => {
-    if (errors && create.isError) summaryRef.current?.focus();
-  }, [errors, create.isError]);
+    if (failedSaves > 0) summaryRef.current?.focus();
+  }, [failedSaves]);
 
   const fieldError = (f: Field) => errors?.fields[f];
   // Count what is still wrong, so the summary shrinks as fields are fixed and goes once they all are.
@@ -253,7 +265,7 @@ export function NewPolicyPage() {
             <Term explain="Premium: what the customer pays for a year of protection.">Price of the cover</Term>
           </h2>
           {plan ? (
-            <div className={`flex flex-col gap-3.5 ${preview.isFetching ? 'opacity-70' : ''}`}>
+            <div className={`flex flex-col gap-3.5 ${repricing ? 'opacity-70' : ''}`}>
               <div className="text-[36px] font-bold leading-tight tracking-[-0.02em] text-accent-ink tabular-nums">
                 {formatCents(plan.totalCents)}{' '}
                 <span className="text-lg font-semibold text-ink">for {daysBetween(plan.start, plan.end)} days</span>
@@ -286,16 +298,25 @@ export function NewPolicyPage() {
             </div>
           ) : (
             <p className="m-0 text-base leading-normal text-ink-2">
-              {previewProblem && form.startDate
-                ? `${previewProblem} We'll show the price here, before anything is saved.`
-                : "Add a start date and we'll show the price here, before anything is saved."}
+              {previewFailed && form.startDate ? (
+                <>
+                  We couldn't work out the price just now.{' '}
+                  <button type="button" onClick={() => preview.refetch()} className="font-semibold text-ink underline">
+                    Try again
+                  </button>
+                </>
+              ) : previewProblem && form.startDate ? (
+                `${previewProblem} We'll show the price here, before anything is saved.`
+              ) : (
+                "Add a start date and we'll show the price here, before anything is saved."
+              )}
             </p>
           )}
           <div className="mt-1 flex flex-wrap gap-2.5">
             <button
               type="submit"
               form="new-policy"
-              disabled={create.isPending}
+              disabled={create.isPending || repricing}
               className="inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 text-base font-bold text-on-accent disabled:opacity-60"
             >
               {create.isPending ? 'Creating…' : owner ? `Create policy and invite ${owner}` : 'Create policy'}

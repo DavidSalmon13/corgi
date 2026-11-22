@@ -117,4 +117,55 @@ class LedgerTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(queries.lines(policyId)).hasSize(1);
     }
+
+    // --- collect-premium: payment lines (covers AC5, AC6, T6) ---
+
+    private long payment(long policy, String intentId) {
+        return jdbc.sql("""
+                insert into payments (policy_id, stripe_payment_intent_id, amount_cents) values (?, ?, 120000) returning id""")
+                .params(policy, intentId).query(Long.class).single();
+    }
+
+    @Test
+    void aPaymentLineIsACreditThatTracesToItsPaymentAndStripeEvent() {
+        long paymentId = payment(policyId, "pi_ledger_" + policyId);
+        poster.post(policyId, null, List.of(NewEntry.payment(SEP_1, "Payment, card ending 4242", -120_000, paymentId, "evt_ledger_" + policyId)));
+
+        Map<String, Object> row = jdbc.sql("select entry_type, amount_cents, payment_id, stripe_event_id, policy_transaction_id from ledger_entries where policy_id = ?")
+                .param(policyId).query().singleRow();
+        assertThat(row).containsEntry("entry_type", "PAYMENT").containsEntry("amount_cents", -120_000L)
+                .containsEntry("payment_id", paymentId).containsEntry("stripe_event_id", "evt_ledger_" + policyId);
+        assertThat(row.get("policy_transaction_id")).isNull();
+    }
+
+    @Test
+    void aDeclinedAttemptIsAZeroLine() {
+        long paymentId = payment(policyId, "pi_ledger_zero_" + policyId);
+        poster.post(policyId, null, List.of(NewEntry.payment(SEP_1, "Payment attempt, card ending 0002", 0, paymentId, "evt_zero_" + policyId)));
+
+        assertThat(queries.balance(policyId)).isZero();
+    }
+
+    @Test
+    void aPaymentCantChargeTheCustomer() {
+        long paymentId = payment(policyId, "pi_ledger_pos_" + policyId);
+        assertThatThrownBy(() -> NewEntry.payment(SEP_1, "Payment", 500, paymentId, "evt_pos_" + policyId))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void aPaymentLineMustNameItsPaymentAndEvent() {
+        long paymentId = payment(policyId, "pi_ledger_untraced_" + policyId);
+        assertThatThrownBy(() -> poster.post(policyId, null, List.of(NewEntry.payment(SEP_1, "Payment", -1, paymentId, null))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void aPaymentLineMustBelongToTheSamePolicyAsItsPayment() {
+        long other = TestData.policy(jdbc, SEP_1, SEP_1_NEXT);
+        long othersPayment = payment(other, "pi_ledger_other_" + other);
+        assertThatThrownBy(() -> poster.post(policyId, null,
+                List.of(NewEntry.payment(SEP_1, "Payment", -1, othersPayment, "evt_other_" + other))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

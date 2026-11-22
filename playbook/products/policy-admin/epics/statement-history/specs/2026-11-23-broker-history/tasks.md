@@ -17,7 +17,7 @@
 - [x] T8 Every amount and ledger chip opens HowWeGotThis (audience="broker") with focus return
 
 ## Docs
-- [ ] T9 DECISIONS.md: history groups the statement's rows by action on the server (one calculation); the broker sees the real refund/decline status while the policyholder's wording stays soft
+- [x] T9 DECISIONS.md: history groups the statement's rows by action on the server (one calculation); the broker sees the real refund/decline status while the policyholder's wording stays soft
 
 ## Verification
 - [ ] T10 Run both suites with coverage on the changed files (testing skill)

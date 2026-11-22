@@ -152,3 +152,7 @@ B4's option label and the "Customer will see" sentence give a daily price ("at $
 ## 2026-11-22: The "Extra cover added" banner is shown once
 
 After saving, B4 passes the banner text to B3 in router state, rather than as a query parameter or in storage. B3 reads it once and then replaces the history entry without it, so reloading the page or coming back to it doesn't announce the change a second time. The broker can also hide it. The banner's amount comes from the save response and B3 refetches the policy, so the two match unless another change lands in between.
+
+## 2026-11-22: Backend layered controller → service → repository, plain SQL in repositories, no JPA
+
+The first specs put SQL straight into services and one controller, which mixes business rules with data access and doesn't follow the standard Spring layering a reviewer expects. From now on every API module is layered: controllers map HTTP to one service call, services hold the rules and own `@Transactional`, and `@Repository` classes are the only code that runs SQL (`playbook/standards/backend/layers.md`). Repositories use `JdbcClient` with plain SQL rather than JPA/Spring Data on purpose: an ORM saves changes to loaded objects automatically, which could quietly rewrite an append-only ledger row, while plain SQL keeps every write a visible `insert`. The existing code was refactored to this shape with no change in behaviour, before correct-effective-date and cancel-refund are built.

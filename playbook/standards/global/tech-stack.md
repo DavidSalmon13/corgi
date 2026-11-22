@@ -14,7 +14,8 @@ The stack as built. Change this file when a dependency is added or swapped, and 
 ## Backend (`api/`)
 
 - Java 21 with Spring Boot 4 (Spring MVC), built with Gradle (Kotlin DSL)
-- SQL through Spring's `JdbcClient`: plain SQL, no JPA or ORM
+- Layered as **controller → service → repository**; only `@Repository` classes run SQL. Read and follow `playbook/standards/backend/layers.md` for any API work
+- SQL through Spring's `JdbcClient` inside repositories: plain SQL, no JPA or ORM
 - One package per area: `auth`, `policy`, `pricing`, `ledger`, `billing`, `me`, `common`
 - Sign-in: server-side sessions with BCrypt hashes (`spring-security-crypto` only, not full Spring Security)
 - Payments: `stripe-java`, test mode only; webhooks verified by signature and processed once per event id

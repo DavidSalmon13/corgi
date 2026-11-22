@@ -9,6 +9,7 @@
   - **ledger**: append-only entries. Each one references the policy transaction or payment that caused it.
   - **billing**: Stripe PaymentIntents, refunds and the webhook endpoint, plus a processed-events table keyed on Stripe event id for idempotency.
   - **notify**: Resend emails (policy issued, statement or receipt).
+- **Inside every api module: controller → service → repository.** Controllers map HTTP to one service call; services hold the rules, Stripe calls and `@Transactional`; `@Repository` classes are the only code that runs SQL. Modules call each other through services. See `playbook/standards/backend/layers.md`.
 - **PostgreSQL**: the system of record. The schema is managed by Flyway.
 
 ## Data Flow

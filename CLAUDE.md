@@ -8,6 +8,7 @@ Corgi work trial, **Track 1 · Policy administration**. The full brief and the r
 - Every amount must be traceable: ledger entry → policy transaction or payment → Stripe event. Show "how we got this" in the UI.
 - Money is integer cents in USD; the ledger is append-only (corrections reverse and rebill); webhooks are idempotent by event id.
 - Fictional customer data and test credentials only.
+- **Backend is layered controller → service → repository** (`playbook/standards/backend/layers.md`): controllers only map HTTP, services hold rules and `@Transactional`, and only `@Repository` classes run SQL. Every spec's `tasks.md` and every review checks this.
 
 <!-- playbook:start -->
 ## Playbook — agent & skill policy

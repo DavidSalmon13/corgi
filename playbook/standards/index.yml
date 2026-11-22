@@ -6,3 +6,7 @@ global:
   tech-stack:
     description: The real stack — React 18 + Vite + Tailwind v4 web, Spring Boot 4 / Java 21 API with JdbcClient, Postgres 16 with Flyway, Stripe test mode
 
+
+backend:
+  layers:
+    description: API code is layered controller → service → repository — controllers map HTTP, services hold rules and @Transactional, only @Repository classes run SQL (JdbcClient); cross-module calls go service to service

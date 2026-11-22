@@ -49,7 +49,26 @@ public class MyCoverService {
         /** Another later change left money owing. */
         CHANGE,
         /** Paid up, or we owe them. */
-        NOTHING_DUE
+        NOTHING_DUE;
+
+        /**
+         * Why {@code dueCents} is owed, from the policy's changes oldest first. P1 and the statement (P3) both ask
+         * here, so they always give the same reason.
+         */
+        public static DueReason of(long dueCents, List<PolicyViews.Transaction> transactions) {
+            if (dueCents <= 0) {
+                return NOTHING_DUE;
+            }
+            if (transactions.stream().allMatch(t -> t.type().equals("ISSUE"))) {
+                return FIRST_YEAR;
+            }
+            return switch (transactions.getLast().type()) {
+                case "ADD_COVERAGE" -> EXTRA_COVER;
+                case "CORRECT" -> CORRECTION;
+                case "CANCEL" -> CANCELLATION;
+                default -> CHANGE;
+            };
+        }
     }
 
     public record Business(String legalName, String description, String ownerName) {}
@@ -97,12 +116,7 @@ public class MyCoverService {
         long due = Math.max(0, p.balanceCents());
         PolicyViews.Transaction latest = p.transactions().isEmpty() ? null : p.transactions().getLast();
         boolean onlyIssued = p.transactions().stream().allMatch(t -> t.type().equals("ISSUE"));
-        DueReason reason = due == 0 ? DueReason.NOTHING_DUE
-                : onlyIssued ? DueReason.FIRST_YEAR
-                : "ADD_COVERAGE".equals(latest.type()) ? DueReason.EXTRA_COVER
-                : "CORRECT".equals(latest.type()) ? DueReason.CORRECTION
-                : "CANCEL".equals(latest.type()) ? DueReason.CANCELLATION
-                : DueReason.CHANGE;
+        DueReason reason = DueReason.of(due, p.transactions());
         LocalDate latestChangeFrom = onlyIssued ? null : latest.effectiveDate();
         String latestChangeReason = onlyIssued ? null : latest.reason();
         String broker = policies.issuedBy(p.policyId()).orElse("Your broker");

@@ -29,5 +29,5 @@
 
 ## Verification
 
-- [ ] T15 Run the test suites and coverage on changed files (testing skill)
+- [x] T15 Run the test suites and coverage on changed files (testing skill)
 - [ ] T16 Run QA against acceptance criteria (qa skill)

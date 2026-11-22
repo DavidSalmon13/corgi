@@ -1,7 +1,7 @@
 # Your statement and "How we got this"
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/statement-history/statement
 > Covers: /me/statement, /api/me/statement, api/src/main/java/**/statement/**, web/src/pages/me/StatementPage.tsx, web/src/components/HowWeGotThis.tsx, web/src/lib/statementCopy.ts
 
@@ -54,3 +54,4 @@ The policyholder gets a statement of every charge, credit, payment and refund on
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-23 | david-schwartzman | change | Status → done: PRs #51–#55 merged into dev | #55 |

@@ -304,3 +304,25 @@ describe('how we got this', () => {
     expect(d.payment?.status).toBe("Didn't go through");
   });
 });
+
+describe('drawer: when no money moved for the line itself', () => {
+  it('says an undo settles together with the corrected line', () => {
+    expect(drawerCopy(reversal).noMoney).toBe(
+      "No money moved for this line on its own. It's settled together with the corrected line.",
+    );
+  });
+
+  it('says a charge or credit goes into the balance', () => {
+    expect(drawerCopy(rebill).noMoney).toBe(
+      'No money moved for this line on its own. It adds to your balance, which you pay by card.',
+    );
+    expect(drawerCopy(row({ kind: 'CREDIT', amountCents: -1_400 })).noMoney).toBe(
+      'No money moved for this line on its own. It comes off your balance.',
+    );
+  });
+
+  it('leaves it out when the row is a payment or refund', () => {
+    expect(drawerCopy(payment).noMoney).toBeNull();
+    expect(drawerCopy(refund).noMoney).toBeNull();
+  });
+});

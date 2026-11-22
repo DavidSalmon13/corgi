@@ -107,6 +107,8 @@ export type DrawerCopy = {
   /** The broker's words for a correction or cancellation, shown as written; null otherwise. */
   reason: string | null;
   payment: { what: string; status: string; note: string } | null;
+  /** When the row itself moved no money (a charge, credit or undo): where it goes instead; null for money rows. */
+  noMoney: string | null;
   refs: { label: string; id: string }[];
 };
 
@@ -172,6 +174,14 @@ function changeWhat(cause: StatementCause): string {
   }
 }
 
+function noMoneyNote(row: StatementRow): string | null {
+  if (row.trace.money) return null;
+  const lead = 'No money moved for this line on its own.';
+  if (row.kind === 'REVERSAL' && row.correctionId) return `${lead} It's settled together with the corrected line.`;
+  if (row.amountCents > 0) return `${lead} It adds to your balance, which you pay by card.`;
+  return `${lead} It comes off your balance.`;
+}
+
 /** P4 for one row: the plain reason, the maths, what caused it, the money and the references. */
 export function drawerCopy(row: StatementRow): DrawerCopy {
   const { cause, money, refs } = row.trace;
@@ -182,7 +192,7 @@ export function drawerCopy(row: StatementRow): DrawerCopy {
     : `${cause.actorName ? `${cause.actorName}, your broker` : 'Your broker'}${when}`;
   const f = formula(row);
   return {
-    line: `${row.title} · ${formatDate(row.date)}`,
+    line: `${rowTitle(row)} · ${formatDate(row.date)}`,
     amount: formatCents(row.amountCents, { signed: true }),
     plain: plainSentence(row),
     formula: f.formula,
@@ -197,6 +207,7 @@ export function drawerCopy(row: StatementRow): DrawerCopy {
           note: MONEY_NOTE[money.status],
         }
       : null,
+    noMoney: noMoneyNote(row),
     refs: refs.map((r) => ({ label: REF_LABEL[r.kind], id: r.id })),
   };
 }

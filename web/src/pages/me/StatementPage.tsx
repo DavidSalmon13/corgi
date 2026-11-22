@@ -3,6 +3,7 @@ import { Fragment, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { Statement, StatementCorrection, StatementRow } from '../../api/types';
+import { HowWeGotThis } from '../../components/HowWeGotThis';
 import { StatusPill, type PillTone } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
@@ -357,7 +358,7 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
 
 /** P3: every charge, credit, payment and refund on the policy, with a running balance and how we got each amount. */
 export function StatementPage() {
-  const [, setTrace] = useState<{ row: StatementRow; from: HTMLButtonElement } | null>(null);
+  const [trace, setTrace] = useState<{ row: StatementRow; from: HTMLButtonElement } | null>(null);
   const statement = useQuery({
     queryKey: ['my-statement'],
     queryFn: () => api<Statement>('/api/me/statement'),
@@ -403,6 +404,8 @@ export function StatementPage() {
       <div className="flex items-center justify-end text-[13px] text-ink-2">
         <ThemeToggle />
       </div>
+
+      {trace && <HowWeGotThis key={trace.row.id} row={trace.row} returnTo={trace.from} onClose={() => setTrace(null)} />}
     </Shell>
   );
 }

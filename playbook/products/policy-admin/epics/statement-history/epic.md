@@ -17,3 +17,4 @@ Both roles see a policy's full history and financial statement, and can open "ho
 
 | Spec | Status | Branch |
 |---|---|---|
+| 2026-11-22-statement | shaped | feat/statement-history/statement |

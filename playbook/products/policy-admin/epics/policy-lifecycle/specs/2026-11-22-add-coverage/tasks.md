@@ -26,7 +26,7 @@
 
 ## Docs
 
-- [ ] T12 DECISIONS.md: an add-on may start any day in the cover period, including the past; one extra cover per policy, enforced under a row lock (no unique index, for corrections); per-day shown only when exact
+- [x] T12 DECISIONS.md: an add-on may start any day in the cover period, including the past; one extra cover per policy, enforced under a row lock (no unique index, for corrections); per-day shown only when exact
 
 ## Verification
 

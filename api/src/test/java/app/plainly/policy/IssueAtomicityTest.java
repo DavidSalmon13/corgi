@@ -29,7 +29,7 @@ class IssueAtomicityTest {
         long before = rows();
 
         assertThatThrownBy(() -> service.issue(new IssuePolicyCommand("Atomic Bakery LLC", "a bakery", "Ann Owner",
-                "ann@example.com", LocalDate.of(2026, 9, 1), true), broker))
+                app.plainly.TestData.uniqueEmail("ann"), LocalDate.of(2026, 9, 1), true), broker))
                 .hasMessageContaining("ledger down");
         assertThat(rows()).isEqualTo(before);
     }

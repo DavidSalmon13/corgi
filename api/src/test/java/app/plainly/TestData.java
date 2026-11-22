@@ -17,8 +17,8 @@ public final class TestData {
     public static long policy(JdbcClient jdbc, LocalDate start, LocalDate end) {
         long customerId = jdbc.sql("""
                 insert into customers (legal_name, business_description, owner_name, owner_email)
-                values ('Test Shop LLC', 'a test shop', 'Test Owner', 'owner@example.com') returning id""")
-                .query(Long.class).single();
+                values ('Test Shop LLC', 'a test shop', 'Test Owner', ?) returning id""")
+                .param(uniqueEmail("owner")).query(Long.class).single();
         return jdbc.sql("""
                 insert into policies (policy_number, customer_id, start_date, end_date)
                 values ('TEST-' || nextval('policy_number_seq'), ?, ?, ?) returning id""")

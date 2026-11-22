@@ -97,3 +97,23 @@ The brief asks for demo credentials for both roles on the deployed app, so the V
 ## 2026-11-22: Stripe webhook spike: signed events reach the API
 
 Before building payments, I proved the riskiest piece end to end (collect-premium T1). The API takes the webhook body as a raw String and checks the `Stripe-Signature` header with `stripe-java` 34.2.0 (`Webhook.constructEvent`) before anything is parsed. A test payment for $14.00 with Stripe's always-succeeds test card, and one with the always-declines card, sent `charge.succeeded`, `payment_intent.succeeded`, `charge.failed` and `payment_intent.payment_failed` through `stripe listen` to `localhost:8080/api/stripe/webhook`. All four were verified and answered 200. A request with no signature, or a made-up one, gets 400. Three things the build must follow: the library and the account both use Stripe API version `2026-11-18.endive`, so event objects parse with no version mismatch; that version no longer accepts `payment_method_types`, so PaymentIntents use `automatic_payment_methods` (card only, no redirects); and Stripe CLI 1.55 needs the events named, so the README's `stripe listen` command lists them with `--events`. The webhook path is the only `/api` path that needs no session, because Stripe can't sign in; the signature is its proof instead.
+
+## 2026-11-22: A declined card is a $0.00 line on the ledger
+
+The brief asks to show whether a payment is pending, successful or failed, and the designs show a declined attempt on the ledger ("Payment attempt, card ending 0002 · No money moved"). So a `charge.failed` webhook posts a $0.00 `PAYMENT` line linked to the payment and the Stripe event. It changes no balance, but the attempt stays in the history next to the payment that worked, and it traces to Stripe like every other line. A payment that is still with the bank isn't on the ledger: no money has moved yet, so it shows as "Waiting for the bank" next to the balance instead.
+
+## 2026-11-22: A payment's status is the one value that changes, and only a webhook changes it
+
+The ledger never changes, but a payment has to move from waiting to paid or declined. That status lives on the `payments` row (one per Stripe PaymentIntent) and is the only mutable value in the money path. Only the webhook handler updates it, after the signature checks out and the event id is recorded for the first time, in the same transaction. A late or out-of-order event can't undo a payment: a failure after a success is ignored, and a success after a failure is recorded, because the money did move. What the money did is always a ledger line, never this status.
+
+## 2026-11-22: Card details come from the charge events
+
+Stripe sends both `payment_intent.*` and `charge.*` events for a card payment. The handler settles payments from `charge.succeeded` and `charge.failed`, because the charge carries the card's last four digits, the brand and the bank's reason for a decline, all of which the screens show. `payment_intent.processing` is used only to show "Waiting for your bank". The card that paid last is remembered from the payment row (its Stripe payment method id), and Stripe keeps the card on the business's Stripe customer, so "Used last time" needs no extra call to Stripe.
+
+## 2026-11-22: The API hands out the publishable key
+
+The pay page needs Stripe's publishable key to show the card form. Rather than build it into the web app, the API returns it with each new payment. One `.env` then configures everything, a deployment can change keys without rebuilding the web app, and with no keys the API simply says payments are off. The key is meant to be public, so nothing secret reaches the browser.
+
+## 2026-11-22: Opening the pay page reuses the open payment
+
+Each visit to the pay page asks the API to start a payment. If the owner already has an unsent payment for the same amount, they get that one back instead of a new PaymentIntent, so refreshing the page doesn't pile up intents in Stripe. If the amount due changed, a new intent is created and the old one is left as it is: it was never sent to a bank, so nothing can be charged on it, and it isn't shown anywhere. While a payment is with the bank, starting another is refused ("Your last payment is still on its way."), so an owner can't pay twice by accident. After a decline, "Try again" opens a fresh payment.

@@ -69,16 +69,17 @@ export function CoverTimeline({ start, end, today, covers, cancelledFrom, varian
             );
           })}
           <div className="relative h-[18px] text-xs text-ink-2 tabular-nums">
-            <span className="absolute left-0">{formatShortDate(start)}</span>
+            {/* Near an edge, "Today" stands in for that edge's date rather than overlapping it. */}
+            {!(showToday && todayPct < 15) && <span className="absolute left-0">{formatShortDate(start)}</span>}
             {showToday && (
               <span
                 className="absolute -translate-x-1/2 font-semibold text-ink"
-                style={{ left: pct(Math.min(88, Math.max(12, todayPct))) }}
+                style={{ left: pct(Math.min(94, Math.max(6, todayPct))) }}
               >
                 Today
               </span>
             )}
-            <span className="absolute right-0">{formatShortDate(end)}</span>
+            {!(showToday && todayPct > 85) && <span className="absolute right-0">{formatShortDate(end)}</span>}
           </div>
         </div>
       </div>

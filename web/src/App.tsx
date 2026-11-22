@@ -4,9 +4,10 @@ import { HomeRedirect, RequireRole } from './components/RouteGuards';
 import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
+import { HomePage } from './pages/me/HomePage';
 import { SignIn } from './pages/SignIn';
 
-// Placeholder until B1–B3 (T15–T17) and P1 (T18) land.
+// Placeholder for broker pages not built yet in this spec.
 function Soon() {
   return (
     <div className="px-5 py-10">
@@ -37,10 +38,10 @@ export function App() {
         <Route path="*" element={<Soon />} />
       </Route>
       <Route
-        path="/me/*"
+        path="/me"
         element={
           <RequireRole role="POLICYHOLDER">
-            <Soon />
+            <HomePage />
           </RequireRole>
         }
       />

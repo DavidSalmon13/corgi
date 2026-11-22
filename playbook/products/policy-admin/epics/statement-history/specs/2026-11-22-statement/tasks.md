@@ -13,7 +13,7 @@
 
 ## Web
 
-- [ ] T5 api/types.ts Statement types + lib/statementCopy.ts with statementCopy.test.ts first: banner sentences, row titles, correction summary (day delta, net, per-day only when exact), P4 plain sentence/maths/cause/payment/refs per kind
+- [x] T5 api/types.ts Statement types + lib/statementCopy.ts with statementCopy.test.ts first: banner sentences, row titles, correction summary (day delta, net, per-day only when exact), P4 plain sentence/maths/cause/payment/refs per kind
 - [ ] T6 StatementPage at /me/statement (route in App.tsx, link from P1 HomePage and back): banner, rows with running balance, pending rows, correction card open/close, P3 states in light/dark, 390 px stacked
 - [ ] T7 HowWeGotThis drawer: opens from every amount, dialog on desktop / bottom sheet on phones, focus trap, Esc and close return focus (AC8)
 

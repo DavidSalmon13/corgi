@@ -34,7 +34,9 @@ class MyCoverController {
     enum DueReason {
         /** Only the first year's price has been charged. */
         FIRST_YEAR,
-        /** A later change (added or corrected cover) left money owing. */
+        /** Extra cover was added part-way through the year, and that is the latest change. */
+        EXTRA_COVER,
+        /** A later change (such as corrected cover) left money owing. */
         CHANGE,
         /** Paid up, or we owe them. */
         NOTHING_DUE
@@ -46,8 +48,9 @@ class MyCoverController {
 
     record Broker(String name) {}
 
+    /** {@code latestChangeFrom}: the day the newest change after issuing takes effect, or null if there is none. */
     record MyCover(Business business, Policy policy, List<PolicyViews.Coverage> covers, long amountDueCents,
-            DueReason dueReason, Broker broker, LocalDate today,
+            DueReason dueReason, LocalDate latestChangeFrom, Broker broker, LocalDate today,
             /** The latest payment sent to the bank (null before the first); P1 shows waiting or declined from it. */
             PaymentService.PaymentSummary payment,
             /** False when Stripe isn't set up, so the pay button can say so instead of opening the card form. */
@@ -58,8 +61,13 @@ class MyCoverController {
         PolicyViews.Detail p = policies.latestForCustomer(me.customerId())
                 .orElseThrow(() -> new NotFoundException("You don't have a policy yet."));
         long due = Math.max(0, p.balanceCents());
+        PolicyViews.Transaction latest = p.transactions().isEmpty() ? null : p.transactions().getLast();
         boolean onlyIssued = p.transactions().stream().allMatch(t -> t.type().equals("ISSUE"));
-        DueReason reason = due == 0 ? DueReason.NOTHING_DUE : onlyIssued ? DueReason.FIRST_YEAR : DueReason.CHANGE;
+        DueReason reason = due == 0 ? DueReason.NOTHING_DUE
+                : onlyIssued ? DueReason.FIRST_YEAR
+                : "ADD_COVERAGE".equals(latest.type()) ? DueReason.EXTRA_COVER
+                : DueReason.CHANGE;
+        LocalDate latestChangeFrom = onlyIssued ? null : latest.effectiveDate();
         String broker = jdbc.sql("""
                 select u.display_name from policy_transactions t join app_users u on u.id = t.created_by
                 where t.policy_id = ? and t.type = 'ISSUE' order by t.id limit 1""")
@@ -67,7 +75,7 @@ class MyCoverController {
         return new MyCover(
                 new Business(p.customer().legalName(), p.customer().businessDescription(), p.customer().ownerName()),
                 new Policy(p.policyNumber(), p.status(), p.start(), p.end()),
-                p.coverages(), due, reason, new Broker(broker), p.today(),
+                p.coverages(), due, reason, latestChangeFrom, new Broker(broker), p.today(),
                 payments.latestSubmitted(p.policyId()).orElse(null), stripe.enabled());
     }
 }

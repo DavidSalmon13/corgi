@@ -239,3 +239,7 @@ A card payment still with the bank and a refund Stripe hasn't confirmed both app
 ## 2026-11-23: B5 payment and refund cards also carry their own ID in the title
 
 The B5 design titles a payment "Payment, card ending 4242" with no ID. History's titles add the payment's or refund's own ID ("Payment, card ending 4242 · PAY-0001", "Refund failed, card ending 4242 · RF-0001"), the same way change cards end with their PTX-…, because the broker uses History to quote IDs to support and a payment's PAY-… is otherwise on no reference list. The detail line shows the Stripe refs in full (pi_…, re_…, evt_…) rather than the design's truncated "pi_3Q…", so they can be copied into Stripe.
+
+## 2026-11-23: On B5, a correction's net isn't a button; its two line amounts are
+
+"How we got this" explains one ledger line, and a correction card's "+$14.00 net" is the sum of two (the undo and the corrected line). So on a card with one line the headline amount opens that line's drawer, while on a correction the "−$642.00" and "+$656.00" inside the detail sentence are the buttons, as are the LE-… chips. The net is explained by the sentence it sits above, and every number in it opens its own line.

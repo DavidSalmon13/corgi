@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
-import type { History, HistoryAction } from '../../api/types';
-import { Ref } from '../../components/LedgerTable';
+import type { History, HistoryAction, StatementRow } from '../../api/types';
+import { HowWeGotThis } from '../../components/HowWeGotThis';
 import { formatDate } from '../../lib/dates';
+import { formatCents } from '../../lib/money';
+import { rowTitle } from '../../lib/statementCopy';
 import { actionDetail, actionMoney, actionStatus, actionTitle, actionTone, ledgerChips, type Tone } from '../../lib/historyCopy';
 
 const DOT: Record<Tone, string> = {
@@ -27,8 +30,63 @@ function moneyColour(a: HistoryAction): string {
   return 'text-ink';
 }
 
+/** Opens "How we got this" for one row; the button is where focus goes back to (AC7). */
+type OpenTrace = (row: StatementRow, from: HTMLButtonElement) => void;
+
+const TRACE_BUTTON =
+  'cursor-pointer border-none bg-transparent p-0 font-[inherit] text-inherit tabular-nums underline decoration-ink-2 decoration-dotted underline-offset-4 hover:text-accent-ink';
+
+/** An amount that opens the drawer for its line. */
+function TraceAmount({ row, text, onOpen, className = '' }: { row: StatementRow; text: string; onOpen: OpenTrace; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => onOpen(row, e.currentTarget)}
+      aria-label={`${text}, ${rowTitle(row)}. How we got this`}
+      className={`${TRACE_BUTTON} whitespace-nowrap ${className}`}
+    >
+      {text}
+    </button>
+  );
+}
+
+/** A ledger line chip (LE-…) that opens the drawer for that line; struck when a later line undid it. */
+function Chip({ row, undone, onOpen }: { row: StatementRow; undone: boolean; onOpen: OpenTrace }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => onOpen(row, e.currentTarget)}
+      aria-label={`Line ${row.id}${undone ? ', undone later' : ''}. How we got this`}
+      className={`cursor-pointer whitespace-nowrap rounded-[5px] border-none bg-track px-1.5 py-px font-mono text-[12.5px] text-ink hover:bg-accent-soft ${
+        undone ? 'line-through decoration-[1.5px]' : ''
+      }`}
+    >
+      {row.id}
+    </button>
+  );
+}
+
+/**
+ * The detail line with each of the card's line amounts as a button, so a correction's "−$642.00" and "+$656.00"
+ * open their own lines. Amounts are matched in order; text without one stays plain.
+ */
+function Detail({ a, text, onOpen }: { a: HistoryAction; text: string; onOpen: OpenTrace }) {
+  if (a.rows.length < 2) return <>{text}</>;
+  const parts: ReactNode[] = [];
+  let rest = text;
+  for (const row of a.rows) {
+    const amount = formatCents(row.amountCents, { signed: true });
+    const at = rest.indexOf(amount);
+    if (at < 0) continue;
+    parts.push(rest.slice(0, at), <TraceAmount key={row.id} row={row} text={amount} onOpen={onOpen} />);
+    rest = rest.slice(at + amount.length);
+  }
+  parts.push(rest);
+  return <>{parts}</>;
+}
+
 /** One action on the rail: date and who on the left (above the card on a phone), the dot, then the card. */
-function ActionItem({ a, policyId }: { a: HistoryAction; policyId: string }) {
+function ActionItem({ a, policyId, onOpen }: { a: HistoryAction; policyId: string; onOpen: OpenTrace }) {
   const tone = actionTone(a);
   const chips = ledgerChips(a);
   const status = actionStatus(a);
@@ -51,10 +109,14 @@ function ActionItem({ a, policyId }: { a: HistoryAction; policyId: string }) {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className={`m-0 text-[17px] font-bold ${a.status === 'REFUND_FAILED' ? 'text-bad' : ''}`}>{actionTitle(a)}</h2>
-            <span className={`text-[17px] font-bold tabular-nums whitespace-nowrap ${moneyColour(a)}`}>{actionMoney(a)}</span>
+            <span className={`text-[17px] font-bold tabular-nums whitespace-nowrap ${moneyColour(a)}`}>
+              {a.rows.length === 1 ? <TraceAmount row={a.rows[0]} text={actionMoney(a)} onOpen={onOpen} /> : actionMoney(a)}
+            </span>
           </div>
 
-          <p className="m-0 break-words text-[15px] leading-[1.45] text-ink-2 tabular-nums">{actionDetail(a)}</p>
+          <p className="m-0 break-words text-[15px] leading-[1.45] text-ink-2 tabular-nums">
+            <Detail a={a} text={actionDetail(a)} onOpen={onOpen} />
+          </p>
 
           {a.reason && (
             <blockquote className="m-0 rounded-[10px] bg-bg px-3 py-2.5 text-[15px] leading-[1.45]">
@@ -72,15 +134,9 @@ function ActionItem({ a, policyId }: { a: HistoryAction; policyId: string }) {
           {chips.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-ink-2">
               <span>Ledger lines</span>
-              {chips.map((c) =>
-                c.undone ? (
-                  <s key={c.id} aria-label={`${c.id}, undone later`} className="decoration-[1.5px]">
-                    <Ref>{c.id}</Ref>
-                  </s>
-                ) : (
-                  <Ref key={c.id}>{c.id}</Ref>
-                ),
-              )}
+              {chips.map((c) => (
+                <Chip key={c.id} row={c.row} undone={c.undone} onOpen={onOpen} />
+              ))}
             </div>
           )}
         </article>
@@ -92,6 +148,7 @@ function ActionItem({ a, policyId }: { a: HistoryAction; policyId: string }) {
 /** B5: every action on one policy, oldest first, with what it did to the money and every ID behind it. */
 export function HistoryPage() {
   const { id = '' } = useParams();
+  const [trace, setTrace] = useState<{ row: StatementRow; from: HTMLButtonElement } | null>(null);
   const history = useQuery({
     queryKey: ['policy-history', id],
     queryFn: () => api<History>(`/api/broker/policies/${id}/history`),
@@ -114,6 +171,7 @@ export function HistoryPage() {
   }
 
   const h = history.data;
+  const onOpen: OpenTrace = (row, from) => setTrace({ row, from });
   return (
     <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
       <div className="flex flex-col gap-1.5">
@@ -129,9 +187,18 @@ export function HistoryPage() {
       ) : (
         <ol className="m-0 flex list-none flex-col p-0">
           {h.actions.map((a) => (
-            <ActionItem key={a.id} a={a} policyId={id} />
+            <ActionItem key={a.id} a={a} policyId={id} onOpen={onOpen} />
           ))}
         </ol>
+      )}
+
+      <p className="m-0 text-sm leading-[1.45] text-ink-2">
+        Select any underlined amount or a ledger line to see how it was worked out. The customer sees the same numbers on
+        their statement.
+      </p>
+
+      {trace && (
+        <HowWeGotThis key={trace.row.id} row={trace.row} audience="broker" returnTo={trace.from} onClose={() => setTrace(null)} />
       )}
     </div>
   );

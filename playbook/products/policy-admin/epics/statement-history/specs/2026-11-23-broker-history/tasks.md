@@ -14,7 +14,7 @@
 - [x] T5 api/types.ts History types + lib/historyCopy.ts with historyCopy.test.ts first: card titles with IDs, detail lines (sums / Stripe status), status words (Refund failed, decline reason, pending), net wording
 - [x] T6 drawerCopy(row, audience) broker voice + HowWeGotThis audience prop; statementCopy.test.ts keeps the policyholder output identical and adds broker cases
 - [x] T7 HistoryPage at /broker/policies/:id/history (App.tsx route, "History" link in PolicyWorkspace Cover timeline header, back link): timeline rail and dots, cards, ledger chips, struck undone chips, retry link on failed refund, light/dark, 390 px stacked
-- [ ] T8 Every amount and ledger chip opens HowWeGotThis (audience="broker") with focus return
+- [x] T8 Every amount and ledger chip opens HowWeGotThis (audience="broker") with focus return
 
 ## Docs
 - [ ] T9 DECISIONS.md: history groups the statement's rows by action on the server (one calculation); the broker sees the real refund/decline status while the policyholder's wording stays soft

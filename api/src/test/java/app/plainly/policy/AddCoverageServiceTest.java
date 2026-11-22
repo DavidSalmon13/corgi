@@ -152,7 +152,7 @@ class AddCoverageServiceTest {
     @Test
     void aCancelledPolicyCannotTakeCover() {
         long id = policy();
-        jdbc.sql("update policies set status = 'CANCELLED' where id = ?").param(id).update();
+        jdbc.sql("update policies set status = 'CANCELLED', cancelled_on = date '2026-12-01' where id = ?").param(id).update();
         assertFieldError(() -> service.preview(id, CoverKind.PRODUCT_LIABILITY, OCT_15),
                 "policy", "This policy is cancelled, so cover can't be added.");
         assertFieldError(() -> service.add(id, productLiabilityFrom(OCT_15), brokerId()),

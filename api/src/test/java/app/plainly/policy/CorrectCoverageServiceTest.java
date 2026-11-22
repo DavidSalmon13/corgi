@@ -326,7 +326,7 @@ class CorrectCoverageServiceTest {
     @Test
     void aCancelledPolicyCannotBeCorrected() throws Exception {
         long id = paidWithExtraCoverFromOct15().owner().policyId();
-        jdbc.sql("update policies set status = 'CANCELLED' where id = ?").param(id).update();
+        jdbc.sql("update policies set status = 'CANCELLED', cancelled_on = date '2026-12-01' where id = ?").param(id).update();
         assertFieldError(() -> service.preview(id, OCT_8), "policy", CorrectCoverageService.CANCELLED);
         assertFieldError(() -> service.correct(id, startOn(OCT_8), brokerId()), "policy", CorrectCoverageService.CANCELLED);
     }

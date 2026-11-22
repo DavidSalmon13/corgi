@@ -40,7 +40,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 
 ## Docs
 
-- [ ] T16 README: Stripe setup, `stripe listen` and the test cards.
+- [x] T16 README: Stripe setup, `stripe listen` and the test cards.
 - [ ] T17 Add DECISIONS entries:
   - failed attempts are $0 ledger lines;
   - only webhooks change a payment's status;

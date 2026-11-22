@@ -11,7 +11,7 @@
 
 ## Backend
 
-- [ ] T3 Add `spring-security-crypto` to api/build.gradle.kts
+- [x] T3 Add `spring-security-crypto` to api/build.gradle.kts
 - [ ] T4 Migration `V5__accounts_and_sessions.sql`: user email/password_hash/signed_up_at, lower(email) unique, sessions table, unique lower(owner_email), Sam's email and demo hash
 - [ ] T5 `Passwords` and `Sessions` (hashed random tokens, 7-day expiry, end on sign-out)
 - [ ] T6 `Accounts` (from DemoUsers) with `signUp` claiming the unclaimed owner row in one transaction

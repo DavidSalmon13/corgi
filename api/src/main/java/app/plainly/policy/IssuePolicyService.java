@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +28,21 @@ public class IssuePolicyService {
     private static final int MAX_TEXT = 200;
     static final String EMAIL_TAKEN = "Another customer already uses this email.";
 
-    private final JdbcClient jdbc;
+    private final CustomerRepository customers;
+    private final PolicyRepository policies;
+    private final CoverageRepository coverages;
+    private final PolicyTransactionRepository transactions;
+    private final AccountService accounts;
     private final LedgerPostingService ledger;
     private final Today today;
 
-    public IssuePolicyService(JdbcClient jdbc, LedgerPostingService ledger, Today today) {
-        this.jdbc = jdbc;
+    public IssuePolicyService(CustomerRepository customers, PolicyRepository policies, CoverageRepository coverages,
+            PolicyTransactionRepository transactions, AccountService accounts, LedgerPostingService ledger, Today today) {
+        this.customers = customers;
+        this.policies = policies;
+        this.coverages = coverages;
+        this.transactions = transactions;
+        this.accounts = accounts;
         this.ledger = ledger;
         this.today = today;
     }
@@ -66,46 +74,25 @@ public class IssuePolicyService {
         String ownerEmail = AccountService.trim(cmd.ownerEmail());
         long customerId;
         try {
-            customerId = jdbc.sql("""
-                    insert into customers (legal_name, business_description, owner_name, owner_email)
-                    values (?, ?, ?, ?) returning id""")
-                    .params(legalName, cmd.businessDescription().strip(), ownerName, ownerEmail)
-                    .query(Long.class).single();
+            customerId = customers.insert(legalName, cmd.businessDescription().strip(), ownerName, ownerEmail);
             // The owner's account waits with their email and no password until they sign up (real-sign-in AC4).
-            jdbc.sql("""
-                    insert into app_users (role, display_name, subtitle, customer_id, email)
-                    values ('POLICYHOLDER', ?, ?, ?, ?)""")
-                    .params(ownerName, "Owner, " + legalName, customerId, AccountService.normalize(ownerEmail)).update();
+            accounts.createWaitingOwner(ownerName, legalName, customerId, ownerEmail);
         } catch (DuplicateKeyException e) {
             // A concurrent issue, or an account (a broker's) that took this email after validation.
             throw new ValidationException(Map.of("ownerEmail", EMAIL_TAKEN));
         }
 
-        var policy = jdbc.sql("""
-                insert into policies (policy_number, customer_id, start_date, end_date)
-                values ('GL-' || ? || '-' || lpad(nextval('policy_number_seq')::text, 4, '0'), ?, ?, ?)
-                returning id, policy_number""")
-                .params(plan.start().getYear(), customerId, plan.start(), plan.end())
-                .query((rs, n) -> Map.entry(rs.getLong("id"), rs.getString("policy_number"))).single();
-        long policyId = policy.getKey();
-
-        var tx = jdbc.sql("""
-                insert into policy_transactions (policy_id, type, effective_date, recorded_on, created_by)
-                values (?, 'ISSUE', ?, ?, ?) returning id, display_id""")
-                .params(policyId, plan.start(), recordedOn, brokerUserId)
-                .query((rs, n) -> Map.entry(rs.getLong("id"), rs.getString("display_id"))).single();
+        PolicyRepository.Created policy = policies.insert(customerId, plan.start(), plan.end());
+        long policyId = policy.id();
+        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ISSUE", plan.start(), recordedOn, brokerUserId);
 
         List<NewEntry> entries = new ArrayList<>();
         for (IssuePlan.Line line : plan.lines()) {
-            long coverageId = jdbc.sql("""
-                    insert into coverages (policy_id, kind, annual_premium_cents, effective_from, effective_to)
-                    values (?, ?, ?, ?, ?) returning id""")
-                    .params(policyId, line.kind().name(), line.calc().annualCents(), line.from(), line.to())
-                    .query(Long.class).single();
+            long coverageId = coverages.insert(policyId, line.kind(), line.calc().annualCents(), line.from(), line.to());
             entries.add(NewEntry.charge(recordedOn, line.description(), coverageId, line.calc(), line.from(), line.to()));
         }
-        List<PostedEntry> posted = ledger.post(policyId, tx.getKey(), entries);
-        return new Issued(policyId, policy.getValue(), tx.getValue(), posted, plan.totalCents());
+        List<PostedEntry> posted = ledger.post(policyId, tx.id(), entries);
+        return new Issued(policyId, policy.policyNumber(), tx.displayId(), posted, plan.totalCents());
     }
 
     private IssuePlan plan(LocalDate start, boolean productLiability) {
@@ -143,10 +130,7 @@ public class IssuePolicyService {
 
     /** One email belongs to one person, so sign-up knows whose policy it claims (real-sign-in AC6). */
     private boolean emailTaken(String email) {
-        return jdbc.sql("""
-                select exists (select 1 from customers where lower(owner_email) = lower(?))
-                    or exists (select 1 from app_users where email = ?)""")
-                .params(email, AccountService.normalize(email)).query(Boolean.class).single();
+        return customers.ownerEmailExists(email) || accounts.emailInUse(email);
     }
 
     private static void text(String value, String field, String message, Map<String, String> errors) {

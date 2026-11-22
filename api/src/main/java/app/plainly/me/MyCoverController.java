@@ -5,7 +5,7 @@ import app.plainly.auth.SignedInUser;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.StripeGateway;
 import app.plainly.common.NotFoundException;
-import app.plainly.policy.PolicyQueries;
+import app.plainly.policy.PolicyService;
 import app.plainly.policy.PolicyViews;
 import java.time.LocalDate;
 import java.util.List;
@@ -18,12 +18,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class MyCoverController {
 
-    private final PolicyQueries policies;
+    private final PolicyService policies;
     private final JdbcClient jdbc;
     private final PaymentService payments;
     private final StripeGateway stripe;
 
-    MyCoverController(PolicyQueries policies, JdbcClient jdbc, PaymentService payments, StripeGateway stripe) {
+    MyCoverController(PolicyService policies, JdbcClient jdbc, PaymentService payments, StripeGateway stripe) {
         this.policies = policies;
         this.jdbc = jdbc;
         this.payments = payments;

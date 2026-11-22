@@ -11,19 +11,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/broker/policies")
 class BrokerPolicyController {
 
-    private final PolicyQueries queries;
+    private final PolicyService policies;
 
-    BrokerPolicyController(PolicyQueries queries) {
-        this.queries = queries;
+    BrokerPolicyController(PolicyService policies) {
+        this.policies = policies;
     }
 
     @GetMapping
     List<PolicyViews.ListRow> list() {
-        return queries.list();
+        return policies.list();
     }
 
     @GetMapping("/{id}")
     PolicyViews.Detail detail(@PathVariable long id) {
-        return queries.detail(id);
+        return policies.detail(id);
     }
 }

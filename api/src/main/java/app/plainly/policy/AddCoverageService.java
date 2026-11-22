@@ -14,7 +14,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,13 +30,18 @@ public class AddCoverageService {
     private static final DateTimeFormatter LONG = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US);
     private static final DateTimeFormatter SHORT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
 
-    private final JdbcClient jdbc;
+    private final PolicyRepository policies;
+    private final CoverageRepository coverages;
+    private final PolicyTransactionRepository transactions;
     private final LedgerPostingService ledger;
     private final LedgerQueryService balances;
     private final Today today;
 
-    public AddCoverageService(JdbcClient jdbc, LedgerPostingService ledger, LedgerQueryService balances, Today today) {
-        this.jdbc = jdbc;
+    public AddCoverageService(PolicyRepository policies, CoverageRepository coverages, PolicyTransactionRepository transactions,
+            LedgerPostingService ledger, LedgerQueryService balances, Today today) {
+        this.policies = policies;
+        this.coverages = coverages;
+        this.transactions = transactions;
         this.ledger = ledger;
         this.balances = balances;
         this.today = today;
@@ -68,19 +72,11 @@ public class AddCoverageService {
         AddCoveragePlan plan = plan(policy, cmd.kind(), cmd.startDate());
         LocalDate recordedOn = today.date();
 
-        var tx = jdbc.sql("""
-                insert into policy_transactions (policy_id, type, effective_date, recorded_on, created_by)
-                values (?, 'ADD_COVERAGE', ?, ?, ?) returning id, display_id""")
-                .params(policyId, plan.from(), recordedOn, brokerUserId)
-                .query((rs, n) -> Map.entry(rs.getLong("id"), rs.getString("display_id"))).single();
-        long coverageId = jdbc.sql("""
-                insert into coverages (policy_id, kind, annual_premium_cents, effective_from, effective_to)
-                values (?, ?, ?, ?, ?) returning id""")
-                .params(policyId, plan.kind().name(), plan.calc().annualCents(), plan.from(), plan.to())
-                .query(Long.class).single();
-        List<PostedEntry> posted = ledger.post(policyId, tx.getKey(),
+        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ADD_COVERAGE", plan.from(), recordedOn, brokerUserId);
+        long coverageId = coverages.insert(policyId, plan.kind(), plan.calc().annualCents(), plan.from(), plan.to());
+        List<PostedEntry> posted = ledger.post(policyId, tx.id(),
                 List.of(NewEntry.charge(recordedOn, plan.label(), coverageId, plan.calc(), plan.from(), plan.to())));
-        return new Added(policyId, tx.getValue(), posted, plan.totalCents(), balances.balance(policyId));
+        return new Added(policyId, tx.displayId(), posted, plan.totalCents(), balances.balance(policyId));
     }
 
     /**
@@ -90,16 +86,9 @@ public class AddCoverageService {
      * waited for committed. Run after the lock is held, it sees that cover.
      */
     private PolicyTerm load(long policyId, boolean lock) {
-        PolicyTerm policy = jdbc.sql("select id, status, start_date, end_date from policies where id = ?"
-                        + (lock ? " for update" : ""))
-                .param(policyId)
-                .query((rs, n) -> new PolicyTerm(rs.getLong(1), rs.getString(2), rs.getObject(3, LocalDate.class),
-                        rs.getObject(4, LocalDate.class), false))
-                .optional()
+        PolicyRepository.Term policy = policies.findTerm(policyId, lock)
                 .orElseThrow(() -> new NotFoundException("There's no policy with that id."));
-        boolean hasProductLiability = jdbc.sql(
-                        "select exists (select 1 from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY')")
-                .param(policyId).query(Boolean.class).single();
+        boolean hasProductLiability = coverages.exists(policyId, CoverKind.PRODUCT_LIABILITY);
         return new PolicyTerm(policy.id(), policy.status(), policy.start(), policy.end(), hasProductLiability);
     }
 

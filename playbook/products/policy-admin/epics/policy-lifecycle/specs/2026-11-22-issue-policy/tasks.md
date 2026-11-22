@@ -16,7 +16,7 @@
 - [x] T4 `pricing.ProRata`: end-exclusive days, one HALF_UP step, `long` cents; tests first (full year, leap term, 1 day, 321 and 328 days for $730)
 - [x] T5 Flyway `V1__init.sql`: app_users, customers, policies, coverages, policy_transactions, ledger_entries, display-id sequences; seed broker Sam Reyes
 - [x] T6 Flyway `V2__ledger_append_only.sql`: trigger rejecting UPDATE/DELETE on ledger_entries; Testcontainers test proving both are refused (AC7)
-- [ ] T7 `ledger.LedgerPoster` (insert only) and `LedgerQueries` (lines with running balance, balance per policy); tests first
+- [x] T7 `ledger.LedgerPoster` (insert only) and `LedgerQueries` (lines with running balance, balance per policy); tests first
 
 ## Issue a policy (API)
 

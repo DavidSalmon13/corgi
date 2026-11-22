@@ -278,6 +278,25 @@ class StatementServiceTest {
     }
 
     @Test
+    void aPaymentSentLateInTheEveningIsDatedByTheNewYorkDayNotTheUtcDay() throws Exception {
+        Paid paid = paid("Late Evening Bakery LLC");
+        long id = paid.owner().policyId();
+        correct(id, OCT_8);
+        Started waiting = paymentWaiting(paid.owner());
+        // 9pm in New York on Nov 22 is already 2am on Nov 23 in UTC.
+        jdbc.sql("update payments set created_at = ? where id = ?")
+                .param(java.sql.Timestamp.from(java.time.Instant.parse("2026-11-23T02:00:00Z")))
+                .param(waiting.paymentId())
+                .update();
+
+        Row r = pending(service.forPolicy(id)).getFirst();
+
+        assertThat(r.date()).isEqualTo(TODAY);
+        assertThat(r.trace().money().date()).isEqualTo(TODAY);
+        assertThat(r.trace().cause().recordedOn()).isEqualTo(TODAY);
+    }
+
+    @Test
     void anUnsettledRefundIsAPendingRowOutsideTheBalance() throws Exception {
         long id = paid("Pending Refund Bakery LLC").owner().policyId();
         CorrectCoverageService.Corrected saved = correct(id, OCT_22);

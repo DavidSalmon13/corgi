@@ -3,6 +3,9 @@
 > Epic: statement-history
 > Spec: 2026-11-22-statement
 > Branch: feat/statement-history/statement
+> PR: https://github.com/DavidSalmon13/corgi/pull/55
+> Reviewed: 2026-11-22 APPROVE
+> SecurityReviewed: 2026-11-22 APPROVE
 
 ## Statement API
 
@@ -24,4 +27,4 @@
 ## Verification
 
 - [x] T9 Run both suites with coverage on the changed files (testing skill)
-- [ ] T10 Run QA against AC1–AC10, incl. the Oct 15 → Oct 8 scenario and a live re-correction, at 1280 px light and 390 px dark (qa skill)
+- [x] T10 Run QA against AC1–AC10, incl. the Oct 15 → Oct 8 scenario and a live re-correction, at 1280 px light and 390 px dark (qa skill)

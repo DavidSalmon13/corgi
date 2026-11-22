@@ -350,3 +350,83 @@ export type Cancellation = {
   cardLast4: string | null;
   settledOn: IsoDate | null;
 };
+
+// --- statement.MyStatementController, from GET /api/me/statement (P3, P4) ---
+
+export type BannerState = 'OWES' | 'PAYMENT_WAITING' | 'REFUND_WAITING' | 'PAID_UP';
+export type MoneyStatus = 'PAID' | 'DECLINED' | 'WAITING' | 'REFUND_SENT' | 'REFUND_ON_ITS_WAY';
+export type RefKind = 'CHANGE' | 'LINE' | 'UNDOES' | 'STRIPE_PAYMENT' | 'REFUND' | 'STRIPE_REFUND' | 'STRIPE_EVENT';
+
+/** The numbers behind an amount: by the day for charges, credits and reversals; balance before → after for money. */
+export type StatementMaths = {
+  annualCents: number | null;
+  days: number | null;
+  termDays: number | null;
+  from: IsoDate | null;
+  to: IsoDate | null;
+  resultCents: number;
+  /** A reversal: these are the undone line's numbers, with the sign flipped. */
+  undoes: boolean;
+  balanceBeforeCents: number | null;
+  balanceAfterCents: number | null;
+};
+
+/** What caused a row: the policy change (null type for a payment) and who made it. */
+export type StatementCause = {
+  transactionType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | string | null;
+  effectiveDate: IsoDate | null;
+  recordedOn: IsoDate | null;
+  actorName: string | null;
+  reason: string | null;
+  oldStart: IsoDate | null;
+  newStart: IsoDate | null;
+};
+
+export type StatementTrace = {
+  kind: EntryType;
+  maths: StatementMaths;
+  cause: StatementCause;
+  money: { cardLast4: string | null; date: IsoDate; status: MoneyStatus } | null;
+  refs: { kind: RefKind; id: string }[];
+};
+
+export type StatementRow = {
+  /** LE-… for a ledger line; the payment or refund id for a pending row. */
+  id: string;
+  kind: EntryType;
+  date: IsoDate;
+  title: string;
+  amountCents: number;
+  balanceAfterCents: number;
+  /** Money on its way: shown, but not counted in the balance. */
+  pending: boolean;
+  status: MoneyStatus | null;
+  undoneOn: IsoDate | null;
+  correctionId: string | null;
+  trace: StatementTrace;
+};
+
+export type StatementCorrection = {
+  transactionDisplayId: string;
+  recordedOn: IsoDate;
+  oldStart: IsoDate;
+  newStart: IsoDate;
+  /** Positive when cover now starts earlier (more days). */
+  dayDelta: number;
+  netCents: number;
+  /** Only when the yearly price divides into whole cents a day. */
+  perDayCents: number | null;
+  reason: string | null;
+  actorName: string | null;
+  originalLineId: string;
+  reversalLineId: string;
+  rebillLineId: string;
+};
+
+export type Statement = {
+  header: { businessName: string; policyNumber: string; balanceCents: number };
+  banner: { state: BannerState; amountCents: number; dueReason: DueReason | null; cardLast4: string | null };
+  rows: StatementRow[];
+  corrections: StatementCorrection[];
+  today: IsoDate;
+};

@@ -9,6 +9,7 @@ import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
 import { CancellationPage } from './pages/me/CancellationPage';
 import { HomePage } from './pages/me/HomePage';
 import { PayPage } from './pages/me/PayPage';
+import { StatementPage } from './pages/me/StatementPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 
@@ -63,6 +64,14 @@ export function App() {
         element={
           <RequireRole role="POLICYHOLDER">
             <CancellationPage />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/me/statement"
+        element={
+          <RequireRole role="POLICYHOLDER">
+            <StatementPage />
           </RequireRole>
         }
       />

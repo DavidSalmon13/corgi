@@ -12,6 +12,7 @@ import app.plainly.IntegrationTest;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;
 import jakarta.servlet.http.Cookie;
+import java.net.URI;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -108,5 +109,27 @@ class DemoAuthTest {
         int holder = mvc.perform(get("/api/me/no-such-route").cookie(as(policyholderId))).andReturn().getResponse().getStatus();
         assertThat(broker).isNotIn(401, 403);
         assertThat(holder).isNotIn(401, 403);
+    }
+
+    @Test
+    void pathParametersAndEncodedCharactersDoNotSlipPastTheGuard() throws Exception {
+        for (String path : new String[] {"/api/broker;x/policies", "/api;x/broker/policies", "/api/%62roker/policies",
+                "/api/broker/policies;x"}) {
+            int signedOut = mvc.perform(get(URI.create(path))).andReturn().getResponse().getStatus();
+            int asHolder = mvc.perform(get(URI.create(path)).cookie(as(policyholderId))).andReturn().getResponse().getStatus();
+            assertThat(signedOut).as("signed out, " + path).isEqualTo(401);
+            assertThat(asHolder).as("policyholder, " + path).isEqualTo(403);
+        }
+        mvc.perform(post(URI.create("/api/broker;x/policies")).cookie(as(policyholderId))
+                .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
+        mvc.perform(get(URI.create("/api/me;x/cover")).cookie(as(brokerId))).andExpect(status().isForbidden());
+        mvc.perform(get(URI.create("/api/%6De/cover")).cookie(as(brokerId))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unknownApiRoutesNeedASessionButHealthAndSignInDoNot() throws Exception {
+        mvc.perform(get("/api/no-such-area")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/health")).andExpect(status().isOk());
+        mvc.perform(get("/api/demo/users")).andExpect(status().isOk());
     }
 }

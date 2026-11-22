@@ -22,18 +22,16 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-/** The signed-in demo user, or null when nobody is signed in. */
+/** The signed-in demo user, or null when nobody is signed in (401). Any other failure is a real error. */
+export async function fetchSession(): Promise<DemoUser | null> {
+  try {
+    return await api<DemoUser>('/api/demo/session');
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return null;
+    throw e;
+  }
+}
+
 export function useSession() {
-  return useQuery({
-    queryKey: ['session'],
-    queryFn: async () => {
-      try {
-        return await api<DemoUser>('/api/demo/session');
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 401) return null;
-        throw e;
-      }
-    },
-    staleTime: Infinity,
-  });
+  return useQuery({ queryKey: ['session'], queryFn: fetchSession, staleTime: Infinity });
 }

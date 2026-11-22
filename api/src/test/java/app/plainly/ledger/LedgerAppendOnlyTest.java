@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
+// covers AC7, T6
 /** AC7: the database itself refuses to change or remove a ledger line. */
 @IntegrationTest
 class LedgerAppendOnlyTest {

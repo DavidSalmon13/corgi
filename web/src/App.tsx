@@ -1,6 +1,7 @@
-import { Link, Route, Routes } from 'react-router';
+import { Route, Routes } from 'react-router';
 import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
+import { SignOutButton } from './components/SignOutButton';
 import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
@@ -13,9 +14,7 @@ function Soon() {
   return (
     <div className="px-5 py-10">
       <p className="text-ink-2">This page is on its way.</p>
-      <Link to="/signin" className="mt-2 inline-block font-semibold">
-        Switch person
-      </Link>
+      <SignOutButton className="mt-2 -ml-2" />
     </div>
   );
 }

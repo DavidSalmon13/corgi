@@ -1,5 +1,6 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 import { useSession } from '../api/client';
+import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 
 const link = ({ isActive }: { isActive: boolean }) =>
@@ -28,9 +29,7 @@ export function BrokerShell() {
           </nav>
           <span className="flex-1" />
           {who && <span className="text-[15px] text-ink-2">{who}</span>}
-          <Link to="/signin" className="text-[15px] font-semibold">
-            Switch person
-          </Link>
+          <SignOutButton />
           <ThemeToggle />
         </div>
       </header>

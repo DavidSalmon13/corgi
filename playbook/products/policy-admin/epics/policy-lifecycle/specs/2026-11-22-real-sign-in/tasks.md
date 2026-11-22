@@ -25,7 +25,7 @@
 - [x] T11 `client.ts` + `types.ts`: `/api/auth/session`, `SignedInUser`; update `client.test.ts`
 - [x] T12 Rebuild `SignIn.tsx` as an email/password form with the Demo accounts box (AC1, AC2, AC12)
 - [x] T13 New `SignUp.tsx` + `/signup` route with field errors (AC3–AC5)
-- [ ] T14 Sign-out calls `DELETE /api/auth/session` and clears the cache (AC8); B3 shows the owner's signed-up status (AC11); B2 shows the duplicate email error (AC6)
+- [x] T14 Sign-out calls `DELETE /api/auth/session` and clears the cache (AC8); B3 shows the owner's signed-up status (AC11); B2 shows the duplicate email error (AC6)
 
 ## Docs
 

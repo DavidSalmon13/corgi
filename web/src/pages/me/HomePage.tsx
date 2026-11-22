@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
 import { api, ApiError, useSession } from '../../api/client';
 import type { MyCover } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
 import { Mark } from '../../components/Mark';
+import { SignOutButton } from '../../components/SignOutButton';
 import { Money } from '../../components/Money';
 import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
@@ -28,13 +28,16 @@ function Header({ name }: { name?: string }) {
     <header className="flex items-center justify-between px-5 py-3.5">
       <span className="text-xl font-bold tracking-[-0.01em]">Plainly</span>
       {name && (
-        <Link
-          to="/signin"
-          aria-label={`Account: ${name}. Switch person`}
-          className="flex size-11 items-center justify-center rounded-full bg-track text-[15px] font-bold text-ink no-underline hover:text-ink"
-        >
-          {initials(name)}
-        </Link>
+        <div className="flex items-center gap-2">
+          <SignOutButton />
+          <span
+            role="img"
+            aria-label={`Signed in as ${name}`}
+            className="flex size-11 items-center justify-center rounded-full bg-track text-[15px] font-bold text-ink"
+          >
+            {initials(name)}
+          </span>
+        </div>
       )}
     </header>
   );

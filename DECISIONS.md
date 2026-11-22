@@ -136,3 +136,19 @@ The code and security reviews of the collect-premium PRs found ways money could 
 ## 2026-11-22: Add coverage: where the "can't add" errors go, and test-first skeletons
 
 A 422 from adding cover puts each message under the field it belongs to: date problems under `startDate`, and both "Pick a cover to add." and "This policy already has product liability cover." under `kind`, because the Cover select is where the broker would fix them. A cancelled policy has no field to fix, so its message goes under `policy`, and B4 shows it with a link back instead of the form. Dates in messages read like the design ("Sep 1, 2027"), and the ledger line uses the short form ("Extra cover from Oct 15"). The failing-first service tests call `AddCoverageService` directly, so T1 adds the two plain records and a service whose methods throw "not built yet". That way the API suite still compiles and every new test fails for the right reason until T4 and T5 fill it in.
+
+## 2026-11-22: Extra cover may start any day in the cover period, including the past
+
+A broker can start the extra cover on any day from the policy start up to the day before it ends, and that includes days already gone. Brokers often record cover the customer asked for days or weeks ago, and a policy may be issued with a back-dated start, so refusing past dates would just push them to pick a wrong date. The charge covers the days from the chosen start to the policy end, so an earlier start costs more, and B4 shows that before anything is saved. The start date defaults to today when today is in the cover period, otherwise to the policy start. A real insurer usually asks for a statement that there have been no claims since a back-dated start; that check is out of scope here.
+
+## 2026-11-22: One extra cover per policy, enforced under a row lock rather than a unique index
+
+There's only one add-on product, and a policy can have it once. `AddCoverageService.add` locks the policy row (`select … for update`) and checks again for an existing product liability cover before inserting. Two brokers saving at the same moment therefore give one coverage and one charge, and the second gets "This policy already has product liability cover." I didn't add a unique index on (policy, kind) because correct-effective-date will close a coverage row and open a new one of the same kind when a start date is fixed. Collect-premium's payment code locks the same row, so adding cover during a checkout just leads to a new payment for the new balance.
+
+## 2026-11-22: The daily price appears only when it's exact
+
+B4's option label and the "Customer will see" sentence give a daily price ("at $2.00 a day") only when the yearly price divides into whole cents by the days in the policy year. $730.00 over 365 days is exactly $2.00, but over a 366-day leap-year term it's $1.9945…, and showing "$1.99 a day" next to a total of 290 × $1.9945 would look like an arithmetic slip. In that case the sentence keeps the days and the total and leaves the per-day clause out, while the calculation line still shows the full "yearly price × days ÷ days in the policy year".
+
+## 2026-11-22: The "Extra cover added" banner is shown once
+
+After saving, B4 passes the banner text to B3 in router state, rather than as a query parameter or in storage. B3 reads it once and then replaces the history entry without it, so reloading the page or coming back to it doesn't announce the change a second time. The broker can also hide it. The banner's amount comes from the save response and B3 refetches the policy, so the two match unless another change lands in between.

@@ -18,9 +18,20 @@ export function coverOptionLabel(annualCents: number, termDays: number): string 
   return `Product liability (${formatCents(annualCents)} a year${daily})`;
 }
 
-/** "$730.00 × 321 ÷ 365 · charged by the day": the yearly price × days covered ÷ days in the policy year. */
+/** "$730.00 × 321 ÷ 365": the yearly price × days covered ÷ days in the policy year. */
+export function calcArithmetic(calc: ChargeCalc): string {
+  return `${formatCents(calc.annualCents)} × ${calc.days} ÷ ${calc.termDays}`;
+}
+
+/** "$730.00 × 321 ÷ 365 · charged by the day" */
 export function calcLine(calc: ChargeCalc): string {
-  return `${formatCents(calc.annualCents)} × ${calc.days} ÷ ${calc.termDays} · charged by the day`;
+  return `${calcArithmetic(calc)} · charged by the day`;
+}
+
+/** "What this does to Maya's bill" */
+export function billHeading(ownerName: string): string {
+  const who = firstName(ownerName);
+  return `What this does to ${who ? `${who}'s` : "the customer's"} bill`;
 }
 
 /** The sentence the customer will read. The daily price appears only when it's exact, so the numbers always add up. */

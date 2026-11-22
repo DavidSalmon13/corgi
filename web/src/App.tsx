@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router';
 import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
 import { SignOutButton } from './components/SignOutButton';
+import { ChangePolicyPage } from './pages/broker/ChangePolicyPage';
 import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
@@ -37,6 +38,7 @@ export function App() {
         <Route path="policies" element={<PoliciesPage />} />
         <Route path="policies/new" element={<NewPolicyPage />} />
         <Route path="policies/:id" element={<PolicyWorkspace />} />
+        <Route path="policies/:id/change" element={<ChangePolicyPage />} />
         <Route path="*" element={<Soon />} />
       </Route>
       <Route

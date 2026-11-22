@@ -3,6 +3,8 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-add-coverage
 > Branch: feat/policy-lifecycle/add-coverage
+> PR: https://github.com/DavidSalmon13/corgi/pull/46 (stack #42–#46, base #42 → dev)
+> Reviewed: 2026-11-22 · code-reviewer · REQUEST CHANGES → HIGH (double add under the lock) and MEDIUM (save without a price) fixed; P1 reason-line MEDIUM open as a product question
 
 ## Tests first (TDD)
 
@@ -20,15 +22,15 @@
 ## Web
 
 - [x] T8 `types.ts` additions + `lib/addCoverCopy.ts`; `myCoverCopy.ts` EXTRA_COVER text
-- [ ] T9 `ChangePolicyPage.tsx` (B4 Add cover tab) + `policies/:id/change` route in App.tsx (AC2, AC3, AC4, AC8)
-- [ ] T10 `PolicyWorkspace.tsx`: Add cover button and saved banner (AC1, AC6)
-- [ ] T11 Widen `jargon.test.ts` to the lib copy helpers (AC12)
+- [x] T9 `ChangePolicyPage.tsx` (B4 Add cover tab) + `policies/:id/change` route in App.tsx (AC2, AC3, AC4, AC8)
+- [x] T10 `PolicyWorkspace.tsx`: Add cover button and saved banner (AC1, AC6)
+- [x] T11 Widen `jargon.test.ts` to the lib copy helpers (AC12)
 
 ## Docs
 
-- [ ] T12 DECISIONS.md: an add-on may start any day in the cover period, including the past; one extra cover per policy, enforced under a row lock (no unique index, for corrections); per-day shown only when exact
+- [x] T12 DECISIONS.md: an add-on may start any day in the cover period, including the past; one extra cover per policy, enforced under a row lock (no unique index, for corrections); per-day shown only when exact
 
 ## Verification
 
-- [ ] T13 Run the test suites and coverage on changed files (testing skill)
-- [ ] T14 Run QA against acceptance criteria (qa skill)
+- [x] T13 Run the test suites and coverage on changed files (testing skill)
+- [x] T14 Run QA against acceptance criteria (qa skill)

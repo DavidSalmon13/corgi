@@ -1,72 +1,159 @@
-import type { Corrected, CorrectionPlan, RefundView } from '../api/types';
-import type { IsoDate } from './dates';
+import type { Corrected, CorrectionPlan, PlannedRefund, RefundView } from '../api/types';
+import { calcArithmetic } from './addCoverCopy';
+import { formatShortDate, type IsoDate } from './dates';
+import { formatCents } from './money';
 
 // What the broker reads on B4's Correct tab and B3 after a correction, and the one sentence the customer gets.
-// Test-first skeleton (T3): T11 writes the words. Every function throws until then.
+// The customer never reads "reversal" or "effective date": the undo and the corrected line are said in days and dollars.
 
-function notBuilt(): never {
-  throw new Error('not built yet (T11)');
+function firstName(ownerName: string): string | null {
+  return ownerName.trim().split(/\s+/)[0] || null;
+}
+
+/** The daily price, only when the yearly price divides into whole cents ($730.00 over 365 days is $2.00). */
+function perDayCents(annualCents: number, termDays: number): number | null {
+  return annualCents % termDays === 0 ? annualCents / termDays : null;
+}
+
+/** "7 more days × $2.00", "1 fewer day", or "7 more days" when the daily price isn't a whole number of cents. */
+function dayChange(plan: CorrectionPlan): string {
+  const diff = plan.rebill.calc.days - plan.undo.calc.days;
+  if (diff === 0) return 'same number of days';
+  const n = Math.abs(diff);
+  const words = `${n} ${diff > 0 ? 'more' : 'fewer'} ${n === 1 ? 'day' : 'days'}`;
+  const perDay = perDayCents(plan.rebill.calc.annualCents, plan.rebill.calc.termDays);
+  return perDay === null ? words : `${words} × ${formatCents(perDay)}`;
+}
+
+function last4s(refunds: PlannedRefund[]): string[] {
+  return [...new Set(refunds.map((r) => r.cardLast4).filter((c): c is string => !!c))];
+}
+
+/** "card ending 4242", "cards ending 0005 and 4242", or "the card" when we don't know it. */
+function cardPhrase(refunds: PlannedRefund[]): string {
+  const cards = last4s(refunds);
+  if (cards.length === 0) return 'the card';
+  if (cards.length === 1) return `card ending ${cards[0]}`;
+  return `cards ending ${cards.slice(0, -1).join(', ')} and ${cards[cards.length - 1]}`;
 }
 
 /** "Extra cover · Product liability ($730.00 a year)": which cover is being corrected. */
-export function correctingWhich(_annualCents: number): string {
-  return notBuilt();
+export function correctingWhich(annualCents: number): string {
+  return `Extra cover · Product liability (${formatCents(annualCents)} a year)`;
 }
 
 /** "Undo: extra cover from Oct 15 · $730.00 × 321 ÷ 365 · −$642.00" */
-export function undoLine(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function undoLine(plan: CorrectionPlan): string {
+  return `Undo: extra cover from ${formatShortDate(plan.oldStart)} · ${calcArithmetic(plan.undo.calc)} · ${formatCents(plan.undo.amountCents)}`;
 }
 
 /** "Corrected: extra cover from Oct 8 · $730.00 × 328 ÷ 365 · +$656.00" */
-export function correctedLine(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function correctedLine(plan: CorrectionPlan): string {
+  const amount = formatCents(plan.rebill.calc.amountCents, { signed: true });
+  return `Corrected: extra cover from ${formatShortDate(plan.newStart)} · ${calcArithmetic(plan.rebill.calc)} · ${amount}`;
 }
 
 /** "+$14.00 (7 more days × $2.00)" */
-export function netChange(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function netChange(plan: CorrectionPlan): string {
+  return `${formatCents(plan.netCents, { signed: true })} (${dayChange(plan)})`;
 }
 
 /** "7 more days × $2.00 · −$642.00 + $656.00": how the net change adds up. */
-export function netWhy(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function netWhy(plan: CorrectionPlan): string {
+  return `${dayChange(plan)} · ${formatCents(plan.undo.amountCents)} + ${formatCents(plan.rebill.calc.amountCents)}`;
 }
 
 /** The sentence the customer reads about this correction. */
-export function customerWillSeeCorrection(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function customerWillSeeCorrection(plan: CorrectionPlan): string {
+  const why = 'because we fixed when your extra cover started.';
+  if (plan.netCents > 0) return `You owe ${formatCents(plan.netCents)} ${why}`;
+  if (plan.refunds.length > 0) {
+    const cards = last4s(plan.refunds);
+    const where = cards.length === 0 ? 'your card' : `your ${cardPhrase(plan.refunds)}`;
+    return `We owe you ${formatCents(plan.refundTotalCents)}. It's on its way to ${where}.`;
+  }
+  if (plan.netCents < 0) return `You owe ${formatCents(-plan.netCents)} less ${why}`;
+  return `What you owe stays the same; we fixed when your extra cover started.`;
 }
 
 /** What happens to the money when the broker saves: added to the balance, or refunded. */
-export function settleLine(_plan: CorrectionPlan, _ownerName: string): string {
-  return notBuilt();
+export function settleLine(plan: CorrectionPlan, ownerName: string): string {
+  const who = firstName(ownerName);
+  if (plan.netCents > 0) {
+    return `Added to ${who ? `${who}'s` : "the customer's"} balance. ${who ?? 'The customer'} is asked to pay it; no card is charged automatically.`;
+  }
+  if (plan.refunds.length > 0) {
+    const refunded = `${formatCents(plan.refundTotalCents)} is refunded to ${cardPhrase(plan.refunds)} through Stripe as soon as you save.`;
+    const paysOff = -plan.netCents - plan.refundTotalCents;
+    return paysOff > 0
+      ? `${formatCents(paysOff)} pays off what ${who ?? 'the customer'} still owes, and ${refunded}`
+      : `Nothing is owed, so the ${refunded}`;
+  }
+  if (plan.netCents < 0) return `Taken off what ${who ?? 'the customer'} still owes. Nothing is refunded.`;
+  return 'The balance stays the same.';
 }
 
 /** "Save correction", or "Save and refund $14.00" when money goes back to a card. */
-export function correctSaveLabel(_plan: CorrectionPlan): string {
-  return notBuilt();
+export function correctSaveLabel(plan: CorrectionPlan): string {
+  return plan.refundTotalCents > 0 ? `Save and refund ${formatCents(plan.refundTotalCents)}` : 'Save correction';
 }
 
 /** The confirm dialog: what changes, then the three amounts. */
-export function confirmSummary(_plan: CorrectionPlan, _ownerName: string): { sentence: string; amounts: string } {
-  return notBuilt();
+export function confirmSummary(plan: CorrectionPlan, ownerName: string): { sentence: string; amounts: string } {
+  const who = firstName(ownerName);
+  const moved = `Product liability will start on ${formatShortDate(plan.newStart)} instead of ${formatShortDate(plan.oldStart)}.`;
+  let money: string;
+  if (plan.refunds.length > 0) {
+    money = `${formatCents(plan.refundTotalCents)} goes back to ${cardPhrase(plan.refunds)} and ${who ?? 'the customer'} sees your reason word for word.`;
+  } else if (plan.netCents !== 0) {
+    const change = `${formatCents(Math.abs(plan.netCents))} ${plan.netCents > 0 ? 'more' : 'less'}`;
+    money = `${who ?? 'The customer'} will owe ${change} and see your reason word for word.`;
+  } else {
+    money = `${who ?? 'The customer'} will see your reason word for word.`;
+  }
+  return {
+    sentence: `${moved} ${money}`,
+    amounts: [
+      `Undo ${formatCents(plan.undo.amountCents)}`,
+      `Corrected ${formatCents(plan.rebill.calc.amountCents, { signed: true })}`,
+      `Net ${formatCents(plan.netCents, { signed: true })}`,
+    ].join(' · '),
+  };
 }
 
 /** The once-only banner on B3 after saving, and the ids it links. */
-export function correctedBanner(_ownerName: string, _saved: Corrected, _cardLast4: string | null): {
+export function correctedBanner(ownerName: string, saved: Corrected, cardLast4: string | null): {
   message: string;
   refs: string;
 } {
-  return notBuilt();
+  const who = firstName(ownerName);
+  const refs = [
+    `Correction ${saved.transactionDisplayId}`,
+    `undo ${saved.undoDisplayId}`,
+    `corrected line ${saved.rebillDisplayId}`,
+    ...saved.refunds.map((r) => `refund ${r.displayId}`),
+  ].join(' · ');
+  let message: string;
+  if (saved.refunds.length > 0) {
+    const total = saved.refunds.reduce((sum, r) => sum + r.amountCents, 0);
+    const card = cardLast4 ? `card ending ${cardLast4}` : 'card';
+    message = `Saved. ${formatCents(total)} is on its way back to ${who ? `${who}'s` : "the customer's"} ${card}.`;
+  } else if (saved.balanceCents > 0) {
+    message = `Saved. ${who ?? 'The customer'} now owes ${formatCents(saved.balanceCents)} and can see why.`;
+  } else {
+    message = `Saved. ${who ?? 'The customer'} has nothing to pay right now and can see why.`;
+  }
+  return { message, refs };
 }
 
 /** "The $14.00 refund didn't go through. Stripe couldn't send the money to card ending 4242." */
-export function failedRefundText(_refund: RefundView): string {
-  return notBuilt();
+export function failedRefundText(refund: RefundView): string {
+  const card = refund.cardLast4 ? `card ending ${refund.cardLast4}` : 'the card';
+  return `The ${formatCents(refund.amountCents)} refund didn't go through. Stripe couldn't send the money to ${card}.`;
 }
 
 /** B3 timeline: "from Oct 8 · was Oct 15", or "from Oct 8" when the cover was never corrected. */
-export function coverWasLabel(_from: IsoDate, _previousStart: IsoDate | null): string {
-  return notBuilt();
+export function coverWasLabel(from: IsoDate, previousStart: IsoDate | null): string {
+  const now = `from ${formatShortDate(from)}`;
+  return previousStart ? `${now} · was ${formatShortDate(previousStart)}` : now;
 }

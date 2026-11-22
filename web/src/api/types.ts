@@ -59,6 +59,8 @@ export type Coverage = {
   annualPremiumCents: number;
   from: IsoDate;
   to: IsoDate;
+  /** When a correction replaced this cover: the start it had before. Null when it was never corrected. */
+  previousStart?: IsoDate | null;
 };
 
 /** policy.IssuePlan: what issuing would charge, from POST /api/broker/policies/preview. */
@@ -206,7 +208,18 @@ export type PolicyDetail = {
   paymentWaiting: boolean;
   coverages: Coverage[];
   ledger: LedgerLine[];
-  transactions: { displayId: string; type: string; effectiveDate: IsoDate; recordedOn: IsoDate }[];
+  transactions: PolicyTransaction[];
+  /** Money going back to cards, oldest first. */
+  refunds: RefundView[];
+};
+
+/** policy.PolicyViews.Transaction. {@code reason}: the broker's words for a correction, shown as written. */
+export type PolicyTransaction = {
+  displayId: string;
+  type: string;
+  effectiveDate: IsoDate;
+  recordedOn: IsoDate;
+  reason?: string | null;
 };
 
 /** me.MyCoverService: a pending refund as P1 shows it. */
@@ -258,3 +271,6 @@ export type RefundView = {
   stripeRefundId: string | null;
   failureReason: string | null;
 };
+
+/** billing.RefundService.Attempted: where a refund stands after POST /api/broker/refunds/{id}/retry. */
+export type RefundRetried = { id: number; displayId: string; status: RefundStatus; attempt: number };

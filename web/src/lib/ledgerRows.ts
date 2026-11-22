@@ -16,7 +16,7 @@ export type LedgerRow = {
   calcTone: Tone;
   amount: string;
   balance: string;
-  /** Ledger id first, then where it came from: the policy transaction, or the Stripe payment. */
+  /** Ledger id first, then where it came from: the policy transaction, the Stripe payment, or the refund. */
   refs: string[];
   /** The line was later undone by a reversal. It stays visible, struck through. */
   struck: boolean;
@@ -57,7 +57,8 @@ export function toLedgerRows(lines: LedgerLine[]): LedgerRow[] {
     ...calculation(l),
     amount: formatCents(l.amountCents, { signed: true }),
     balance: formatCents(l.balanceAfterCents),
-    refs: [l.displayId, l.policyTransactionDisplayId, l.stripePaymentIntentId].filter((r): r is string => !!r),
+    refs: [l.displayId, l.policyTransactionDisplayId, l.stripePaymentIntentId, l.refundDisplayId, l.stripeRefundId]
+      .filter((r): r is string => !!r),
     struck: l.reversedByDisplayId != null,
     correction: l.policyTransactionDisplayId != null && correctingTx.has(l.policyTransactionDisplayId),
   }));

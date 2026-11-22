@@ -23,7 +23,7 @@
 - [x] T9 B4 Cancel tab: ChangePolicyPage tab + blocked states, CancelPolicyForm (debounced preview, refund pieces, confirm dialog, 422 mapping, Keep the policy)
 - [x] T10 B3 cancelled state: Cancel action, pill/period/balance note, CoverTimeline cancelledFrom, CREDIT rows in ledgerRows (+ ledgerRows.test), saved banner
 - [x] T11 P1 cancelled card variants (refund on its way / refunded / still owes + Pay) and timeline striping in HomePage
-- [ ] T12 P6 CancellationPage at /me/cancellation (used/unused bar, credit lines, kept back, refund pill and Stripe sentence; redirect when not cancelled)
+- [x] T12 P6 CancellationPage at /me/cancellation (used/unused bar, credit lines, kept back, refund pill and Stripe sentence; redirect when not cancelled)
 
 ## Docs
 

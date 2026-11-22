@@ -22,12 +22,25 @@ export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | nul
   }
 }
 
-/** What they're protected for, built from what the business does and whether extra cover is on. */
-export function protectionSentence(businessDescription: string, hasExtra: boolean): string {
+/**
+ * What they're protected for, built from what the business does and whether extra cover is on. On a cancelled policy
+ * it also says when that cover ends, in the past tense once the day has come.
+ */
+export function protectionSentence(
+  businessDescription: string,
+  hasExtra: boolean,
+  cancelled: { endsOn: IsoDate; today: IsoDate } | null = null,
+): string {
   const what = businessDescription.trim();
   const business = what ? `your business (${what.charAt(0).toLowerCase()}${what.slice(1)})` : 'your business';
+  const ended = cancelled != null && cancelled.endsOn <= cancelled.today;
+  if (ended) {
+    const extra = hasExtra ? ', or because of something you sold' : '';
+    return `You were covered if someone was hurt or their property was damaged because of ${business}${extra}. That cover ended on ${formatDate(cancelled.endsOn)}.`;
+  }
   const extra = hasExtra ? ', or because of something you sell' : '';
-  return `You're covered if someone is hurt or their property is damaged because of ${business}${extra}.`;
+  const sentence = `You're covered if someone is hurt or their property is damaged because of ${business}${extra}.`;
+  return cancelled ? `${sentence} That cover ends on ${formatDate(cancelled.endsOn)}.` : sentence;
 }
 
 /** "Sep 1, 2026 – Sep 1, 2027" */
@@ -35,9 +48,10 @@ export function periodLine(start: IsoDate, end: IsoDate): string {
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
-/** "from Oct 8" */
-export function coverDates(from: IsoDate): string {
-  return `from ${formatShortDate(from)}`;
+/** "from Oct 8", or "Sep 1 – Dec 1" when the cover stops early ("Never started" if it stopped before its start). */
+export function coverDates(from: IsoDate, to: IsoDate | null = null): string {
+  if (to && to <= from) return 'Never started';
+  return to ? `${formatShortDate(from)} – ${formatShortDate(to)}` : `from ${formatShortDate(from)}`;
 }
 
 /** P1's "Refund on its way" sentence: how much, and which card it goes back to. */

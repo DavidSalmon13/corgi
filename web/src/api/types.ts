@@ -44,8 +44,11 @@ export type LedgerLine = {
   balanceAfterCents: number;
   /** The Stripe PaymentIntent behind a PAYMENT line (pi_…); null for other lines. */
   stripePaymentIntentId?: string | null;
-  /** The Stripe event that settled a PAYMENT line (evt_…); null for other lines. */
+  /** The Stripe event that settled a PAYMENT or REFUND line (evt_…); null for other lines. */
   stripeEventId?: string | null;
+  /** The refund behind a REFUND line (RF-…) and Stripe's id for it (re_…); null for other lines. */
+  refundDisplayId?: string | null;
+  stripeRefundId?: string | null;
 };
 
 /** policy.PolicyViews.Coverage */
@@ -113,7 +116,7 @@ export type CoverAdded = {
 /** 422 body from ApiErrorHandler. */
 export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
 
-export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CHANGE' | 'NOTHING_DUE';
+export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CORRECTION' | 'CHANGE' | 'NOTHING_DUE';
 
 /** me.MyCoverController.MyCover, from GET /api/me/cover. */
 export type MyCover = {
@@ -124,6 +127,10 @@ export type MyCover = {
   dueReason: DueReason;
   /** The day the newest change after issuing starts; null when nothing has changed. */
   latestChangeFrom: IsoDate | null;
+  /** The broker's reason for the newest change, shown word for word; null when none was given. */
+  latestChangeReason?: string | null;
+  /** Money we owe them that is on its way back to their card; null when no refund is pending. */
+  refundWaiting?: RefundWaiting | null;
   broker: { name: string };
   today: IsoDate;
   /** The latest payment the owner submitted; null before their first one. */
@@ -200,4 +207,54 @@ export type PolicyDetail = {
   coverages: Coverage[];
   ledger: LedgerLine[];
   transactions: { displayId: string; type: string; effectiveDate: IsoDate; recordedOn: IsoDate }[];
+};
+
+/** me.MyCoverService: a pending refund as P1 shows it. */
+export type RefundWaiting = { amountCents: number; cardLast4: string | null };
+
+/** POST /api/broker/policies/{id}/corrections(/preview) body. The date is yyyy-MM-dd; preview ignores the reason. */
+export type CorrectRequest = { startDate: string; reason: string };
+
+/** policy.CorrectionPlan: the undo, the corrected charge and any refund, before anything is saved. */
+export type CorrectionPlan = {
+  policyId: number;
+  coverageId: number;
+  oldStart: IsoDate;
+  newStart: IsoDate;
+  undo: { entryId: number; entryDisplayId: string; label: string; calc: ChargeCalc; amountCents: number };
+  rebill: { label: string; from: IsoDate; to: IsoDate; calc: ChargeCalc };
+  /** Positive: the customer owes more. Negative: we owe them. */
+  netCents: number;
+  balanceAfterCents: number;
+  refunds: PlannedRefund[];
+  refundTotalCents: number;
+};
+
+/** One piece of a refund, against one earlier payment. */
+export type PlannedRefund = { paymentId: number; paymentDisplayId: string; cardLast4: string | null; amountCents: number };
+
+/** policy.CorrectCoverageService.Corrected, the 201 body. */
+export type Corrected = {
+  policyId: number;
+  transactionDisplayId: string;
+  undoDisplayId: string;
+  rebillDisplayId: string;
+  netCents: number;
+  balanceCents: number;
+  refunds: { displayId: string; paymentId: number; amountCents: number }[];
+};
+
+export type RefundStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
+
+/** billing: a refund as B3 lists it. Only a Stripe webhook moves it to SUCCEEDED. */
+export type RefundView = {
+  id: number;
+  displayId: string;
+  status: RefundStatus;
+  amountCents: number;
+  cardLast4: string | null;
+  attempt: number;
+  policyTransactionDisplayId: string | null;
+  stripeRefundId: string | null;
+  failureReason: string | null;
 };

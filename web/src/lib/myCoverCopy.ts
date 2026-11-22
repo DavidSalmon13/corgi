@@ -1,4 +1,4 @@
-import type { DueReason } from '../api/types';
+import type { DueReason, RefundWaiting } from '../api/types';
 import { formatDate, formatShortDate, type IsoDate } from './dates';
 
 /** Why the policyholder owes money, as a short sentence under the amount. */
@@ -10,6 +10,8 @@ export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | nul
       return latestChangeFrom
         ? `Your new extra cover, charged by the day from ${formatShortDate(latestChangeFrom)}.`
         : 'Your new extra cover, charged by the day.';
+    case 'CORRECTION':
+      throw new Error('not built yet (T11)');
     case 'CHANGE':
       return 'A change to your cover left a balance to pay.';
     case 'NOTHING_DUE':
@@ -33,4 +35,9 @@ export function periodLine(start: IsoDate, end: IsoDate): string {
 /** "from Oct 8" */
 export function coverDates(from: IsoDate): string {
   return `from ${formatShortDate(from)}`;
+}
+
+/** P1's "Refund on its way" sentence. Test-first skeleton (T3); T11 writes it. */
+export function refundOnItsWay(_refund: RefundWaiting): string {
+  throw new Error('not built yet (T11)');
 }

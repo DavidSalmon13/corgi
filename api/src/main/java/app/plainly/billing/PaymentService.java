@@ -51,6 +51,10 @@ public class PaymentService {
     /** A payment as P1 shows it. */
     public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
 
+    /** A payment sent to the bank, as the statement traces it: our id, Stripe's intent, the card and where it stands. */
+    public record Sent(String displayId, String intentId, String status, long amountCents, String cardLast4,
+            Instant createdAt) {}
+
     /**
      * Opens (or reopens) a payment for the balance due. The policy row is locked so two tabs can't open two
      * intents at once. Reopening the pay page reuses the open intent while the amount is unchanged.
@@ -159,6 +163,11 @@ public class PaymentService {
      */
     public Optional<PaymentSummary> latestSubmitted(long policyId) {
         return payments.latestSubmitted(policyId);
+    }
+
+    /** Every payment the owner sent to their bank on this policy, oldest first (declined and waiting ones too). */
+    public List<Sent> sentForPolicy(long policyId) {
+        return payments.sentForPolicy(policyId);
     }
 
     /** A payment on the signed-in owner's own policy; anyone else's is "not found", never "forbidden". */

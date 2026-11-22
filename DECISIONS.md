@@ -50,3 +50,7 @@ When a correction reduces what the customer owes (for example, the extra cover's
 ## 2026-11-22: The app is called Plainly
 
 The app has its own name and look so it doesn't copy Corgi's real branding. "Plainly" says what the product promises: insurance explained in plain language. A warm amber accent is the only nod to a corgi. The internal product slug stays `policy-admin`.
+
+## 2026-11-22: The database blocks edits to ledger rows
+
+Append-only is enforced by a Postgres trigger that rejects any UPDATE or DELETE on ledger entries, not by code convention alone. I picked a trigger over restricted grants (a separate app role allowed only INSERT and SELECT) because it works even when the app connects as the schema owner, which is the simple setup on Railway. Corrections therefore have to post a reversal and a rebill. They can't edit the original line, even by mistake.

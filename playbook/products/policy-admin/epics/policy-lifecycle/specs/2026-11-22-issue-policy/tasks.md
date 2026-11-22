@@ -35,7 +35,7 @@
 - [x] T16 B1 Policies (`B1-Policies.dc.html`): table, summary line, All / Owes money chips, empty state
 - [x] T17 B3 Policy workspace (`B3-Workspace.dc.html`): header, status and balance, cover timeline with Today marker, ledger table with references; no action buttons yet
 - [x] T18 P1 Home (`P1-Home.dc.html`, 390 px): amount due and reason, protection sentence, cover period and timeline, broker contact; no Pay button yet
-- [ ] T19 Jargon and fidelity pass: wrap or remove terms (AC11); check dark mode, 390 px and money signs on all five screens (AC12)
+- [x] T19 Jargon and fidelity pass: wrap or remove terms (AC11); check dark mode, 390 px and money signs on all five screens (AC12)
 
 ## Verification
 

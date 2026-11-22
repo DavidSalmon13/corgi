@@ -1,4 +1,5 @@
 import type { LedgerLine } from '../api/types';
+import { Term } from './Term';
 import { toLedgerRows, type LedgerRow, type Tone } from '../lib/ledgerRows';
 
 const TONE: Record<Tone, string> = {
@@ -52,10 +53,14 @@ export function LedgerTable({ lines }: { lines: LedgerLine[] }) {
           <tr>
             <th className={TH}>Date</th>
             <th className={TH}>Line</th>
-            <th className={TH}>Calculation</th>
+            <th className={TH}>
+              <Term explain="The yearly price × the days this cover runs ÷ the days in the policy year. Each day costs the same.">Calculation</Term>
+            </th>
             <th className={`${TH} text-right`}>Amount</th>
             <th className={`${TH} text-right`}>Balance</th>
-            <th className={TH}>References</th>
+            <th className={TH}>
+              <Term explain="LE is this line in the money record. PTX is the policy change it came from, so every amount can be traced back.">References</Term>
+            </th>
           </tr>
         </thead>
         <tbody>

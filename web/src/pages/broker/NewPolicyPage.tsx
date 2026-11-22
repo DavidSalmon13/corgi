@@ -76,18 +76,30 @@ function CoverChoice(props: {
     <label
       className={`flex items-start gap-3 rounded-card border-[1.5px] p-3.5 ${props.checked ? 'border-accent' : 'border-line'} ${props.disabled ? '' : 'cursor-pointer'}`}
     >
-      <input
-        type="checkbox"
-        checked={props.checked}
-        disabled={props.disabled}
-        onChange={(e) => props.onChange?.(e.target.checked)}
-        className="mt-0.5 size-5 flex-none accent-accent"
-      />
+      {props.disabled ? (
+        // Always included: shown ticked in amber as in the design, not as a greyed-out disabled box.
+        <span aria-hidden="true" className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-[4px] bg-accent text-on-accent">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+        </span>
+      ) : (
+        <input
+          type="checkbox"
+          checked={props.checked}
+          onChange={(e) => props.onChange?.(e.target.checked)}
+          className="mt-0.5 size-5 flex-none accent-accent"
+        />
+      )}
       <span className="min-w-0 flex-1">
         <span className="font-bold">{props.title}</span>
+        {/* Phones: price under the title so the description keeps the full width. */}
+        <span className="block font-semibold tabular-nums sm:hidden">
+          <Money cents={props.cents} /> a year
+        </span>
         <span className="block text-sm text-ink-2">{props.description}</span>
       </span>
-      <span className="font-semibold tabular-nums whitespace-nowrap">
+      <span className="hidden font-semibold tabular-nums whitespace-nowrap sm:block">
         <Money cents={props.cents} /> a year
       </span>
     </label>
@@ -252,7 +264,9 @@ export function NewPolicyPage() {
                     <div>
                       <div className="font-semibold">{l.description}</div>
                       <div className="text-[13px] text-ink-2 tabular-nums">
-                        {formatCents(l.calc.annualCents)} × {l.calc.days} ÷ {l.calc.termDays}
+                        <Term explain="The yearly price × the days this cover runs ÷ the days in the policy year. Each day costs the same.">
+                          {formatCents(l.calc.annualCents)} × {l.calc.days} ÷ {l.calc.termDays}
+                        </Term>
                       </div>
                     </div>
                     <Money cents={l.calc.amountCents} signed className="font-semibold" />

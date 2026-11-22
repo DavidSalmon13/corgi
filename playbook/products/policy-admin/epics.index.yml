@@ -2,4 +2,4 @@
 generated: 2026-11-22
 product: policy-admin
 epics:
-  - { slug: policy-lifecycle, name: Policy Lifecycle, status: planning, spec_count: 4, path: epics/policy-lifecycle/ }
+  - { slug: policy-lifecycle, name: Policy Lifecycle, status: planning, spec_count: 5, path: epics/policy-lifecycle/ }

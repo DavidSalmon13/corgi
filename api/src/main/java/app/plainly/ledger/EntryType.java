@@ -9,5 +9,7 @@ public enum EntryType {
     /** Money received (from a Stripe payment). */
     PAYMENT,
     /** Money sent back (from a Stripe refund). */
-    REFUND
+    REFUND,
+    /** Gives back a cover's unused days (from a cancelling policy transaction); always negative. */
+    CREDIT
 }

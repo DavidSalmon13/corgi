@@ -7,7 +7,7 @@
 ## Schema & ledger
 
 - [x] T1 Add V9__cancellations.sql: policies.cancelled_on + status/date checks; CREDIT entry type + ledger_credit_traced check (repository/migration)
-- [ ] T2 Ledger CREDIT: EntryType.CREDIT, NewEntry.credit, LedgerPostingService.check branch; LedgerTest cases incl. append-only (ledger service)
+- [x] T2 Ledger CREDIT: EntryType.CREDIT, NewEntry.credit, LedgerPostingService.check branch; LedgerTest cases incl. append-only (ledger service)
 - [ ] T3 Move refund allocation to billing: RefundService.plan + recordAndSendAfterCommit, PlannedRefund to billing; CorrectCoverageService uses them; correction + refund tests stay green (service)
 
 ## Cancel API

@@ -3,6 +3,8 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-add-coverage
 > Branch: feat/policy-lifecycle/add-coverage
+> PR: https://github.com/DavidSalmon13/corgi/pull/46 (stack #42–#46, base #42 → dev)
+> Reviewed: 2026-11-22 · code-reviewer · REQUEST CHANGES → HIGH (double add under the lock) and MEDIUM (save without a price) fixed; P1 reason-line MEDIUM open as a product question
 
 ## Tests first (TDD)
 

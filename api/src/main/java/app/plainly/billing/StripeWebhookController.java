@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 class StripeWebhookController {
 
     private final String webhookSecret;
-    private final WebhookHandler handler;
+    private final StripeWebhookService webhooks;
 
-    StripeWebhookController(@Value("${plainly.stripe.webhook-secret}") String webhookSecret, WebhookHandler handler) {
+    StripeWebhookController(@Value("${plainly.stripe.webhook-secret}") String webhookSecret, StripeWebhookService webhooks) {
         this.webhookSecret = webhookSecret;
-        this.handler = handler;
+        this.webhooks = webhooks;
     }
 
     @PostMapping(path = "/api/stripe/webhook", consumes = "*/*")
@@ -42,8 +42,8 @@ class StripeWebhookController {
             return badSignature();
         }
         try {
-            handler.handle(event);
-        } catch (WebhookHandler.UnreadableEvent e) {
+            webhooks.handle(event);
+        } catch (StripeWebhookService.UnreadableEvent e) {
             // Nothing was recorded, so Stripe's retry will be handled as new.
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "unreadable_event", "message", "We couldn't read this event yet."));

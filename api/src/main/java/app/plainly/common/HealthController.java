@@ -2,7 +2,6 @@ package app.plainly.common;
 
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,19 +9,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class HealthController {
 
-    private final JdbcClient jdbc;
+    private final HealthService health;
 
-    HealthController(JdbcClient jdbc) {
-        this.jdbc = jdbc;
+    HealthController(HealthService health) {
+        this.health = health;
     }
 
     @GetMapping("/api/health")
     ResponseEntity<Map<String, String>> health() {
-        try {
-            jdbc.sql("select 1").query(Integer.class).single();
-            return ResponseEntity.ok(Map.of("status", "UP", "database", "UP"));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "database", "DOWN"));
-        }
+        return health.databaseUp()
+                ? ResponseEntity.ok(Map.of("status", "UP", "database", "UP"))
+                : ResponseEntity.status(503).body(Map.of("status", "DOWN", "database", "DOWN"));
     }
 }

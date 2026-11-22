@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -31,30 +30,28 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>An event we can't read is not recorded: the transaction rolls back and Stripe sends it again.
  */
-@Component
-class WebhookHandler {
+@Service
+class StripeWebhookService {
 
-    private static final Logger log = LoggerFactory.getLogger(WebhookHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(StripeWebhookService.class);
 
-    private final JdbcClient jdbc;
+    private final ProcessedEventRepository events;
+    private final PaymentRepository payments;
     private final LedgerPostingService ledger;
     private final Today today;
 
-    WebhookHandler(JdbcClient jdbc, LedgerPostingService ledger, Today today) {
-        this.jdbc = jdbc;
+    StripeWebhookService(ProcessedEventRepository events, PaymentRepository payments, LedgerPostingService ledger, Today today) {
+        this.events = events;
+        this.payments = payments;
         this.ledger = ledger;
         this.today = today;
     }
-
-    private record PaymentRow(long id, long policyId, String status) {}
 
     @Transactional
     public void handle(Event event) {
         // Recording the event id first, in the same transaction as its effects, is what makes a replay (or a
         // second copy arriving at the same moment, which waits on this row) a no-op.
-        int fresh = jdbc.sql("insert into processed_stripe_events (event_id, type) values (?, ?) on conflict do nothing")
-                .params(event.getId(), event.getType()).update();
-        if (fresh == 0) {
+        if (!events.recordIfNew(event.getId(), event.getType())) {
             log.info("Stripe event {} ({}) already handled; ignoring the repeat", event.getId(), event.getType());
             return;
         }
@@ -69,33 +66,25 @@ class WebhookHandler {
     }
 
     private void processing(PaymentIntent intent) {
-        jdbc.sql("update payments set status = 'PROCESSING' where stripe_payment_intent_id = ? and status = 'OPEN'")
-                .param(intent.getId()).update();
+        payments.markProcessing(intent.getId());
     }
 
     private void endedWithoutPaying(PaymentIntent intent) {
-        jdbc.sql("""
-                update payments set status = 'FAILED', settled_at = now()
-                where stripe_payment_intent_id = ? and status = 'PROCESSING'""")
-                .param(intent.getId()).update();
+        payments.markFailedIfProcessing(intent.getId());
     }
 
     private void succeeded(String eventId, Charge charge) {
-        Optional<PaymentRow> found = lockPayment(charge.getPaymentIntent());
+        Optional<PaymentRepository.Locked> found = lockPayment(charge.getPaymentIntent());
         if (found.isEmpty()) {
             return;
         }
-        PaymentRow payment = found.get();
+        PaymentRepository.Locked payment = found.get();
         if (payment.status().equals("SUCCEEDED")) {
             log.warn("Payment {} already succeeded; not crediting charge {} twice", payment.id(), charge.getId());
             return;
         }
         Card card = Card.of(charge);
-        jdbc.sql("""
-                update payments set status = 'SUCCEEDED', payment_method_id = ?, card_brand = ?, card_last4 = ?,
-                    failure_reason = null, settled_at = now()
-                where id = ?""")
-                .params(charge.getPaymentMethod(), card.brand(), card.last4(), payment.id()).update();
+        payments.markSucceeded(payment.id(), charge.getPaymentMethod(), card.brand(), card.last4());
         // The credit is what the bank actually took, which is the intent's amount for a card payment.
         long received = charge.getAmountCaptured() != null && charge.getAmountCaptured() > 0
                 ? charge.getAmountCaptured() : charge.getAmount();
@@ -104,30 +93,23 @@ class WebhookHandler {
     }
 
     private void failed(String eventId, Charge charge) {
-        Optional<PaymentRow> found = lockPayment(charge.getPaymentIntent());
+        Optional<PaymentRepository.Locked> found = lockPayment(charge.getPaymentIntent());
         if (found.isEmpty()) {
             return;
         }
-        PaymentRow payment = found.get();
+        PaymentRepository.Locked payment = found.get();
         if (payment.status().equals("SUCCEEDED")) {
             log.warn("Ignoring charge.failed for payment {}: it already succeeded", payment.id());
             return;
         }
         Card card = Card.of(charge);
-        jdbc.sql("""
-                update payments set status = 'FAILED', card_brand = ?, card_last4 = ?, failure_reason = ?, settled_at = now()
-                where id = ?""")
-                .params(card.brand(), card.last4(), charge.getFailureMessage(), payment.id()).update();
+        payments.markFailed(payment.id(), card.brand(), card.last4(), charge.getFailureMessage());
         ledger.post(payment.policyId(), null, List.of(NewEntry.payment(today.date(),
                 "Payment attempt, " + card.describe(), 0, payment.id(), eventId)));
     }
 
-    private Optional<PaymentRow> lockPayment(String intentId) {
-        Optional<PaymentRow> row = intentId == null ? Optional.empty() : jdbc.sql("""
-                select id, policy_id, status from payments where stripe_payment_intent_id = ? for update""")
-                .param(intentId)
-                .query((rs, n) -> new PaymentRow(rs.getLong("id"), rs.getLong("policy_id"), rs.getString("status")))
-                .optional();
+    private Optional<PaymentRepository.Locked> lockPayment(String intentId) {
+        Optional<PaymentRepository.Locked> row = intentId == null ? Optional.empty() : payments.lockByIntent(intentId);
         if (row.isEmpty()) {
             log.info("Stripe intent {} isn't one of our payments; ignoring", intentId);
         }

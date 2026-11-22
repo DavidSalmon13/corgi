@@ -71,3 +71,4 @@ UI reference: `design/plainly/` (SignIn, B1-Policies, B2-NewPolicy, B3-Workspace
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-22 | david-schwartzman | change | AC1 (demo role switcher) superseded by 2026-11-22-real-sign-in | [real-sign-in](../2026-11-22-real-sign-in/spec.md) |

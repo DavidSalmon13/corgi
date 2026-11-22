@@ -18,3 +18,4 @@ A broker can run a General Liability policy from start to finish: issue it, add 
 | Spec | Status | Branch |
 |---|---|---|
 | 2026-11-22-issue-policy | shaped | feat/policy-lifecycle/issue-policy · [#22](https://github.com/DavidSalmon13/corgi/pull/22) |
+| 2026-11-22-real-sign-in | shaped | feat/policy-lifecycle/real-sign-in |

@@ -19,3 +19,15 @@ specs:
       - api/src/main/resources/db/migration/**
       - web/**
       - docker-compose.yml
+  - folder: 2026-11-22-real-sign-in
+    slug: real-sign-in
+    status: shaped
+    branch: feat/policy-lifecycle/real-sign-in
+    covers:
+      - /signin
+      - /signup
+      - api/src/main/java/**/auth/**
+      - api/src/main/resources/db/migration/V5__accounts_and_sessions.sql
+      - web/src/pages/SignIn.tsx
+      - web/src/pages/SignUp.tsx
+      - web/src/api/client.ts

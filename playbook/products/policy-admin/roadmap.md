@@ -6,7 +6,7 @@ None. This is a greenfield product.
 
 ## Phase 1: MVP
 
-1. Demo sign-in for each role (Broker, Policyholder) with seeded fictional data.
+1. Email-and-password sign-in for both roles; policyholders sign up with the email their broker entered. Seeded fictional demo accounts.
 2. Broker creates a customer and issues a General Liability policy (base premium $1,200/yr).
 3. Premium collection through Stripe test mode, showing pending, succeeded or failed, updated by an idempotent webhook.
 4. Mid-term add-on coverage ($730/yr), priced pro-rata from its effective date, with the resulting amount due.
@@ -24,6 +24,7 @@ None. This is a greenfield product.
 - Broker commissions
 - Installment billing (monthly plans)
 - More products and add-ons, with a rating engine
-- Real authentication (SSO)
+- SSO, email confirmation and password reset
+- Self-serve quote-and-buy for simple small-business cover
 - PDF statements and certificates of insurance
 - Port the API to TypeScript to share money and DTO types end to end

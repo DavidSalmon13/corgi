@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** B1 Policies and B3 Policy workspace. Broker only (DemoAuthFilter). */
+/** B1 Policies and B3 Policy workspace. Broker only (AuthFilter). */
 @RestController
 @RequestMapping("/api/broker/policies")
 class BrokerPolicyController {

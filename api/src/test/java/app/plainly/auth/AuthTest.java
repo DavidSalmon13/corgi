@@ -194,7 +194,7 @@ class AuthTest {
         assertThat(c.isHttpOnly()).isTrue();
         assertThat(c.getMaxAge()).isEqualTo(7 * 24 * 3600);
         assertThat(r.getResponse().getHeader("Set-Cookie")).contains("SameSite=Lax");
-        assertThat(c.getValue()).hasSizeGreaterThanOrEqualTo(40).doesNotContain(Long.toString(brokerId));
+        assertThat(c.getValue()).as("a random token, not a user id").matches("[A-Za-z0-9_-]{43}");
     }
 
     @Test

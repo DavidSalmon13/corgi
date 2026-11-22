@@ -5,7 +5,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.IntegrationTest;
-import app.plainly.auth.DemoAuthFilter;
+import app.plainly.AuthTestSupport;
+import app.plainly.TestData;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;
 import jakarta.servlet.http.Cookie;
@@ -25,13 +26,13 @@ class MyCoverTest {
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
 
-    Cookie ownerOf(String business, boolean extra) {
+    /** Issues a policy, then signs its owner up with the email the broker entered, as a real owner would. */
+    Cookie ownerOf(String business, boolean extra) throws Exception {
         long broker = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
-        long policyId = issue.issue(new IssuePolicyCommand(business, "a neighborhood bakery", "Maya Okafor",
-                app.plainly.TestData.uniqueEmail("maya"), LocalDate.of(2026, 9, 1), extra), broker).policyId();
-        long user = jdbc.sql("select u.id from app_users u join policies p on p.customer_id = u.customer_id where p.id = ?")
-                .param(policyId).query(Long.class).single();
-        return new Cookie(DemoAuthFilter.COOKIE, Long.toString(user));
+        String email = TestData.uniqueEmail("maya");
+        issue.issue(new IssuePolicyCommand(business, "a neighborhood bakery", "Maya Okafor", email, LocalDate.of(2026, 9, 1), extra),
+                broker);
+        return AuthTestSupport.signUp(mvc, email);
     }
 
     @Test

@@ -1,7 +1,7 @@
 package app.plainly.policy;
 
-import app.plainly.auth.DemoAuthFilter;
-import app.plainly.auth.DemoUser;
+import app.plainly.auth.AuthFilter;
+import app.plainly.auth.SignedInUser;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -37,7 +37,7 @@ class BrokerIssueController {
 
     @PostMapping
     ResponseEntity<IssuePolicyService.Issued> issue(
-            @RequestBody IssueRequest body, @RequestAttribute(DemoAuthFilter.CURRENT_USER) DemoUser broker) {
+            @RequestBody IssueRequest body, @RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser broker) {
         var cmd = new IssuePolicyCommand(body.legalName(), body.businessDescription(), body.ownerName(),
                 body.ownerEmail(), date(body.startDate()).orElse(null), Boolean.TRUE.equals(body.productLiability()));
         IssuePolicyService.Issued issued = service.issue(cmd, broker.id());

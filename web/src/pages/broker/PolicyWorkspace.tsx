@@ -92,7 +92,14 @@ export function PolicyWorkspace() {
           covers={p.coverages.map((c) => ({
             id: c.id,
             kind: c.kind,
-            label: COVER_NAME[c.kind],
+            label:
+              c.kind === 'BASE' ? (
+                <Term explain="General Liability: pays if someone is hurt or their property is damaged because of the business.">
+                  {COVER_NAME[c.kind]}
+                </Term>
+              ) : (
+                <Term explain="Pays if something the business sells hurts someone.">{COVER_NAME[c.kind]}</Term>
+              ),
             detail: (
               <>
                 <Money cents={c.annualPremiumCents} /> a year
@@ -107,7 +114,7 @@ export function PolicyWorkspace() {
       <section aria-labelledby="ledger-h" className={CARD}>
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="ledger-h" className="m-0 text-lg font-bold">
-            Ledger
+            <Term explain="The money record for this policy: every charge, payment and refund, in order.">Ledger</Term>
           </h2>
           <span className="text-sm text-ink-2">
             Every line, oldest first. Lines are never edited; corrections add an undo and a new line.

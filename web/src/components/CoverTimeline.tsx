@@ -28,7 +28,7 @@ const HATCH = { backgroundImage: 'repeating-linear-gradient(135deg, var(--pl-lin
 
 function barColor(kind: CoverKind, variant: 'full' | 'compact'): string {
   if (kind !== 'BASE') return 'bg-accent';
-  return variant === 'full' ? 'bg-base' : 'bg-ink/85';
+  return variant === 'full' ? 'bg-cover-base' : 'bg-ink/85';
 }
 
 /** Plain-text version of the bars for screen readers. */

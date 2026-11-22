@@ -95,11 +95,14 @@ public class PaymentRepository {
     /** Every payment sent to the bank (not OPEN) on the policy, oldest first. */
     public List<PaymentService.Sent> sentForPolicy(long policyId) {
         return jdbc.sql("""
-                select display_id, stripe_payment_intent_id, status, amount_cents, card_last4, created_at from payments
+                select display_id, stripe_payment_intent_id, status, amount_cents, card_last4, created_at,
+                    failure_reason
+                from payments
                 where policy_id = ? and status <> 'OPEN' order by id""")
                 .param(policyId)
                 .query((rs, n) -> new PaymentService.Sent(rs.getString(1), rs.getString(2), rs.getString(3),
-                        rs.getLong(4), rs.getString(5), rs.getObject(6, OffsetDateTime.class).toInstant()))
+                        rs.getLong(4), rs.getString(5), rs.getObject(6, OffsetDateTime.class).toInstant(),
+                        rs.getString(7)))
                 .list();
     }
 

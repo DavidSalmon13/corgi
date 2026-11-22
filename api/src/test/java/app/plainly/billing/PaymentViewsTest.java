@@ -1,6 +1,8 @@
 package app.plainly.billing;
 
 import static app.plainly.PaymentTestData.BASE_DUE_CENTS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -20,7 +22,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** What each role is shown about a payment: the owner on P1, the broker on B3 and B1. */
-// covers AC1, AC5, AC6, AC7, AC11, T3
+// covers AC1, AC5, AC6, AC7, AC11, T3 (payments); broker-history AC5, T2 (the bank's reason)
 @IntegrationTest
 @AutoConfigureMockMvc
 class PaymentViewsTest {
@@ -28,6 +30,7 @@ class PaymentViewsTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
+    @Autowired PaymentService payments;
 
     private Owner owner(String business) throws Exception {
         return PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issue, business);
@@ -84,6 +87,24 @@ class PaymentViewsTest {
                 .andExpect(jsonPath("$.amountDueCents").value(BASE_DUE_CENTS))
                 .andExpect(jsonPath("$.payment.status").value("FAILED"))
                 .andExpect(jsonPath("$.payment.cardLast4").value("0002"));
+    }
+
+    @Test
+    void aSentPaymentCarriesTheBanksReasonOnlyWhenItWasDeclined() throws Exception {
+        Owner owner = owner("Bank Reason Bakery LLC");
+        Started declined = PaymentTestData.startPayment(mvc, jdbc, owner);
+        deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), declined.intentId(),
+                declined.amountCents(), "0002", "Your card was declined."));
+        Started paid = PaymentTestData.startPayment(mvc, jdbc, owner);
+        deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), paid.intentId(), paid.amountCents(),
+                "4242", "pm_r"));
+
+        assertThat(payments.sentForPolicy(owner.policyId()))
+                .extracting(PaymentService.Sent::intentId, PaymentService.Sent::status,
+                        PaymentService.Sent::failureReason)
+                .containsExactly(
+                        tuple(declined.intentId(), "FAILED", "Your card was declined."),
+                        tuple(paid.intentId(), "SUCCEEDED", null));
     }
 
     @Test

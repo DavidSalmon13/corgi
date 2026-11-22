@@ -119,4 +119,10 @@ export function homeFailedCopy(amountCents: number): StateCopy {
 }
 
 /** Shown instead of the card form when the demo has no Stripe keys. */
+/**
+ * When sending the card failed and we don't know why. The bank may already have the money, so this never says
+ * nothing was charged.
+ */
+export const SEND_UNKNOWN = "We couldn't hear back from your bank. Check your cover in a minute before you try again.";
+
 export const PAYMENTS_OFF = "Card payments aren't set up on this demo yet, so you can't pay here right now.";

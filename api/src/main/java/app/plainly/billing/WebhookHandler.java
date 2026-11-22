@@ -25,7 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>{@code charge.succeeded}: money moved. The payment becomes SUCCEEDED and a PAYMENT credit is posted.
  *   <li>{@code charge.failed}: the bank declined. The payment becomes FAILED and a $0.00 line keeps the attempt
  *       visible. A failure never undoes a payment that already succeeded.
+ *   <li>{@code payment_intent.payment_failed} / {@code payment_intent.canceled}: a payment stuck at PROCESSING
+ *       becomes FAILED, so the owner can pay again. No money moved, so nothing is posted.
  * </ul>
+ *
+ * <p>An event we can't read is not recorded: the transaction rolls back and Stripe sends it again.
  */
 @Component
 class WebhookHandler {
@@ -58,12 +62,21 @@ class WebhookHandler {
             case "payment_intent.processing" -> object(event, PaymentIntent.class).ifPresent(this::processing);
             case "charge.succeeded" -> object(event, Charge.class).ifPresent(c -> succeeded(event.getId(), c));
             case "charge.failed" -> object(event, Charge.class).ifPresent(c -> failed(event.getId(), c));
+            case "payment_intent.payment_failed", "payment_intent.canceled" ->
+                    object(event, PaymentIntent.class).ifPresent(this::endedWithoutPaying);
             default -> log.info("Stripe event {} ({}) recorded; nothing to do", event.getId(), event.getType());
         }
     }
 
     private void processing(PaymentIntent intent) {
         jdbc.sql("update payments set status = 'PROCESSING' where stripe_payment_intent_id = ? and status = 'OPEN'")
+                .param(intent.getId()).update();
+    }
+
+    private void endedWithoutPaying(PaymentIntent intent) {
+        jdbc.sql("""
+                update payments set status = 'FAILED', settled_at = now()
+                where stripe_payment_intent_id = ? and status = 'PROCESSING'""")
                 .param(intent.getId()).update();
     }
 
@@ -121,18 +134,28 @@ class WebhookHandler {
         return row;
     }
 
-    /** The event's object, read even if its API version differs from the library's (both are pinned today). */
+    /**
+     * The event's object, read even if its API version differs from the library's (both are pinned today). If it
+     * can't be read at all, this throws, so the event isn't recorded as handled and Stripe's retry gets another go.
+     */
     private static <T extends StripeObject> Optional<T> object(Event event, Class<T> type) {
         var data = event.getDataObjectDeserializer();
-        StripeObject object = data.getObject().orElseGet(() -> {
-            try {
-                return data.deserializeUnsafe();
-            } catch (EventDataObjectDeserializationException e) {
-                log.warn("Couldn't read Stripe event {} ({})", event.getId(), event.getType());
-                return null;
-            }
-        });
+        StripeObject object;
+        try {
+            object = data.getObject().isPresent() ? data.getObject().get() : data.deserializeUnsafe();
+        } catch (EventDataObjectDeserializationException | RuntimeException e) {
+            log.error("Couldn't read Stripe event {} ({}); answering 500 so Stripe sends it again",
+                    event.getId(), event.getType());
+            throw new UnreadableEvent(event.getId(), e);
+        }
         return type.isInstance(object) ? Optional.of(type.cast(object)) : Optional.empty();
+    }
+
+    /** A verified event whose object we couldn't read. Rolls back the handling, including the event id. */
+    static class UnreadableEvent extends RuntimeException {
+        UnreadableEvent(String eventId, Throwable cause) {
+            super("Couldn't read Stripe event " + eventId, cause);
+        }
     }
 
     private record Card(String brand, String last4) {

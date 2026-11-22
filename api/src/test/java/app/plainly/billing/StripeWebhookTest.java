@@ -265,4 +265,54 @@ class StripeWebhookTest {
         assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("SUCCEEDED");
         assertThat(paymentLines(owner.policyId())).hasSize(1);
     }
+
+    // --- hotfix payment-review-fixes: a payment can't get stuck, and an event we can't read is retried ---
+
+    @Test
+    void aProcessingPaymentTheBankRefusesWithoutAChargeEventIsMarkedFailed() throws Exception {
+        Owner owner = owner("Stuck Processing Bakery LLC");
+        Started p = started(owner);
+        deliver(StripeTestSupport.intentProcessing(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
+
+        deliver(StripeTestSupport.intentPaymentFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
+
+        assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("FAILED");
+        assertThat(balance(jdbc, owner.policyId())).isEqualTo(BASE_DUE_CENTS);
+        PaymentTestData.startPayment(mvc, jdbc, owner);
+    }
+
+    @Test
+    void aProcessingPaymentThatIsCanceledIsMarkedFailed() throws Exception {
+        Owner owner = owner("Canceled Processing Bakery LLC");
+        Started p = started(owner);
+        deliver(StripeTestSupport.intentProcessing(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
+
+        deliver(StripeTestSupport.intentCanceled(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
+
+        assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("FAILED");
+    }
+
+    @Test
+    void aCanceledIntentNeverUndoesAPayment() throws Exception {
+        Owner owner = owner("Cancel After Pay Bakery LLC");
+        Started p = started(owner);
+        deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "4242", "pm_cap"));
+
+        deliver(StripeTestSupport.intentCanceled(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
+
+        assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("SUCCEEDED");
+    }
+
+    @Test
+    void anEventWeCantReadIsNotMarkedHandledSoStripeSendsItAgain() throws Exception {
+        Owner owner = owner("Unreadable Event Bakery LLC");
+        Started p = started(owner);
+        String eventId = StripeTestSupport.newEventId();
+
+        mvc.perform(StripeTestSupport.delivery(StripeTestSupport.unreadableChargeSucceeded(eventId, p.intentId())))
+                .andExpect(status().isInternalServerError());
+
+        assertThat(recorded(eventId)).isFalse();
+        assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("OPEN");
+    }
 }

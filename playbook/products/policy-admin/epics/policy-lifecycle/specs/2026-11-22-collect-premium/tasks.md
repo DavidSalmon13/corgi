@@ -4,8 +4,8 @@
 > Spec: 2026-11-22-collect-premium
 > Branch: feat/policy-lifecycle/collect-premium
 > PR: https://github.com/DavidSalmon13/corgi/pull/41 (stack #35–#41, base #35 → dev)
-> Reviewed: 2026-11-22 · APPROVE WITH NOTES (code-reviewer) · 0 high, 4 medium, 2 low; fixes follow in a separate change
-> SecurityReviewed: 2026-11-22 · PASS (security-reviewer) · 0 high, 2 medium, 3 low; fixes follow in a separate change
+> Reviewed: 2026-11-22 · APPROVE WITH NOTES (code-reviewer) · 0 high, 4 medium, 2 low; fixes follow in a separate change (stale — spec changed 2026-11-22)
+> SecurityReviewed: 2026-11-22 · PASS (security-reviewer) · 0 high, 2 medium, 3 low; fixes follow in a separate change (stale — spec changed 2026-11-22)
 
 PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11–T13 · T14–T15 · T16–T20.
 

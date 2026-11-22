@@ -3,7 +3,7 @@
 > Epic: ../../epic.md
 > Status: done
 > Branch: feat/policy-lifecycle/collect-premium
-> Covers: /me/pay, /api/me/payments, /api/stripe/webhook, api/src/main/java/**/billing/**, api/src/main/resources/db/migration/V6__payments.sql, web/src/pages/me/PayPage.tsx
+> Covers: /me/pay, /api/me/payments, /api/stripe/webhook, api/src/main/java/**/billing/**, api/src/main/resources/db/migration/V6__payments.sql, api/src/main/resources/db/migration/V7__payments_stripe_canceled_at.sql, web/src/pages/me/PayPage.tsx, web/src/lib/paymentCopy.ts
 
 ## Overview
 
@@ -44,18 +44,25 @@ UI reference: `design/plainly/P5-Pay.dc.html` (card form, waiting for your bank,
    - A $0.00 `PAYMENT` line is posted, "Payment attempt, card ending NNNN", marked "No money moved".
    - P5 shows "Didn't go through" with "Try again" and "Use a different card".
    - P1 shows "Your $X payment didn't go through. No money moved." with "Try again".
-7. AC7: While a payment is PROCESSING (from `payment_intent.processing`), P1 shows "Waiting for your bank", and starting another payment is refused with 409: "Your last payment is still on its way."
+7. AC7: While a payment is PROCESSING (from `payment_intent.processing`), P1 shows "Waiting for your bank". Starting another payment is refused with 409 "Your last payment is still on its way." in two cases:
+   - a payment is PROCESSING;
+   - Stripe already has the money for an earlier intent (processing or succeeded) and its webhook hasn't arrived yet. Cards usually skip `payment_intent.processing`.
+
+   Opening a new payment cancels at Stripe every earlier intent nobody finished paying (open or declined), so a pay page left open in another tab can't charge the customer twice. Cancelling doesn't change a payment's status. Paying with the saved card is refused with 409 `payment_out_of_date` when the payment was replaced or the amount due changed. A saved-card confirm that fails never says "Nothing was charged".
 8. AC8: `POST /api/stripe/webhook` needs no session. Signatures are verified against the raw request body with the configured signing secret. A missing or invalid `Stripe-Signature` gets 400 and changes nothing.
 9. AC9: Each Stripe event id is processed at most once. Replaying an event, or delivering two copies at once, posts no second ledger line and changes no status. The replay still gets 200, so Stripe stops retrying.
 10. AC10: These events are answered 200 without failing:
     - An unknown event type is recorded and ignored.
     - An event for an unknown PaymentIntent is ignored.
     - A `charge.succeeded` that arrives after FAILED still records the money, because the money did move.
+    - A `payment_intent.payment_failed` or `payment_intent.canceled` moves a PROCESSING payment to FAILED, with no ledger line, and never undoes a payment that succeeded.
+
+    The exception is a signed event we can't read. It gets 500 and isn't recorded, so Stripe sends it again.
 11. AC11: The B3 ledger shows payment lines as "Paid" and failed attempts as "Didn't go through", each with its `pi_…` reference. While a payment is PROCESSING, B3 and the B1 list show "Waiting for the bank" next to the balance.
 12. AC12: A policyholder can only create or read payments for their own policy. Someone else's payment id gets 404, and `/api/me/**` stays policyholder-only.
 13. AC13: Configuration and docs:
     - Stripe keys come from env: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY` and `STRIPE_WEBHOOK_SECRET`. They are listed in `.env.example`, are test keys only and are never committed.
-    - With the keys unset, the app still starts, and `/me/pay` explains that payments aren't set up.
+    - Payments are on only when all three values are set and the keys are test-mode keys (`sk_test_…`, `pk_test_…`). Otherwise the app still starts, and `/me/pay` explains that payments aren't set up. Without the webhook secret no payment could be recorded, and this demo never takes real money.
     - The README covers `stripe listen --forward-to localhost:8080/api/stripe/webhook` and the test cards 4242 4242 4242 4242 (paid) and 4000 0000 0000 0002 (declined).
     - DECISIONS records the choices in the Technical Approach.
 
@@ -136,3 +143,5 @@ A payment's status is the one mutable value in the money path, and only the webh
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-22 | david-schwartzman | hotfix | Corrected AC7: also refuse a new payment when Stripe already has an earlier intent's money; cancel replaced intents; saved card can't pay a replaced payment; no false "Nothing was charged". Covers: +V7 migration, +web/src/lib/paymentCopy.ts | code and security reviews of #35–#41 |
+| 2026-11-22 | david-schwartzman | hotfix | Corrected AC10 and AC13: payment_intent.payment_failed/canceled settle a stuck PROCESSING payment; an unreadable event gets 500 and is retried; payments need all three Stripe values and test-mode keys | code and security reviews of #35–#41 |

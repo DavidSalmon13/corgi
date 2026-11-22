@@ -161,6 +161,86 @@ class MyPaymentsTest {
         assertThat(paymentStatus(jdbc, retry.paymentId())).isEqualTo("OPEN");
     }
 
+    // --- hotfix payment-review-fixes: an old intent can't be paid, and money Stripe took is never asked for twice ---
+
+    @Test
+    void tryingAgainAfterADeclineCancelsTheDeclinedIntentSoAnotherTabCantPayIt() throws Exception {
+        Owner owner = owner("Two Tabs Bakery LLC");
+        Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
+        deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "0002", "Your card was declined."));
+
+        PaymentTestData.startPayment(mvc, jdbc, owner);
+
+        assertThat(stripe.statusOf(p.intentId())).isEqualTo("canceled");
+        assertThat(paymentStatus(jdbc, p.paymentId())).as("only a webhook changes status").isEqualTo("FAILED");
+    }
+
+    @Test
+    void aNewAmountDueCancelsTheIntentForTheOldAmount() throws Exception {
+        Owner owner = owner("Old Amount Bakery LLC");
+        Started first = PaymentTestData.startPayment(mvc, jdbc, owner);
+        PaymentTestData.addCharge(jdbc, owner.policyId(), 500);
+
+        Started second = PaymentTestData.startPayment(mvc, jdbc, owner);
+
+        assertThat(stripe.statusOf(first.intentId())).isEqualTo("canceled");
+        assertThat(stripe.statusOf(second.intentId())).isEqualTo("requires_payment_method");
+        assertThat(paymentStatus(jdbc, first.paymentId())).isEqualTo("OPEN");
+    }
+
+    @Test
+    void reopeningThePayPageDoesntCancelTheIntentItReuses() throws Exception {
+        Owner owner = owner("Keep Intent Bakery LLC");
+        Started first = PaymentTestData.startPayment(mvc, jdbc, owner);
+
+        PaymentTestData.startPayment(mvc, jdbc, owner);
+
+        assertThat(stripe.statusOf(first.intentId())).isEqualTo("requires_payment_method");
+    }
+
+    @Test
+    void moneyStripeAlreadyTookIsOnItsWayEvenBeforeItsWebhook() throws Exception {
+        Owner owner = owner("Late Webhook Bakery LLC");
+        Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
+        stripe.setStatus(p.intentId(), "succeeded");
+        PaymentTestData.addCharge(jdbc, owner.policyId(), 500);
+
+        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("payment_in_flight"))
+                .andExpect(jsonPath("$.message").value("Your last payment is still on its way."));
+        assertThat(stripe.intentsFor(stripeCustomerOf(owner))).as("no second intent").hasSize(1);
+    }
+
+    @Test
+    void aDeclinedIntentPaidInAnotherTabBlocksANewPaymentUntilItsWebhookLands() throws Exception {
+        Owner owner = owner("Paid Other Tab Bakery LLC");
+        Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
+        deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "0002", "Your card was declined."));
+        stripe.setStatus(p.intentId(), "succeeded");
+
+        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("payment_in_flight"));
+        assertThat(stripe.intentsFor(stripeCustomerOf(owner))).hasSize(1);
+    }
+
+    @Test
+    void theSavedCardCantPayAPaymentThatWasReplaced() throws Exception {
+        Owner owner = owner("Replaced Payment Bakery LLC");
+        Started first = PaymentTestData.startPayment(mvc, jdbc, owner);
+        deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), first.intentId(), first.amountCents(), "4242", "pm_replaced"));
+        PaymentTestData.addCharge(jdbc, owner.policyId(), 1400);
+        Started second = PaymentTestData.startPayment(mvc, jdbc, owner);
+        PaymentTestData.addCharge(jdbc, owner.policyId(), 600);
+        PaymentTestData.startPayment(mvc, jdbc, owner);
+
+        mvc.perform(post("/api/me/payments/" + second.paymentId() + "/saved-card").cookie(owner.session()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("payment_out_of_date"));
+        assertThat(stripe.confirmsFor(second.intentId())).isEmpty();
+    }
+
     // --- AC4: the pay page follows the payment until Stripe settles it ---
 
     @Test

@@ -3,6 +3,7 @@
 > Spec: spec.md
 > Date: 2026-11-22 · QA by: david-schwartzman · Mode: setup
 > Verdict: PASS WITH NOTES
+> Stale: spec changed 2026-11-22 (hotfix payment-review-fixes corrected AC7, AC10, AC13); rerun the qa skill
 
 ## Acceptance Criteria
 

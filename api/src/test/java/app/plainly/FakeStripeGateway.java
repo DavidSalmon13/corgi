@@ -3,12 +3,14 @@ package app.plainly;
 import app.plainly.billing.StripeGateway;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Stands in for Stripe in tests: no network, predictable ids, and a record of every call so a test can
  * check what would have been sent. Shared by every test in the context, so tests look up their own calls.
+ * Each intent has a Stripe-side status, which a test can move (say, to "succeeded" before the webhook lands).
  */
 public class FakeStripeGateway implements StripeGateway {
 
@@ -20,6 +22,7 @@ public class FakeStripeGateway implements StripeGateway {
     private final AtomicInteger counter = new AtomicInteger();
     private final List<IntentCall> intents = new CopyOnWriteArrayList<>();
     private final List<ConfirmCall> confirms = new CopyOnWriteArrayList<>();
+    private final Map<String, String> statuses = new ConcurrentHashMap<>();
     private volatile boolean enabled = true;
 
     @Override
@@ -47,18 +50,39 @@ public class FakeStripeGateway implements StripeGateway {
             Map<String, String> metadata) {
         String id = "pi_fake_" + counter.incrementAndGet();
         intents.add(new IntentCall(id, stripeCustomerId, amountCents, idempotencyKey, Map.copyOf(metadata)));
+        statuses.put(id, "requires_payment_method");
         return new CreatedIntent(id, id + "_secret_fake");
     }
 
     @Override
-    public String clientSecret(String paymentIntentId) {
-        return paymentIntentId + "_secret_fake";
+    public IntentState intentState(String paymentIntentId) {
+        return new IntentState(statusOf(paymentIntentId), paymentIntentId + "_secret_fake");
+    }
+
+    @Override
+    public IntentState cancelIfUnpaid(String paymentIntentId) {
+        IntentState now = intentState(paymentIntentId);
+        if (now.moneyMoving() || now.status().equals("canceled")) {
+            return now;
+        }
+        statuses.put(paymentIntentId, "canceled");
+        return intentState(paymentIntentId);
     }
 
     @Override
     public ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId) {
         confirms.add(new ConfirmCall(paymentIntentId, paymentMethodId));
         return new ConfirmedIntent("processing", paymentIntentId + "_secret_fake");
+    }
+
+    /** What Stripe would say about the intent now. */
+    public String statusOf(String intentId) {
+        return statuses.getOrDefault(intentId, "requires_payment_method");
+    }
+
+    /** Moves the intent on Stripe's side only, as if the bank answered and the webhook hasn't arrived yet. */
+    public void setStatus(String intentId, String status) {
+        statuses.put(intentId, status);
     }
 
     public List<IntentCall> intentsFor(String stripeCustomerId) {

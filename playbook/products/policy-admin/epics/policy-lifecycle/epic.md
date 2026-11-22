@@ -17,3 +17,4 @@ A broker can run a General Liability policy from start to finish: issue it, add 
 
 | Spec | Status | Branch |
 |---|---|---|
+| 2026-11-22-issue-policy | shaped | feat/policy-lifecycle/issue-policy |

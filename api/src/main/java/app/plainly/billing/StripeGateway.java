@@ -24,6 +24,9 @@ public interface StripeGateway {
     CreatedIntent createPaymentIntent(String stripeCustomerId, long amountCents, String idempotencyKey,
             Map<String, String> metadata);
 
+    /** The client secret of an intent created earlier, so a reopened pay page can carry on with the same intent. */
+    String clientSecret(String paymentIntentId);
+
     /** Confirms an intent with a card this customer used before. Stripe answers with the intent's new status. */
     ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId);
 

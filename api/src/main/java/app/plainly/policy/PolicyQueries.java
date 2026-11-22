@@ -28,9 +28,10 @@ public class PolicyQueries {
     /** All policies, most recently acted on first. */
     public List<PolicyViews.ListRow> list() {
         record Row(long id, String customer, String owner, String number, String status, String lastType,
-                LocalDate lastOn) {}
+                LocalDate lastOn, boolean paymentWaiting) {}
         List<Row> rows = jdbc.sql("""
-                select p.id, c.legal_name, c.owner_name, p.policy_number, p.status, last.type, last.recorded_on
+                select p.id, c.legal_name, c.owner_name, p.policy_number, p.status, last.type, last.recorded_on,
+                       exists (select 1 from payments pay where pay.policy_id = p.id and pay.status = 'PROCESSING')
                 from policies p
                 join customers c on c.id = p.customer_id
                 left join lateral (
@@ -39,7 +40,7 @@ public class PolicyQueries {
                 ) last on true
                 order by last.recorded_on desc nulls last, p.id desc""")
                 .query((rs, n) -> new Row(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5),
-                        rs.getString(6), rs.getObject(7, LocalDate.class)))
+                        rs.getString(6), rs.getObject(7, LocalDate.class), rs.getBoolean(8)))
                 .list();
         Map<Long, Long> balances = ledger.balances(rows.stream().map(Row::id).toList());
         return rows.stream()
@@ -47,7 +48,7 @@ public class PolicyQueries {
                     long balance = balances.get(r.id());
                     var last = r.lastType() == null ? null : new PolicyViews.LastAction(r.lastType(), r.lastOn());
                     return new PolicyViews.ListRow(r.id(), r.customer(), r.owner(), r.number(), r.status(), balance,
-                            balance > 0, last);
+                            balance > 0, r.paymentWaiting(), last);
                 })
                 .toList();
     }
@@ -78,7 +79,12 @@ public class PolicyQueries {
                                 rs.getObject(9, OffsetDateTime.class))))
                 .optional();
         return head.map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(), h.end(), today.date(),
-                h.customer(), ledger.balance(policyId), coverages(policyId), ledger.lines(policyId), transactions(policyId)));
+                h.customer(), ledger.balance(policyId), paymentWaiting(policyId), coverages(policyId), ledger.lines(policyId), transactions(policyId)));
+    }
+
+    private boolean paymentWaiting(long policyId) {
+        return jdbc.sql("select exists (select 1 from payments where policy_id = ? and status = 'PROCESSING')")
+                .param(policyId).query(Boolean.class).single();
     }
 
     private List<PolicyViews.Coverage> coverages(long policyId) {

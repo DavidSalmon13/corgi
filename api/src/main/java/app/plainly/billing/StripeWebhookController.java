@@ -3,8 +3,7 @@ package app.plainly.billing;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.net.Webhook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,24 +11,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 /**
- * Receives Stripe webhooks. The signature is checked against the raw request body, so the body is taken
- * as a String and never parsed before verification.
- *
- * <p>Spike (collect-premium T1): this only verifies and logs the event. T8 replaces the body with the
- * idempotent handler that changes payment status and posts ledger lines.
+ * Receives Stripe webhooks. Stripe can't sign in, so this is the one {@code /api} path with no session; the
+ * {@code Stripe-Signature} header is its proof instead. The signature is checked against the raw body, which is
+ * why the body is taken as a String and never parsed first. Stripe's default 5-minute tolerance refuses an old
+ * signature, so a captured delivery can't be replayed later.
  */
 @RestController
 class StripeWebhookController {
 
-    private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
-
     private final String webhookSecret;
+    private final WebhookHandler handler;
 
-    StripeWebhookController(@Value("${plainly.stripe.webhook-secret}") String webhookSecret) {
+    StripeWebhookController(@Value("${plainly.stripe.webhook-secret}") String webhookSecret, WebhookHandler handler) {
         this.webhookSecret = webhookSecret;
+        this.handler = handler;
     }
 
     @PostMapping(path = "/api/stripe/webhook", consumes = "*/*")
@@ -45,7 +41,8 @@ class StripeWebhookController {
         } catch (SignatureVerificationException e) {
             return badSignature();
         }
-        log.info("Stripe event {} ({}) verified", event.getId(), event.getType());
+        handler.handle(event);
+        // 200 for every verified event, including repeats and ones we ignore, so Stripe stops retrying.
         return ResponseEntity.ok(Map.of("received", event.getId()));
     }
 

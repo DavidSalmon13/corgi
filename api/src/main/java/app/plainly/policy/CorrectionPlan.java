@@ -1,5 +1,6 @@
 package app.plainly.policy;
 
+import app.plainly.billing.PlannedRefund;
 import app.plainly.pricing.ProRata;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
@@ -22,9 +23,6 @@ public record CorrectionPlan(long policyId, long coverageId, LocalDate oldStart,
 
     /** The charge priced from the corrected start to the policy's end. */
     public record Rebill(String label, LocalDate from, LocalDate to, ProRata.Charge calc) {}
-
-    /** One refund against one earlier payment, never more than that payment has left to give back. */
-    public record PlannedRefund(long paymentId, String paymentDisplayId, String cardLast4, long amountCents) {}
 
     /** Everything going back to cards, summed for B4's save label ("Save and refund $14.00"). */
     @JsonProperty

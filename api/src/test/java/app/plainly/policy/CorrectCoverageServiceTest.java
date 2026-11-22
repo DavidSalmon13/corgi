@@ -11,6 +11,8 @@ import app.plainly.PaymentTestData.Owner;
 import app.plainly.PaymentTestData.Started;
 import app.plainly.StripeTestSupport;
 import app.plainly.TestData;
+import app.plainly.billing.PlannedRefund;
+import app.plainly.billing.RefundStarted;
 import app.plainly.common.NotFoundException;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.EntryType;
@@ -159,7 +161,7 @@ class CorrectCoverageServiceTest {
         assertThat(plan.rebill().calc().amountCents()).isEqualTo(62_800);
         assertThat(plan.netCents()).isEqualTo(-1_400);
         assertThat(plan.balanceAfterCents()).isEqualTo(-1_400);
-        assertThat(plan.refunds()).containsExactly(new CorrectionPlan.PlannedRefund(paid.extraPayment(),
+        assertThat(plan.refunds()).containsExactly(new PlannedRefund(paid.extraPayment(),
                 paymentDisplayId(paid.extraPayment()), "4242", 1_400));
         assertThat(plan.refundTotalCents()).isEqualTo(1_400);
     }
@@ -206,8 +208,8 @@ class CorrectCoverageServiceTest {
         assertThat(plan.rebill().calc().amountCents()).isEqualTo(18_400);
         assertThat(plan.netCents()).isEqualTo(-45_800);
         assertThat(plan.refunds()).containsExactly(
-                new CorrectionPlan.PlannedRefund(small, paymentDisplayId(small), "0005", 1_000),
-                new CorrectionPlan.PlannedRefund(paid.extraPayment(), paymentDisplayId(paid.extraPayment()), "4242", 44_800));
+                new PlannedRefund(small, paymentDisplayId(small), "0005", 1_000),
+                new PlannedRefund(paid.extraPayment(), paymentDisplayId(paid.extraPayment()), "4242", 44_800));
         assertThat(plan.refundTotalCents()).isEqualTo(45_800);
     }
 
@@ -220,15 +222,15 @@ class CorrectCoverageServiceTest {
 
         // First fix: Oct 15 → Oct 22 refunds $14.00: all $10.00 of the latest payment, then $4.00 of the one before.
         CorrectCoverageService.Corrected first = service.correct(policyId, startOn(OCT_22), brokerId());
-        assertThat(first.refunds()).extracting(CorrectCoverageService.RefundStarted::paymentId,
-                CorrectCoverageService.RefundStarted::amountCents)
+        assertThat(first.refunds()).extracting(RefundStarted::paymentId,
+                RefundStarted::amountCents)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(small, 1_000L),
                         org.assertj.core.groups.Tuple.tuple(paid.extraPayment(), 400L));
 
         // Second fix: Oct 22 → Oct 29 owes $14.00 more back. The $10.00 payment has nothing left to give.
         CorrectionPlan second = service.preview(policyId, OCT_29);
         assertThat(second.rebill().calc().amountCents()).isEqualTo(61_400);
-        assertThat(second.refunds()).containsExactly(new CorrectionPlan.PlannedRefund(paid.extraPayment(),
+        assertThat(second.refunds()).containsExactly(new PlannedRefund(paid.extraPayment(),
                 paymentDisplayId(paid.extraPayment()), "4242", 1_400));
     }
 

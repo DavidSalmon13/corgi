@@ -20,5 +20,5 @@
 - [x] T9 DECISIONS.md: history groups the statement's rows by action on the server (one calculation); the broker sees the real refund/decline status while the policyholder's wording stays soft
 
 ## Verification
-- [ ] T10 Run both suites with coverage on the changed files (testing skill)
+- [x] T10 Run both suites with coverage on the changed files (testing skill)
 - [ ] T11 Run QA against AC1–AC9, incl. the Oct 15 → Oct 8 scenario and a live re-correction, at 1280 px light and 390 px dark (qa skill)

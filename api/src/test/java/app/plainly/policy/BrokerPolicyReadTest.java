@@ -4,8 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import app.plainly.IntegrationTest;
 import app.plainly.AuthTestSupport;
+import app.plainly.IntegrationTest;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,5 +81,20 @@ class BrokerPolicyReadTest {
         mvc.perform(get("/api/broker/policies/999999").cookie(broker))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("not_found"));
+    }
+
+    // covers real-sign-in AC11, T8 — the broker can see whether the owner has created their account
+    @Test
+    void thePolicyViewSaysWhetherTheOwnerHasSignedUp() throws Exception {
+        String url = "/api/broker/policies/" + juniper.policyId();
+        mvc.perform(get(url).cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customer.ownerSignedUpAt").doesNotExist());
+        String email = jdbc.sql("select c.owner_email from customers c join policies p on p.customer_id = c.id where p.id = ?")
+                .param(juniper.policyId()).query(String.class).single();
+        AuthTestSupport.signUp(mvc, email);
+        mvc.perform(get(url).cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customer.ownerSignedUpAt").isNotEmpty());
     }
 }

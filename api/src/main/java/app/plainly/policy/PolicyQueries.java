@@ -4,6 +4,7 @@ import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerQueries;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,12 +67,15 @@ public class PolicyQueries {
                 PolicyViews.Customer customer) {}
         Optional<Head> head = jdbc.sql("""
                 select p.policy_number, p.status, p.start_date, p.end_date,
-                       c.legal_name, c.business_description, c.owner_name, c.owner_email
-                from policies p join customers c on c.id = p.customer_id where p.id = ?""")
+                       c.legal_name, c.business_description, c.owner_name, c.owner_email, u.signed_up_at
+                from policies p join customers c on c.id = p.customer_id
+                left join app_users u on u.customer_id = c.id and u.role = 'POLICYHOLDER'
+                where p.id = ?""")
                 .param(policyId)
                 .query((rs, n) -> new Head(rs.getString(1), rs.getString(2), rs.getObject(3, LocalDate.class),
                         rs.getObject(4, LocalDate.class),
-                        new PolicyViews.Customer(rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8))))
+                        new PolicyViews.Customer(rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
+                                rs.getObject(9, OffsetDateTime.class))))
                 .optional();
         return head.map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(), h.end(), today.date(),
                 h.customer(), ledger.balance(policyId), coverages(policyId), ledger.lines(policyId), transactions(policyId)));

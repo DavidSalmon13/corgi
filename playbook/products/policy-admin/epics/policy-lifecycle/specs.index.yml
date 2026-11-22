@@ -21,7 +21,7 @@ specs:
       - docker-compose.yml
   - folder: 2026-11-22-real-sign-in
     slug: real-sign-in
-    status: shaped
+    status: done
     branch: feat/policy-lifecycle/real-sign-in
     covers:
       - /signin

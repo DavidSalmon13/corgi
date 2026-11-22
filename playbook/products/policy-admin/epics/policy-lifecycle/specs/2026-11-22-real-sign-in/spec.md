@@ -1,7 +1,7 @@
 # Real sign-in
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/policy-lifecycle/real-sign-in
 > Covers: /signin, /signup, api/src/main/java/**/auth/**, api/src/main/resources/db/migration/V5__accounts_and_sessions.sql, web/src/pages/SignIn.tsx, web/src/pages/SignUp.tsx, web/src/api/client.ts
 
@@ -90,3 +90,4 @@ Replaces the simulated role switcher from issue-policy with real email-and-passw
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-22 | david-schwartzman | change | Implemented T1–T18; QA PASS WITH NOTES | [qa-report](qa-report.md) |

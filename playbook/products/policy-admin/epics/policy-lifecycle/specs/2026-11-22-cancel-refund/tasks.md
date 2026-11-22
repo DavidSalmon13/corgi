@@ -20,7 +20,7 @@
 ## Web
 
 - [x] T8 lib/cancelCopy.ts with cancelCopy.test.ts (preview lines, settle/still-owed lines, save label, confirm summary, banner, P1/P6 sentences)
-- [ ] T9 B4 Cancel tab: ChangePolicyPage tab + blocked states, CancelPolicyForm (debounced preview, refund pieces, confirm dialog, 422 mapping, Keep the policy)
+- [x] T9 B4 Cancel tab: ChangePolicyPage tab + blocked states, CancelPolicyForm (debounced preview, refund pieces, confirm dialog, 422 mapping, Keep the policy)
 - [ ] T10 B3 cancelled state: Cancel action, pill/period/balance note, CoverTimeline cancelledFrom, CREDIT rows in ledgerRows (+ ledgerRows.test), saved banner
 - [ ] T11 P1 cancelled card variants (refund on its way / refunded / still owes + Pay) and timeline striping in HomePage
 - [ ] T12 P6 CancellationPage at /me/cancellation (used/unused bar, credit lines, kept back, refund pill and Stripe sentence; redirect when not cancelled)

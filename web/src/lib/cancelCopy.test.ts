@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CancelPlan, Cancellation, Cancelled } from '../api/types';
 import {
   cancelConfirm,
+  cancelPreviewHeading,
   cancelPreviewRows,
   cancelSaveLabel,
   cancelledBanner,
@@ -157,6 +158,12 @@ describe('what the cancellation tells the customer', () => {
       "Your cover ended on Dec 1, 2026. We're sending $1,434.82 back to your card ending 4242.",
     );
     expect(coverEndsSentence('2026-12-01', '2026-11-30')).toBe('Your cover ends on Dec 1, 2026.');
+  });
+
+  it('heads the preview with what the customer gets back, or still owes', () => {
+    expect(cancelPreviewHeading(refunded, 'Maya Okafor')).toBe('What Maya gets back');
+    expect(cancelPreviewHeading(stillOwes, 'Maya Okafor')).toBe('What Maya still owes');
+    expect(cancelPreviewHeading(null, '')).toBe('What the customer gets back');
   });
 
   it('labels the save button with the refund when there is one', () => {

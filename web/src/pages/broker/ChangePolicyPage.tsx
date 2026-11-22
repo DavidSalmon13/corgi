@@ -29,20 +29,25 @@ import {
   type ChangeSavedState,
   type FormErrors,
 } from './changeForm';
+import { CancelPolicyForm } from './CancelPolicyForm';
 import { CorrectCoverForm } from './CorrectCoverForm';
 
 export type { ChangeSavedState } from './changeForm';
 
 type Field = 'kind' | 'startDate' | 'policy';
-type Tab = 'add' | 'correct';
+type Tab = 'add' | 'correct' | 'cancel';
 
 const EXTRA_CENTS = 73_000;
 const TABS: { id: Tab; label: string }[] = [
   { id: 'add', label: 'Add cover' },
   { id: 'correct', label: 'Correct' },
+  { id: 'cancel', label: 'Cancel' },
 ];
 
-/** B4 "Change this policy": Add cover · Correct. {@code ?tab=correct} opens the Correct tab (B3's Correct action). */
+/**
+ * B4 "Change this policy": Add cover · Correct · Cancel. {@code ?tab=correct} and {@code ?tab=cancel} open those tabs
+ * (B3's Correct and Cancel actions).
+ */
 export function ChangePolicyPage() {
   const { id } = useParams();
   const policy = useQuery({
@@ -70,12 +75,12 @@ export function ChangePolicyPage() {
 
 /** Why a tab can't be used on this policy right now, or null when it can. Each tab has its own reasons. */
 function blockedReason(tab: Tab, p: PolicyDetail): string | null {
+  if (p.status === 'CANCELLED') return 'This policy is cancelled.';
   const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
-  if (tab === 'add') {
-    if (p.status === 'CANCELLED') return "This policy is cancelled, so cover can't be added.";
-    return hasExtra ? 'This policy already has product liability cover.' : null;
+  if (tab === 'add') return hasExtra ? 'This policy already has product liability cover.' : null;
+  if (tab === 'cancel') {
+    return p.paymentWaiting ? 'A payment is waiting for the bank. Cancel once it settles.' : null;
   }
-  if (p.status === 'CANCELLED') return "This policy is cancelled, so its cover can't be corrected.";
   if (!hasExtra) return 'This policy has no extra cover to correct.';
   return p.paymentWaiting ? 'A payment is waiting for the bank. Correct this once it settles.' : null;
 }
@@ -83,7 +88,8 @@ function blockedReason(tab: Tab, p: PolicyDetail): string | null {
 function ChangePolicy({ p }: { p: PolicyDetail }) {
   const back = `/broker/policies/${p.policyId}`;
   const [search, setSearch] = useSearchParams();
-  const tab: Tab = search.get('tab') === 'correct' ? 'correct' : 'add';
+  const asked = search.get('tab');
+  const tab: Tab = asked === 'correct' || asked === 'cancel' ? asked : 'add';
   const blocked = blockedReason(tab, p);
   const choose = (t: Tab) => setSearch(t === 'add' ? {} : { tab: t }, { replace: true });
 
@@ -117,6 +123,8 @@ function ChangePolicy({ p }: { p: PolicyDetail }) {
         <BlockedCard reason={blocked} back={back} />
       ) : tab === 'correct' ? (
         <CorrectCoverForm key="correct" p={p} back={back} />
+      ) : tab === 'cancel' ? (
+        <CancelPolicyForm key="cancel" p={p} back={back} />
       ) : (
         <AddCoverForm key="add" p={p} back={back} />
       )}

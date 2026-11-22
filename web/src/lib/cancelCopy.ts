@@ -118,6 +118,12 @@ export function customerWillSeeCancel(plan: CancelPlan, today: IsoDate): string 
   return `${ends} You have nothing to pay.`;
 }
 
+/** B4's preview heading: "What Maya gets back", or "What Maya still owes" when the credit falls short. */
+export function cancelPreviewHeading(plan: CancelPlan | null, ownerName: string): string {
+  const who = firstName(ownerName) ?? 'the customer';
+  return plan && plan.stillOwedCents > 0 ? `What ${who} still owes` : `What ${who} gets back`;
+}
+
 /** "Cancel policy and refund $1,434.82", or "Cancel policy" when nothing goes back to a card. */
 export function cancelSaveLabel(plan: CancelPlan): string {
   return plan.refundTotalCents > 0 ? `Cancel policy and refund ${formatCents(plan.refundTotalCents)}` : 'Cancel policy';

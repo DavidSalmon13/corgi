@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-correct-effective-date
 > Branch: feat/policy-lifecycle/correct-effective-date
+> Depends on: chore/api-repository-layer (merged, with policy/ledger/billing layered)
 
 ## Failing tests first
 
@@ -12,13 +13,13 @@
 
 ## API
 
-- [ ] T4 `V8__corrections_and_refunds.sql`: `coverages.replaced_by_coverage_id`, `refunds` table + seq, `ledger_entries.refund_id` + REFUND trace check
-- [ ] T5 Ledger: `NewEntry.refund`, REFUND branch in `LedgerPostingService.check`, reversal keeps `coverage_id`
+- [ ] T4 `V8__corrections_and_refunds.sql`: `coverages.replaced_by_coverage_id`, `refunds` table + seq, `ledger_entries.refund_id` + REFUND trace check; new `RefundRepository` (insert, lockById, markSent/markSucceeded/markFailed, findByPolicy, refundedPerPayment)
+- [ ] T5 Ledger: `NewEntry.refund`, REFUND branch in `LedgerPostingService.check`, reversal keeps `coverage_id`; `LedgerQueryService.liveChargeFor(coverageId)` over `LedgerRepository`
 - [ ] T6 `StripeGateway.createRefund` in `StripeJavaGateway` + `FakeStripeGateway`; refund event builders in `StripeTestSupport`
-- [ ] T7 `CorrectionPlan` + `CorrectCoverageService.preview`: live coverage + live charge lookup, validation, rebill, refund allocation
-- [ ] T8 `CorrectCoverageService.correct`: policy row lock, CORRECT transaction with reason, reversal + rebill, replace coverage, cancel OPEN intents, PENDING refunds, after-commit send
-- [ ] T9 `RefundService` (send, failure → FAILED, retry) + `WebhookHandler` refund events → REFUND line once
-- [ ] T10 `CorrectionController` (`/api/broker/policies/{id}/corrections`, `/preview`) + `RefundController` retry; `PolicyQueries` live coverages/previousStart/reason/refunds; `MyCoverController` refundWaiting + correction due reason; API suite green
+- [ ] T7 `CorrectionPlan` + `CorrectCoverageService.preview`: `CoverageRepository.findLive`, live charge via `LedgerQueryService`, validation, rebill, refund allocation (payments via `PaymentService`, refunded amounts via `RefundService`)
+- [ ] T8 `CorrectCoverageService.correct` (`@Transactional`): `PolicyRepository.lockById`, `PolicyTransactionRepository.insert` with reason, `LedgerPostingService.post` reversal + rebill, `CoverageRepository.insert` + `markReplaced`, `PaymentService.cancelOpenIntents` (extracted from `start`), `RefundService.recordPending`, after-commit `RefundService.send`
+- [ ] T9 `RefundService` over `RefundRepository` (recordPending, send, retry, settle, fail; failure → FAILED) + `WebhookHandler` refund events → `RefundService.settle|fail` → REFUND line once via `LedgerPostingService`
+- [ ] T10 Thin `CorrectionController` (`/api/broker/policies/{id}/corrections`, `/preview`) → `CorrectCoverageService`, thin `RefundController` retry → `RefundService`; policy read service + `CoverageRepository`/`PolicyTransactionRepository` queries for live coverages, previousStart, reason, refunds; `MyCoverController` → its service for refundWaiting + correction due reason; API suite green
 
 ## Web
 

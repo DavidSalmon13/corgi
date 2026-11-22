@@ -54,20 +54,43 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 
 ## Technical Approach
 
+**Depends on `chore/api-repository-layer`:** that branch must be merged first, and it finishes layering `policy`, `ledger` and `billing` as controller → service → repository (see [backend/layers](../../../../../../standards/backend/layers.md)). Every task below names its layer. Controllers call one service method. Services hold the rules, Stripe calls and `@Transactional`. Only repositories run SQL, and each repository writes only its own table. Other modules are reached through their service.
+
 - **Schema (V8):**
   - `coverages.replaced_by_coverage_id` (unique, references coverages)
   - a `refunds` table (`display_id` RF-xxxx, `policy_id`, `payment_id`, `policy_transaction_id`, `amount_cents > 0`, `status` PENDING|SUCCEEDED|FAILED, `stripe_refund_id`, `attempt`, `failure_reason`, timestamps)
   - `ledger_entries.refund_id`, plus a check that REFUND lines carry `refund_id` and `stripe_event_id`
 
   `reverses_entry_id unique` and the CORRECT transaction type already exist (V1).
-- **Plan/preview:** `CorrectionPlan` + `CorrectCoverageService.preview/correct`, mirroring `AddCoverageService`: load → validate → pure `plan()`, with `select … for update` on the policy, then separate reads. The line to undo is the live CHARGE for the live PRODUCT_LIABILITY coverage that has no reverser; it may be an ISSUE line. The reversal keeps `coverage_id`. The rebill uses `ProRata.charge(annual, newStart, policyEnd, policyStart, policyEnd)`. The refund plan comes from `balance + net`: if that is negative, it is allocated over SUCCEEDED payments, newest first, each capped at collected minus non-failed refunds.
-- **Save:** insert the CORRECT transaction (with reason); `LedgerPostingService.post` the reversal and the rebill; insert the new coverage and set `replaced_by` on the old one; cancel OPEN intents (as `PaymentService.start` does); insert PENDING refunds; register an after-commit hook that calls `RefundService.send`.
-- **Refunds:** `StripeGateway.createRefund(paymentIntentId, amount, idempotencyKey "refund-<id>-<attempt>", metadata)`, implemented in `StripeJavaGateway` and `FakeStripeGateway`. Webhook: `refund.created`/`refund.updated` with status succeeded post the REFUND line once (on the PENDING→SUCCEEDED transition, under a row lock); status failed and `refund.failed` set FAILED. Dedup uses `processed_stripe_events` as today. `POST /api/broker/refunds/{id}/retry` bumps `attempt` and sends again.
+- **Controllers (thin):**
+  - `CorrectionController`: `POST /api/broker/policies/{id}/corrections` and `/preview`; parses a string request record and calls `CorrectCoverageService.preview|correct`.
+  - `RefundController`: `POST /api/broker/refunds/{id}/retry` calls `RefundService.retry`.
+- **`CorrectCoverageService` (policy, rules + `@Transactional`):**
+  - load → validate → pure `CorrectionPlan` (shared by preview and save).
+  - Locks the policy through `PolicyRepository.lockById`.
+  - Reads the live PRODUCT_LIABILITY coverage through `CoverageRepository.findLive`.
+  - The line to undo is the live CHARGE for that coverage with no reverser (it may be an ISSUE line), read through `LedgerQueryService`.
+  - The rebill is `ProRata.charge(annual, newStart, policyEnd, policyStart, policyEnd)`.
+  - The refund plan comes from `balance + net`: if that is negative, it is allocated over succeeded payments newest first, each capped at collected minus non-failed refunds. Payments are read through `PaymentService`; existing refunds through `RefundService`.
+  - Save writes:
+    - the CORRECT transaction with its reason (`PolicyTransactionRepository.insert`)
+    - the reversal + rebill (`LedgerPostingService.post`)
+    - the new coverage, marking the old one replaced (`CoverageRepository.insert` + `markReplaced`)
+    - cancelled OPEN intents (`PaymentService.cancelOpenIntents`, extracted from `PaymentService.start`)
+    - PENDING refunds (`RefundService.recordPending`), sent by an after-commit hook through `RefundService.send`
+- **`RefundService` (billing) over `RefundRepository` (`refunds` only):**
+  - `send` calls `StripeGateway.createRefund(paymentIntentId, amount, idempotencyKey "refund-<id>-<attempt>", metadata)`; a failure → `markFailed`.
+  - `retry` bumps `attempt` and sends again.
+  - `settle` / `fail` are called from `WebhookHandler`:
+    - `refund.created`/`refund.updated` with status succeeded post the REFUND line once, on the PENDING→SUCCEEDED transition, under `RefundRepository.lockById`, through `LedgerPostingService`.
+    - status failed or `refund.failed` → FAILED.
+    - Dedup uses `processed_stripe_events` as today.
+- **Ledger:** `NewEntry.refund`, a REFUND branch in `LedgerPostingService.check`, and the reversal keeps `coverage_id`. SQL stays in `LedgerRepository`.
 - **Reads:**
-  - `PolicyQueries.coverages()` returns live rows plus `previousStart`.
-  - Transactions return `reason`.
-  - Policy detail returns refunds.
-  - `MyCoverController` adds `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to due-reason text "We fixed when your extra cover started."
+  - The `CoverageRepository` live-coverage query returns `previousStart`.
+  - The transactions query returns `reason`.
+  - Policy detail gains refunds from `RefundService`.
+  - `MyCoverController` → its service gains `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to "We fixed when your extra cover started."
 - **Web:**
   - `ChangePolicyPage` gets tabs.
   - New `CorrectCoverForm` (debounced preview, `useQuery` like `AddCoverForm`, a confirm dialog, 422 field mapping).
@@ -89,6 +112,7 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 ## Standards Applied
 
 - [global/tech-stack](../../../../../../standards/global/tech-stack.md): Spring Boot 4 / JdbcClient, Flyway, React + Vite + Tailwind v4, Stripe test mode.
+- [backend/layers](../../../../../../standards/backend/layers.md): controller → service → repository; only repositories run SQL; cross-module calls go service to service.
 - [global/git-workflow](../../../../../../standards/global/git-workflow.md): branch naming, commits and PRs.
 
 ## Changelog
@@ -96,3 +120,4 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-22 | david-schwartzman | change | Technical Approach and tasks follow the new controller → service → repository standard; depends on chore/api-repository-layer merging first | backend/layers |

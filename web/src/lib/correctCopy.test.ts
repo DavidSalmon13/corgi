@@ -8,6 +8,7 @@ import {
   correctingWhich,
   coverWasLabel,
   customerWillSeeCorrection,
+  failedRefundDetail,
   failedRefundText,
   netChange,
   netWhy,
@@ -207,6 +208,19 @@ describe('saving a correction', () => {
     );
     expect(failedRefundText({ ...failed, cardLast4: null })).toBe(
       "The $14.00 refund didn't go through. Stripe couldn't send the money to the card.",
+    );
+  });
+
+  it('says the correction stands and what the customer sees until the refund goes through', () => {
+    const failed: RefundView = {
+      id: 1, displayId: 'RF-0001', status: 'FAILED', amountCents: 1_400, cardLast4: '4242', attempt: 1,
+      policyTransactionDisplayId: 'PTX-0003', stripeRefundId: null, failureReason: 'expired_or_canceled_card',
+    };
+    expect(failedRefundDetail(failed, 'Maya Okafor')).toBe(
+      'The correction is saved (PTX-0003). Maya still sees “We owe you $14.00” until it goes through.',
+    );
+    expect(failedRefundDetail({ ...failed, policyTransactionDisplayId: null }, ' ')).toBe(
+      'The correction is saved. The customer still sees “We owe you $14.00” until it goes through.',
     );
   });
 

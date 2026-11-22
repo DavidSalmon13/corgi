@@ -11,6 +11,8 @@ export type TimelineCover = {
   detail?: ReactNode;
   from: IsoDate;
   to: IsoDate;
+  /** Written inside the bar on the full timeline, e.g. "from Oct 8 · was Oct 15" after a correction. */
+  barLabel?: string;
 };
 
 type Props = {
@@ -38,6 +40,7 @@ function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate })
       {covers.map((c) => (
         <li key={c.id}>
           {c.label}: {formatDate(c.from)} to {formatDate(c.to)}
+          {c.barLabel?.includes(' · ') && ` (${c.barLabel.split(' · ').slice(1).join(', ')})`}
         </li>
       ))}
       <li>Today is {formatDate(today)}</li>
@@ -112,9 +115,11 @@ export function CoverTimeline({ start, end, today, covers, cancelledFrom, varian
             </span>
             <div aria-hidden="true" className="relative h-8 rounded-lg bg-track">
               <div
-                className={`absolute inset-y-0 rounded-lg ${barColor(c.kind, 'full')}`}
+                className={`absolute inset-y-0 flex items-center overflow-hidden whitespace-nowrap rounded-lg px-2.5 text-[13px] font-semibold text-on-accent ${barColor(c.kind, 'full')}`}
                 style={{ left: pct(s.left), width: pct(s.width) }}
-              />
+              >
+                {c.barLabel}
+              </div>
               {hatchLeft != null && (
                 <div className="absolute inset-y-0 right-0 rounded-r-lg" style={{ left: pct(hatchLeft), ...HATCH }} />
               )}

@@ -152,6 +152,15 @@ export function failedRefundText(refund: RefundView): string {
   return `The ${formatCents(refund.amountCents)} refund didn't go through. Stripe couldn't send the money to ${card}.`;
 }
 
+/** Under a failed refund on B3: the correction stands, and the customer still sees the money as owed. */
+export function failedRefundDetail(refund: RefundView, ownerName: string): string {
+  const who = firstName(ownerName) ?? 'The customer';
+  const saved = refund.policyTransactionDisplayId
+    ? `The correction is saved (${refund.policyTransactionDisplayId}).`
+    : 'The correction is saved.';
+  return `${saved} ${who} still sees “We owe you ${formatCents(refund.amountCents)}” until it goes through.`;
+}
+
 /** B3 timeline: "from Oct 8 · was Oct 15", or "from Oct 8" when the cover was never corrected. */
 export function coverWasLabel(from: IsoDate, previousStart: IsoDate | null): string {
   const now = `from ${formatShortDate(from)}`;

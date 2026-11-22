@@ -1,13 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
-import type { CoverKind, PolicyDetail } from '../../api/types';
+import type { CoverKind, PolicyDetail, RefundRetried, RefundView } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
 import { LedgerTable } from '../../components/LedgerTable';
 import { Money } from '../../components/Money';
 import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
+import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/correctCopy';
 import { formatDate } from '../../lib/dates';
 import { balanceNote, balanceText, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
@@ -19,6 +20,10 @@ const COVER_NAME: Record<CoverKind, string> = {
 };
 
 const CARD = 'rounded-2xl border border-line bg-card px-4 py-5 md:px-6';
+const ACTION =
+  'inline-flex min-h-11 items-center justify-center rounded-control border-[1.5px] border-line px-4 text-[15px] font-semibold text-ink no-underline hover:border-ink-2';
+const ACTION_MAIN =
+  'inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 text-[15px] font-bold text-on-accent no-underline';
 
 function BackLink() {
   return (
@@ -29,15 +34,16 @@ function BackLink() {
 }
 
 /**
- * The "Extra cover added. Maya now owes …" note B4 hands over in router state. It is read once and the
- * history entry is replaced without it, so a reload or Back doesn't announce the change a second time.
+ * The "Extra cover added. Maya now owes …" note B4 hands over in router state, with the ids the save created. It is
+ * read once and the history entry is replaced without it, so a reload or Back doesn't announce the change twice.
  */
-function useSavedBanner(): [string | null, () => void] {
+function useSavedBanner(): [ChangeSavedState | null, () => void] {
   const location = useLocation();
   const navigate = useNavigate();
-  const [banner, setBanner] = useState<string | null>(
-    () => (location.state as ChangeSavedState | null)?.banner ?? null,
-  );
+  const [banner, setBanner] = useState<ChangeSavedState | null>(() => {
+    const state = location.state as ChangeSavedState | null;
+    return state?.banner ? state : null;
+  });
   useEffect(() => {
     if ((location.state as ChangeSavedState | null)?.banner) {
       navigate(location.pathname, { replace: true, state: null });
@@ -46,13 +52,16 @@ function useSavedBanner(): [string | null, () => void] {
   return [banner, () => setBanner(null)];
 }
 
-function SavedBanner({ text, onClose }: { text: string; onClose: () => void }) {
+function SavedBanner({ saved, onClose }: { saved: ChangeSavedState; onClose: () => void }) {
   return (
     <div
       role="status"
       className="flex items-center justify-between gap-3 rounded-card border border-good/30 bg-good-soft py-1 pl-4 pr-1 text-[15px] font-semibold text-good"
     >
-      <span className="py-2">{text}</span>
+      <span className="flex flex-col gap-0.5 py-2">
+        {saved.banner}
+        {saved.refs && <span className="text-sm font-normal tabular-nums">{saved.refs}</span>}
+      </span>
       <button
         type="button"
         onClick={onClose}
@@ -62,6 +71,46 @@ function SavedBanner({ text, onClose }: { text: string; onClose: () => void }) {
         ×
       </button>
     </div>
+  );
+}
+
+/**
+ * A refund Stripe couldn't send, with a button that sends a new attempt for the same refund (its own idempotency key,
+ * so a double click can't send twice). Only a broker sees B3, and the API checks that too.
+ */
+function FailedRefund({ refund, p }: { refund: RefundView; p: PolicyDetail }) {
+  const queryClient = useQueryClient();
+  const retry = useMutation({
+    mutationFn: () => api<RefundRetried>(`/api/broker/refunds/${refund.id}/retry`, { method: 'POST' }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['policy', String(p.policyId)] }),
+  });
+  return (
+    <section
+      role="alert"
+      aria-label={`Refund ${refund.displayId} didn't go through`}
+      className="flex flex-col gap-2.5 rounded-card bg-bad-soft px-4 py-3.5 text-bad"
+    >
+      <strong className="text-base">{failedRefundText(refund)}</strong>
+      <span className="text-sm leading-normal text-ink">
+        {failedRefundDetail(refund, p.customer.ownerName)}
+        {refund.failureReason && (
+          <span className="block text-ink-2">
+            Stripe's reason: {refund.failureReason} · {refund.displayId}, attempt {refund.attempt}
+          </span>
+        )}
+      </span>
+      {retry.isError && (
+        <span className="text-sm font-semibold">We couldn't reach the server to retry. Try again in a moment.</span>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => retry.mutate()} disabled={retry.isPending} className={`${ACTION_MAIN} disabled:opacity-60`}>
+          {retry.isPending ? 'Sending…' : 'Retry refund'}
+        </button>
+        <a href={`mailto:${p.customer.ownerEmail}`} className={`${ACTION} bg-card`}>
+          Email {p.customer.ownerName.trim().split(/\s+/)[0] || 'the customer'}
+        </a>
+      </div>
+    </section>
   );
 }
 
@@ -91,12 +140,19 @@ export function PolicyWorkspace() {
   const p = policy.data;
   const status = policyStatus(p.status, p.balanceCents, p.paymentWaiting);
   const cancelled = p.status === 'CANCELLED';
-  // AC1: one extra cover per policy, and none on a cancelled policy.
-  const canAddCover = p.status === 'ACTIVE' && !p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
+  const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
+  // add-coverage AC1: one extra cover per policy, and none on a cancelled policy.
+  const canAddCover = p.status === 'ACTIVE' && !hasExtra;
+  // correct-effective-date AC1: an active policy with extra cover can correct it (B4 explains if it's blocked).
+  const canCorrect = p.status === 'ACTIVE' && hasExtra;
+  const failedRefunds = (p.refunds ?? []).filter((r) => r.status === 'FAILED');
 
   return (
     <>
-      {banner && <SavedBanner text={banner} onClose={closeBanner} />}
+      {banner && <SavedBanner saved={banner} onClose={closeBanner} />}
+      {failedRefunds.map((r) => (
+        <FailedRefund key={r.id} refund={r} p={p} />
+      ))}
       <section aria-label="Policy" className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex min-w-0 flex-col gap-1.5">
           <BackLink />
@@ -129,13 +185,19 @@ export function PolicyWorkspace() {
             </div>
             <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting)}</div>
           </div>
-          {canAddCover && (
-            <Link
-              to={`/broker/policies/${p.policyId}/change`}
-              className="inline-flex min-h-11 items-center justify-center rounded-control border-[1.5px] border-line px-4 text-[15px] font-semibold text-ink no-underline hover:border-ink-2"
-            >
-              Add cover
-            </Link>
+          {(canAddCover || canCorrect) && (
+            <div className="flex flex-wrap gap-2">
+              {canAddCover && (
+                <Link to={`/broker/policies/${p.policyId}/change`} className={ACTION}>
+                  Add cover
+                </Link>
+              )}
+              {canCorrect && (
+                <Link to={`/broker/policies/${p.policyId}/change?tab=correct`} className={ACTION_MAIN}>
+                  Correct
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </section>
@@ -166,6 +228,7 @@ export function PolicyWorkspace() {
             ),
             from: c.from,
             to: c.to,
+            barLabel: c.kind === 'PRODUCT_LIABILITY' ? coverWasLabel(c.from, c.previousStart ?? null) : undefined,
           }))}
         />
       </section>

@@ -177,9 +177,9 @@ A refund only becomes a REFUND line when Stripe's webhook says it went, so until
 
 `RefundService.send` runs in a new transaction (a `TransactionTemplate` with REQUIRES_NEW). It is called from the correction's after-commit hook, where the finished transaction's connection is still bound, so without its own transaction the "sent" or "failed" update would only be saved by accident. The refund row stays locked while Stripe is asked, so a webhook for that refund waits until Stripe's id is stored. A retry clears the old Stripe refund id and stores the new one; an event naming a different Stripe refund than the row now holds is about an attempt the retry replaced, and changes nothing.
 
-## 2026-11-22: P1 shows pending refunds only, summed, named by the card that gets the most
+## 2026-11-22: P1 shows every unsettled refund, summed, named by the card that gets the most
 
-`refundWaiting` on P1 sums every PENDING refund on the policy. When a refund is split across two cards, the sentence names the card that gets the larger share rather than listing both, and B3 still lists each piece. A FAILED refund isn't shown to the customer as "on its way" until the broker retries it, because nothing is moving. A refund row is exposed as a public `RefundListing` record through `RefundService`, so `policy` and `me` never import a billing repository type.
+`refundWaiting` on P1 sums every refund on the policy that hasn't settled: PENDING ones, and FAILED ones the broker will retry. The B3 design says the customer "still sees 'We owe you $14.00' until it goes through", and hiding a failed refund would tell them "You're all paid up" while we still owe them money. When a refund is split across two cards, the sentence names the card that gets the larger share rather than listing both, and B3 still lists each piece. A refund row is exposed as a public `RefundListing` record through `RefundService`, so `policy` and `me` never import a billing repository type.
 
 ## 2026-11-22: B4's Correct tab opens from a link, says "undone in full", and asks once in a real dialog
 

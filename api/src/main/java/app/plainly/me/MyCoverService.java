@@ -46,7 +46,7 @@ public class MyCoverService {
 
     public record Broker(String name) {}
 
-    /** Money we owe the owner that is on its way back to their card (refunds sent, not yet settled). */
+    /** Money we owe the owner that is going back to their card (refunds not yet settled, including ones being retried). */
     public record RefundWaiting(long amountCents, String cardLast4) {}
 
     /**
@@ -85,11 +85,12 @@ public class MyCoverService {
     }
 
     /**
-     * What is on its way back: every PENDING refund, summed. A refund split across cards names the card that gets the
-     * most; a failed one isn't "on its way" until the broker retries it.
+     * What we still owe back: every refund not yet settled, summed. A failed one counts too, because the broker
+     * retries it and the customer is still owed the money (B3 design: "Maya still sees 'We owe you $14.00' until it
+     * goes through"). A refund split across cards names the card that gets the most.
      */
     private static RefundWaiting refundWaiting(List<RefundListing> refunds) {
-        List<RefundListing> pending = refunds.stream().filter(r -> "PENDING".equals(r.status())).toList();
+        List<RefundListing> pending = refunds.stream().filter(r -> !"SUCCEEDED".equals(r.status())).toList();
         if (pending.isEmpty()) {
             return null;
         }

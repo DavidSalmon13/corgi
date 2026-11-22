@@ -1,5 +1,6 @@
 package app.plainly.ledger;
 
+import app.plainly.pricing.ProRata;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -23,16 +24,19 @@ public class LedgerRepository {
         this.jdbc = jdbc;
     }
 
-    /** The policy and amount of an existing line, which a reversal must undo exactly. */
-    public record Original(long policyId, long amountCents) {}
+    /** The policy, amount and cover of an existing line, which a reversal must undo exactly. */
+    public record Original(long policyId, long amountCents, Long coverageId) {}
+
+    /** The policy and amount of a refund, which its REFUND line must match. */
+    public record RefundOf(long policyId, long amountCents) {}
 
     public PostedEntry insert(long policyId, Long policyTransactionId, NewEntry e) {
         return jdbc.sql("""
                 insert into ledger_entries (policy_id, policy_transaction_id, coverage_id, entry_type, entry_date,
                     description, amount_cents, calc_annual_cents, calc_days, calc_term_days, cover_from, cover_to,
-                    reverses_entry_id, payment_id, stripe_event_id)
+                    reverses_entry_id, payment_id, stripe_event_id, refund_id)
                 values (:policyId, :ptxId, :coverageId, :type, :entryDate, :description, :amount, :calcAnnual,
-                    :calcDays, :calcTermDays, :coverFrom, :coverTo, :reverses, :paymentId, :stripeEventId)
+                    :calcDays, :calcTermDays, :coverFrom, :coverTo, :reverses, :paymentId, :stripeEventId, :refundId)
                 returning id, display_id""")
                 .param("policyId", policyId)
                 .param("ptxId", policyTransactionId)
@@ -49,14 +53,42 @@ public class LedgerRepository {
                 .param("reverses", e.reversesEntryId())
                 .param("paymentId", e.paymentId())
                 .param("stripeEventId", e.stripeEventId())
+                .param("refundId", e.refundId())
                 .query((rs, n) -> new PostedEntry(rs.getLong("id"), rs.getString("display_id")))
                 .single();
     }
 
     public Optional<Original> findOriginal(long entryId) {
-        return jdbc.sql("select policy_id, amount_cents from ledger_entries where id = ?")
+        return jdbc.sql("select policy_id, amount_cents, coverage_id from ledger_entries where id = ?")
                 .param(entryId)
-                .query((rs, n) -> new Original(rs.getLong("policy_id"), rs.getLong("amount_cents")))
+                .query((rs, n) -> new Original(rs.getLong("policy_id"), rs.getLong("amount_cents"),
+                        rs.getObject("coverage_id", Long.class)))
+                .optional();
+    }
+
+    /** The policy and amount of a refund, so a refund line can only settle its own refund (a read of refunds). */
+    public Optional<RefundOf> refundOf(long refundId) {
+        return jdbc.sql("select policy_id, amount_cents from refunds where id = ?")
+                .param(refundId)
+                .query((rs, n) -> new RefundOf(rs.getLong("policy_id"), rs.getLong("amount_cents")))
+                .optional();
+    }
+
+    /** The cover's CHARGE line that no reversal points at. */
+    public Optional<LiveCharge> liveChargeFor(long coverageId) {
+        return jdbc.sql("""
+                select le.id, le.display_id, le.amount_cents, le.calc_annual_cents, le.calc_days, le.calc_term_days,
+                       le.cover_from, le.cover_to
+                from ledger_entries le
+                where le.coverage_id = ? and le.entry_type = 'CHARGE'
+                  and not exists (select 1 from ledger_entries r where r.reverses_entry_id = le.id)
+                order by le.id desc limit 1""")
+                .param(coverageId)
+                .query((rs, n) -> new LiveCharge(rs.getLong("id"), rs.getString("display_id"),
+                        rs.getLong("amount_cents"),
+                        new ProRata.Charge(rs.getLong("calc_annual_cents"), rs.getLong("calc_days"),
+                                rs.getLong("calc_term_days"), rs.getLong("amount_cents")),
+                        date(rs.getDate("cover_from")), date(rs.getDate("cover_to"))))
                 .optional();
     }
 
@@ -74,12 +106,14 @@ public class LedgerRepository {
                        rev_of.display_id as reverses_display_id,
                        rev_by.display_id as reversed_by_display_id,
                        pay.stripe_payment_intent_id, le.stripe_event_id,
+                       rf.display_id as refund_display_id, rf.stripe_refund_id,
                        sum(le.amount_cents) over (order by le.id) as balance_after
                 from ledger_entries le
                 left join policy_transactions ptx on ptx.id = le.policy_transaction_id
                 left join ledger_entries rev_of on rev_of.id = le.reverses_entry_id
                 left join ledger_entries rev_by on rev_by.reverses_entry_id = le.id
                 left join payments pay on pay.id = le.payment_id
+                left join refunds rf on rf.id = le.refund_id
                 where le.policy_id = ?
                 order by le.id""")
                 .param(policyId)
@@ -101,6 +135,8 @@ public class LedgerRepository {
                         rs.getString("reversed_by_display_id"),
                         rs.getString("stripe_payment_intent_id"),
                         rs.getString("stripe_event_id"),
+                        rs.getString("refund_display_id"),
+                        rs.getString("stripe_refund_id"),
                         rs.getLong("balance_after")))
                 .list();
     }

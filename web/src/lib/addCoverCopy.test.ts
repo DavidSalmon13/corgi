@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  billHeading,
+  calcArithmetic,
   calcLine,
   coverOptionLabel,
   customerWillSeeAddCover,
@@ -23,6 +25,12 @@ describe('add cover copy', () => {
 
   it('shows the arithmetic behind the charge in plain words', () => {
     expect(calcLine(oct15)).toBe('$730.00 × 321 ÷ 365 · charged by the day');
+    expect(calcArithmetic(oct15)).toBe('$730.00 × 321 ÷ 365');
+  });
+
+  it('heads the money preview with the owner’s first name', () => {
+    expect(billHeading('Maya Okafor')).toBe("What this does to Maya's bill");
+    expect(billHeading('')).toBe("What this does to the customer's bill");
   });
 
   it('tells the customer what they owe, for how many days, at what daily price', () => {

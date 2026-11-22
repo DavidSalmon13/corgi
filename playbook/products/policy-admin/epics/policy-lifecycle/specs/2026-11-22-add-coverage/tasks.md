@@ -20,7 +20,7 @@
 ## Web
 
 - [x] T8 `types.ts` additions + `lib/addCoverCopy.ts`; `myCoverCopy.ts` EXTRA_COVER text
-- [ ] T9 `ChangePolicyPage.tsx` (B4 Add cover tab) + `policies/:id/change` route in App.tsx (AC2, AC3, AC4, AC8)
+- [x] T9 `ChangePolicyPage.tsx` (B4 Add cover tab) + `policies/:id/change` route in App.tsx (AC2, AC3, AC4, AC8)
 - [ ] T10 `PolicyWorkspace.tsx`: Add cover button and saved banner (AC1, AC6)
 - [ ] T11 Widen `jargon.test.ts` to the lib copy helpers (AC12)
 

@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.support.TransactionTemplate;
 
 // covers AC3, AC4, AC5, AC7, T1
 @IntegrationTest
@@ -36,6 +37,7 @@ class AddCoverageServiceTest {
     @Autowired IssuePolicyService issuer;
     @Autowired LedgerQueryService ledger;
     @Autowired JdbcClient jdbc;
+    @Autowired TransactionTemplate tx;
 
     long brokerId() {
         return jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
@@ -260,6 +262,51 @@ class AddCoverageServiceTest {
         assertThat(jdbc.sql("select count(*) from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY'")
                 .param(id).query(Long.class).single()).isEqualTo(1);
         assertThat(ledger.balance(id)).isEqualTo(balanceBefore + 64_200);
+    }
+
+    /**
+     * The race the lock exists for, made deterministic: another transaction holds the policy row, the add
+     * starts and waits on it, then the other transaction adds the cover and commits. The waiting add must see
+     * that cover once it gets the lock. A check made in the same statement as the lock reads the database from
+     * before the wait and would let a second cover and charge through.
+     */
+    @Test
+    void anAddThatWaitedOnTheLockSeesTheCoverAddedMeanwhile() throws Exception {
+        long id = policy();
+        long broker = brokerId();
+        long balanceBefore = ledger.balance(id);
+        try (ExecutorService pool = Executors.newSingleThreadExecutor()) {
+            Future<AddCoverageService.Added> waiting = tx.execute(status -> {
+                jdbc.sql("select id from policies where id = ? for update").param(id).query(Long.class).single();
+                Future<AddCoverageService.Added> f = pool.submit(() -> service.add(id, productLiabilityFrom(OCT_15), broker));
+                awaitBlockedOnLock();
+                jdbc.sql("""
+                        insert into coverages (policy_id, kind, annual_premium_cents, effective_from, effective_to)
+                        values (?, 'PRODUCT_LIABILITY', 73000, ?, ?)""").params(id, OCT_15, POLICY_END).update();
+                return f;
+            });
+            assertThatThrownBy(waiting::get).cause().isInstanceOfSatisfying(ValidationException.class,
+                    e -> assertThat(e.fields()).containsExactly(
+                            java.util.Map.entry("kind", "This policy already has product liability cover.")));
+        }
+        assertThat(jdbc.sql("select count(*) from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY'")
+                .param(id).query(Long.class).single()).isEqualTo(1);
+        assertThat(ledger.balance(id)).isEqualTo(balanceBefore);
+    }
+
+    /** Waits until another session is waiting for a lock (pg_locks, which unlike pg_stat_activity isn't cached per transaction), so the add is known to be queued behind ours. */
+    private void awaitBlockedOnLock() {
+        for (int i = 0; i < 200; i++) {
+            long waiting = jdbc.sql("""
+                    select count(*) from pg_locks where not granted""").query(Long.class).single();
+            if (waiting > 0) return;
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        throw new AssertionError("the add never waited on the policy lock");
     }
 
     private static void assertFieldError(org.assertj.core.api.ThrowableAssert.ThrowingCallable call, String field,

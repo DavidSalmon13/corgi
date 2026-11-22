@@ -83,17 +83,24 @@ public class AddCoverageService {
         return new Added(policyId, tx.getValue(), posted, plan.totalCents(), balances.balance(policyId));
     }
 
-    /** {@code lock} takes the policy row for the rest of the transaction, so two adds can't both pass validation. */
+    /**
+     * {@code lock} takes the policy row for the rest of the transaction, so two adds can't both pass validation.
+     * The cover check is a separate statement on purpose: under READ COMMITTED a statement reads the database as
+     * it was when the statement began, so a check inside the locking select would miss a cover that the add we
+     * waited for committed. Run after the lock is held, it sees that cover.
+     */
     private PolicyTerm load(long policyId, boolean lock) {
-        return jdbc.sql("""
-                select p.id, p.status, p.start_date, p.end_date,
-                       exists (select 1 from coverages c where c.policy_id = p.id and c.kind = 'PRODUCT_LIABILITY')
-                from policies p where p.id = ?""" + (lock ? " for update of p" : ""))
+        PolicyTerm policy = jdbc.sql("select id, status, start_date, end_date from policies where id = ?"
+                        + (lock ? " for update" : ""))
                 .param(policyId)
                 .query((rs, n) -> new PolicyTerm(rs.getLong(1), rs.getString(2), rs.getObject(3, LocalDate.class),
-                        rs.getObject(4, LocalDate.class), rs.getBoolean(5)))
+                        rs.getObject(4, LocalDate.class), false))
                 .optional()
                 .orElseThrow(() -> new NotFoundException("There's no policy with that id."));
+        boolean hasProductLiability = jdbc.sql(
+                        "select exists (select 1 from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY')")
+                .param(policyId).query(Boolean.class).single();
+        return new PolicyTerm(policy.id(), policy.status(), policy.start(), policy.end(), hasProductLiability);
     }
 
     /** One message per field (AC4). A cancelled policy has no field to fix, so its message stands alone. */

@@ -76,12 +76,12 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
     - the CORRECT transaction with its reason (`PolicyTransactionRepository.insert`, which gains a `reason` parameter; existing callers pass `null`)
     - the reversal + rebill (`LedgerPostingService.post`)
     - the new coverage, marking the old one replaced (`CoverageRepository.insert` + new `markReplaced(oldId, newId)`)
-    - cancelled OPEN intents (`PaymentService.cancelOpenIntents`, extracted from `PaymentService.start`; provisional name until billing is layered)
+    - cancelled OPEN intents (`PaymentService.cancelOpenIntents`, extracted from the stale-intent loop in `PaymentService.start` over `PaymentRepository.unfinished` + `markStripeCanceled`)
     - PENDING refunds (`RefundService.recordPending`), sent by an after-commit hook through `RefundService.send`
 - **`RefundService` (billing) over `RefundRepository` (`refunds` only):**
   - `send` calls `StripeGateway.createRefund(paymentIntentId, amount, idempotencyKey "refund-<id>-<attempt>", metadata)`; a failure → `markFailed`.
   - `retry` bumps `attempt` and sends again.
-  - `settle` / `fail` are called from `WebhookHandler`:
+  - `settle` / `fail` are called from `StripeWebhookService`:
     - `refund.created`/`refund.updated` with status succeeded post the REFUND line once, on the PENDING→SUCCEEDED transition, under `RefundRepository.lockById`, through `LedgerPostingService`.
     - status failed or `refund.failed` → FAILED.
     - Dedup uses `processed_stripe_events` as today.
@@ -90,7 +90,7 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
   - `CoverageRepository.listForPolicy` and `exists` skip replaced rows, so timelines show one extra cover; `listForPolicy` also returns `previousStart` (the start of the row it replaced).
   - `PolicyTransactionRepository.listForPolicy` returns `reason`.
   - `PolicyService` (which replaced `PolicyQueries`) adds refunds from `RefundService` to the policy detail.
-  - `MyCoverController` → its service (provisional until `me` is layered) gains `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to "We fixed when your extra cover started."
+  - `MyCoverService.cover` gains `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to "We fixed when your extra cover started."
 - **Web:**
   - `ChangePolicyPage` gets tabs.
   - New `CorrectCoverForm` (debounced preview, `useQuery` like `AddCoverForm`, a confirm dialog, 422 field mapping).
@@ -122,3 +122,4 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
 | 2026-11-22 | david-schwartzman | change | Technical Approach and tasks follow the new controller → service → repository standard; depends on chore/api-repository-layer merging first | backend/layers |
 | 2026-11-22 | david-schwartzman | change | Matched names to the layered policy/ledger code on chore/api-repository-layer (findTerm lock, hasPaymentProcessing, PolicyService); billing and me names provisional | backend/layers |
+| 2026-11-22 | david-schwartzman | change | Layering refactor merged to dev: billing and me names confirmed (StripeWebhookService, MyCoverService, PaymentService.cancelOpenIntents extracted from start) | backend/layers |

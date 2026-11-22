@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { balanceText, lastActionText, listSummary, policyStatus } from './policyCopy';
+import { balanceNote, balanceText, lastActionText, listSummary, policyStatus } from './policyCopy';
 
 // covers AC8, AC9, T16
 describe('policy copy', () => {
@@ -26,5 +26,11 @@ describe('policy copy', () => {
     expect(listSummary(5, 2)).toBe('5 policies · 2 owe money');
     expect(listSummary(1, 1)).toBe('1 policy · 1 owes money');
     expect(listSummary(3, 0)).toBe('3 policies · nobody owes money');
+  });
+
+  it('explains the balance under it in plain words', () => {
+    expect(balanceNote(120_000)).toBe('Not paid yet');
+    expect(balanceNote(0)).toBe('Nothing owed');
+    expect(balanceNote(-500)).toBe('We owe the customer this');
   });
 });

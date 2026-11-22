@@ -31,5 +31,5 @@
 
 ## Verification
 
-- [ ] T14 Run both suites with coverage on the changed files (testing skill)
+- [x] T14 Run both suites with coverage on the changed files (testing skill)
 - [ ] T15 Run QA against acceptance criteria, incl. the app at 1280 px light and 390 px dark (qa skill)

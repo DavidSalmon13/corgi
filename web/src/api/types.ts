@@ -20,7 +20,7 @@ export type SignInRequest = { email: string; password: string };
 /** POST /api/auth/signup body. The email must be the one the broker entered for the business. */
 export type SignUpRequest = { email: string; password: string; confirmPassword: string };
 
-export type EntryType = 'CHARGE' | 'REVERSAL' | 'PAYMENT' | 'REFUND';
+export type EntryType = 'CHARGE' | 'CREDIT' | 'REVERSAL' | 'PAYMENT' | 'REFUND';
 export type CoverKind = 'BASE' | 'PRODUCT_LIABILITY';
 export type PolicyStatus = 'ACTIVE' | 'CANCELLED';
 

@@ -261,4 +261,70 @@ class LedgerTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(queries.lines(policyId)).isEmpty();
     }
+
+    // --- cancel-refund: a CREDIT gives back a cover's unused days (covers AC4, AC7, AC8, AC9, T2) ---
+
+    static final LocalDate DEC_1 = LocalDate.of(2026, 12, 1);
+
+    @Test
+    void aCreditGivesBackUnusedDaysWithItsArithmeticAndCover() {
+        long cover = coverage(OCT_15);
+        poster.post(policyId, issueTx, List.of(NewEntry.charge(SEP_1, "Extra cover from Oct 15", cover,
+                ProRata.charge(73_000, OCT_15, SEP_1_NEXT, SEP_1, SEP_1_NEXT), OCT_15, SEP_1_NEXT)));
+        long cancelTx = TestData.transaction(jdbc, policyId, "CANCEL", DEC_1);
+        var unused = ProRata.charge(73_000, DEC_1, SEP_1_NEXT, SEP_1, SEP_1_NEXT);
+        poster.post(policyId, cancelTx, List.of(
+                NewEntry.credit(DEC_1, "Extra cover, unused days refunded", cover, unused, DEC_1, SEP_1_NEXT)));
+
+        LedgerLine credit = queries.lines(policyId).get(1);
+        assertThat(credit.type()).isEqualTo(EntryType.CREDIT);
+        assertThat(credit.amountCents()).isEqualTo(-54_800);
+        assertThat(credit.calcAnnualCents()).isEqualTo(73_000);
+        assertThat(credit.calcDays()).isEqualTo(274);
+        assertThat(credit.calcTermDays()).isEqualTo(365);
+        assertThat(credit.coverageId()).isEqualTo(cover);
+        assertThat(credit.coverFrom()).isEqualTo(DEC_1);
+        assertThat(credit.policyTransactionDisplayId()).matches("PTX-\\d{4,}");
+        assertThat(credit.balanceAfterCents()).isEqualTo(64_200 - 54_800);
+        assertThat(queries.liveChargeFor(cover)).as("the original charge stays live").isPresent();
+    }
+
+    @Test
+    void aCreditMustTraceToItsTransactionCoverAndArithmetic() {
+        long cover = coverage(OCT_15);
+        long cancelTx = TestData.transaction(jdbc, policyId, "CANCEL", DEC_1);
+        var unused = ProRata.charge(73_000, DEC_1, SEP_1_NEXT, SEP_1, SEP_1_NEXT);
+        long otherPolicy = TestData.policy(jdbc, SEP_1, SEP_1_NEXT);
+        long otherTx = TestData.transaction(jdbc, otherPolicy, "CANCEL", DEC_1);
+
+        assertThatThrownBy(() -> NewEntry.credit(DEC_1, "Nothing", cover,
+                new ProRata.Charge(73_000, 0, 365, 0), DEC_1, SEP_1_NEXT))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(policyId, null,
+                List.of(NewEntry.credit(DEC_1, "No transaction", cover, unused, DEC_1, SEP_1_NEXT))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(otherPolicy, otherTx,
+                List.of(NewEntry.credit(DEC_1, "Someone else's cover", cover, unused, DEC_1, SEP_1_NEXT))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(policyId, cancelTx, List.of(new NewEntry(EntryType.CREDIT, DEC_1,
+                "Wrong amount", -50_000, cover, unused, DEC_1, SEP_1_NEXT, null, null, null, null))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(policyId, cancelTx, List.of(new NewEntry(EntryType.CREDIT, DEC_1,
+                "No arithmetic", -54_800, cover, null, DEC_1, SEP_1_NEXT, null, null, null, null))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(queries.lines(policyId)).isEmpty();
+    }
+
+    @Test
+    void aCreditCanNeverBeChangedOrRemoved() {
+        long cover = coverage(OCT_15);
+        long cancelTx = TestData.transaction(jdbc, policyId, "CANCEL", DEC_1);
+        PostedEntry credit = poster.post(policyId, cancelTx, List.of(NewEntry.credit(DEC_1, "Extra cover, unused days refunded",
+                cover, ProRata.charge(73_000, DEC_1, SEP_1_NEXT, SEP_1, SEP_1_NEXT), DEC_1, SEP_1_NEXT))).getFirst();
+
+        assertThatThrownBy(() -> jdbc.sql("update ledger_entries set amount_cents = -1 where id = ?").param(credit.id()).update())
+                .hasMessageContaining("append-only");
+        assertThatThrownBy(() -> jdbc.sql("delete from ledger_entries where id = ?").param(credit.id()).update())
+                .hasMessageContaining("append-only");
+    }
 }

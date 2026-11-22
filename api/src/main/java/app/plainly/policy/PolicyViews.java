@@ -29,8 +29,12 @@ public final class PolicyViews {
     public record Transaction(String displayId, String type, LocalDate effectiveDate, LocalDate recordedOn,
             String reason) {}
 
-    /** Everything B3 shows: header, covers for the timeline, and the ledger with where each line came from. */
-    public record Detail(long policyId, String policyNumber, String status, LocalDate start, LocalDate end, LocalDate today,
+    /**
+     * Everything B3 shows: header, covers for the timeline, and the ledger with where each line came from.
+     * {@code end} is always the original term end; {@code cancelledOn} is the day all cover stopped, or null.
+     */
+    public record Detail(long policyId, String policyNumber, String status, LocalDate start, LocalDate end,
+            LocalDate cancelledOn, LocalDate today,
             Customer customer, long balanceCents, boolean paymentWaiting, List<Coverage> coverages, List<LedgerLine> ledger,
             List<Transaction> transactions, List<RefundListing> refunds) {}
 }

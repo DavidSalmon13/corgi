@@ -1,7 +1,9 @@
 package app.plainly.policy;
 
 import app.plainly.billing.PaymentService;
+import app.plainly.billing.PlannedRefund;
 import app.plainly.billing.RefundService;
+import app.plainly.billing.RefundStarted;
 import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
@@ -13,15 +15,12 @@ import app.plainly.ledger.PostedEntry;
 import app.plainly.pricing.ProRata;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Corrects when a policy's extra cover started. Nothing is edited: the live charge is undone to the cent, a corrected
@@ -69,9 +68,6 @@ public class CorrectCoverageService {
     public record Corrected(long policyId, String transactionDisplayId, String undoDisplayId, String rebillDisplayId,
             long netCents, long balanceCents, List<RefundStarted> refunds) {}
 
-    /** A refund recorded with the correction. It is sent to Stripe after commit and settles only by webhook. */
-    public record RefundStarted(String displayId, long paymentId, long amountCents) {}
-
     /** Prices the correction without saving anything (the live preview on B4). The reason isn't needed yet. */
     public CorrectionPlan preview(long policyId, LocalDate startDate) {
         Loaded loaded = load(policyId, false);
@@ -102,27 +98,10 @@ public class CorrectCoverageService {
                         plan.undo().amountCents()),
                 NewEntry.charge(recordedOn, rebill.label(), newCoverage, rebill.calc(), rebill.from(), rebill.to())));
 
-        List<RefundStarted> started = new ArrayList<>();
-        List<Long> toSend = new ArrayList<>();
-        for (CorrectionPlan.PlannedRefund r : plan.refunds()) {
-            RefundService.Recorded recorded = refunds.recordPending(policyId, r.paymentId(), tx.id(), r.amountCents());
-            started.add(new RefundStarted(recorded.displayId(), r.paymentId(), r.amountCents()));
-            toSend.add(recorded.id());
-        }
-        afterCommit(() -> toSend.forEach(refunds::send));
+        List<RefundStarted> started = refunds.recordAndSendAfterCommit(policyId, tx.id(), plan.refunds());
 
         return new Corrected(policyId, tx.displayId(), posted.get(0).displayId(), posted.get(1).displayId(),
-                plan.netCents(), ledger.balance(policyId), List.copyOf(started));
-    }
-
-    /** Runs once this transaction commits, so money never leaves for a correction that rolled back. */
-    private static void afterCommit(Runnable work) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                work.run();
-            }
-        });
+                plan.netCents(), ledger.balance(policyId), started);
     }
 
     /** The policy, its live extra cover and whether a payment is with the bank, read together. */
@@ -191,35 +170,9 @@ public class CorrectCoverageService {
 
         long net = calc.amountCents() + undo.amountCents();
         long balanceAfter = ledger.balance(policy.id()) + net;
-        // Refunds already recorded but not yet settled are credit that is spoken for: don't send it twice.
-        long owed = -balanceAfter - refunds.unsettledTotal(policy.id());
-        List<CorrectionPlan.PlannedRefund> planned = owed > 0
-                ? allocate(owed, payments.collected(policy.id()), refunds.refundedPerPayment(policy.id()))
-                : List.of();
+        List<PlannedRefund> planned = refunds.plan(policy.id(), balanceAfter);
         return new CorrectionPlan(policy.id(), cover.id(), cover.from(), newStart, undo, rebill, net, balanceAfter,
                 planned);
-    }
-
-    /**
-     * Splits what we owe over the payments that took money, newest first, each capped at what it collected less
-     * what has already gone (or is going) back from it. Anything left over stays as a credit on the balance.
-     */
-    static List<CorrectionPlan.PlannedRefund> allocate(long owedCents, List<PaymentService.Collected> newestFirst,
-            Map<Long, Long> alreadyRefunded) {
-        List<CorrectionPlan.PlannedRefund> planned = new ArrayList<>();
-        long left = owedCents;
-        for (PaymentService.Collected p : newestFirst) {
-            if (left <= 0) {
-                break;
-            }
-            long room = p.amountCents() - alreadyRefunded.getOrDefault(p.paymentId(), 0L);
-            long take = Math.min(left, room);
-            if (take > 0) {
-                planned.add(new CorrectionPlan.PlannedRefund(p.paymentId(), p.displayId(), p.cardLast4(), take));
-                left -= take;
-            }
-        }
-        return List.copyOf(planned);
     }
 
     private static String label(LocalDate start) {

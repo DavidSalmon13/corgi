@@ -10,6 +10,7 @@ import { Money } from '../../components/Money';
 import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { cancelledCard } from '../../lib/cancelCopy';
 import { formatDate } from '../../lib/dates';
 import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from '../../lib/myCoverCopy';
 import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
@@ -45,6 +46,9 @@ function Header({ name }: { name?: string }) {
   );
 }
 
+const LINK_BUTTON =
+  'flex min-h-12 items-center justify-center rounded-xl border-[1.5px] border-line text-base font-semibold text-ink no-underline hover:bg-track';
+
 const PAY_BUTTON =
   'flex min-h-[52px] items-center justify-center rounded-xl bg-accent text-[17px] font-bold text-on-accent no-underline';
 
@@ -68,22 +72,49 @@ function BrokerNote({ c }: { c: MyCover }) {
   );
 }
 
+/**
+ * P1 for a cancelled policy (cancel-refund AC10): when cover ends and either the money going back to the card or what
+ * is still owed for the days covered, with a way to pay it and a link to how it was worked out.
+ */
+function CancelledCard({ c }: { c: MyCover }) {
+  const k = c.cancellation;
+  const copy = k ? cancelledCard(k, c.amountDueCents, c.today) : null;
+  return (
+    <section
+      aria-label="Policy cancelled"
+      className={`flex flex-col gap-3 rounded-2xl bg-card p-5 ${copy?.due ? 'border-[1.5px] border-accent' : 'border border-line'}`}
+    >
+      <span className="self-start">
+        <StatusPill tone="neutral">Cancelled</StatusPill>
+      </span>
+      <p className="m-0 text-[19px] font-medium leading-snug">{copy?.sentence ?? 'This cover has ended.'}</p>
+      {copy?.due && (
+        <>
+          <p className="m-0 text-[17px] font-semibold leading-snug text-accent-ink tabular-nums">{copy.due}</p>
+          {c.payment?.status === 'FAILED' && (
+            <p className="m-0 text-[15px] leading-snug text-ink-2">
+              Your last payment didn't go through, so no money moved. You can try again.
+            </p>
+          )}
+          <PayAction c={c} label={payLabel(c.amountDueCents)} />
+        </>
+      )}
+      {k && (
+        <Link to="/me/cancellation" className={LINK_BUTTON}>
+          See how we worked it out
+        </Link>
+      )}
+    </section>
+  );
+}
+
 function AmountCard({ c }: { c: MyCover }) {
   const state = homePaymentState({
     cancelled: c.policy.status === 'CANCELLED',
     amountDueCents: c.amountDueCents,
     payment: c.payment,
   });
-  if (state === 'cancelled') {
-    return (
-      <section aria-label="Cover ended" className={`${CARD} flex flex-col gap-3 p-5`}>
-        <span className="self-start">
-          <StatusPill tone="neutral">Cancelled</StatusPill>
-        </span>
-        <p className="m-0 text-[19px] font-medium leading-snug">This cover has ended.</p>
-      </section>
-    );
-  }
+  if (state === 'cancelled') return <CancelledCard c={c} />;
   if (c.refundWaiting && c.amountDueCents === 0) {
     return (
       <section aria-label="Refund on its way" className={`${CARD} flex flex-col gap-3 p-5`}>
@@ -185,6 +216,9 @@ export function HomePage() {
   const hasExtra = c.covers.some((x) => x.kind !== 'BASE');
   const base = c.covers.filter((x) => x.kind === 'BASE');
   const extras = c.covers.filter((x) => x.kind !== 'BASE');
+  // cancel-refund AC10: on a cancelled policy the protection line, cover period and covers all stop on the cancel day.
+  const endsOn = c.policy.status === 'CANCELLED' ? (c.cancellation?.endsOn ?? null) : null;
+  const periodEnd = endsOn ?? c.policy.end;
 
   return shell(
     <>
@@ -196,15 +230,21 @@ export function HomePage() {
       <AmountCard c={c} />
 
       <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 p-5 pb-4`}>
-        <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra)}</p>
+        <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today } : null)}</p>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-ink-2">
-          <Term explain={`The dates your policy runs, here ${formatDate(c.policy.start)} to ${formatDate(c.policy.end)}.`}>
+          <Term explain={`The dates your policy runs, here ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
             Your cover period
           </Term>
-          <span className="font-semibold text-ink tabular-nums">{periodLine(c.policy.start, c.policy.end)}</span>
+          <span className="font-semibold text-ink tabular-nums">{periodLine(c.policy.start, periodEnd)}</span>
         </div>
 
-        <CoverTimeline variant="compact" start={c.policy.start} end={c.policy.end} today={c.today} covers={[...base, ...extras].map((x) => ({ id: x.id, kind: x.kind, label: x.label, from: x.from, to: x.to }))} />
+        <CoverTimeline
+          variant="compact"
+          start={c.policy.start}
+          end={c.policy.end}
+          today={c.today}
+          cancelledFrom={endsOn ?? undefined}
+          covers={[...base, ...extras].map((x) => ({ id: x.id, kind: x.kind, label: x.label, from: x.from, to: x.to }))} />
 
         <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[15px]">
           {base.map((x) => (
@@ -213,7 +253,7 @@ export function HomePage() {
               <span className="flex-1">
                 <Term explain="Pays if someone is hurt or their property is damaged because of your business.">Base cover</Term>
               </span>
-              <span className="text-ink-2 tabular-nums">{coverDates(x.from)}</span>
+              <span className="text-ink-2 tabular-nums">{coverDates(x.from, endsOn)}</span>
             </li>
           ))}
           {extras.map((x) => (
@@ -225,7 +265,7 @@ export function HomePage() {
                 </Term>
                 : products you sell
               </span>
-              <span className="text-ink-2 tabular-nums">{coverDates(x.from)}</span>
+              <span className="text-ink-2 tabular-nums">{coverDates(x.from, endsOn)}</span>
             </li>
           ))}
         </ul>

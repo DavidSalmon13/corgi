@@ -35,6 +35,19 @@ public record NewEntry(
         return new NewEntry(EntryType.REVERSAL, entryDate, description, amountCents, null, null, null, null, reversesEntryId, null, null, null);
     }
 
+    /**
+     * Gives back a cover's unused days when a policy is cancelled. {@code unused} prices those days the same way a
+     * charge is priced (annual × days ÷ days in term, rounded once), and the line is its negative.
+     */
+    public static NewEntry credit(LocalDate entryDate, String description, long coverageId, ProRata.Charge unused,
+            LocalDate from, LocalDate to) {
+        if (unused.amountCents() <= 0) {
+            throw new IllegalArgumentException("a credit gives money back: the unused days must be worth something");
+        }
+        return new NewEntry(EntryType.CREDIT, entryDate, description, -unused.amountCents(), coverageId, unused, from,
+                to, null, null, null, null);
+    }
+
     /** The same line, linked to a cover. */
     NewEntry withCoverage(Long coverage) {
         return new NewEntry(type, entryDate, description, amountCents, coverage, calc, coverFrom, coverTo,

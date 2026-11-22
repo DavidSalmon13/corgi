@@ -1,6 +1,6 @@
 import type { PolicyStatus } from '../api/types';
 import type { PillTone } from '../components/StatusPill';
-import { formatShortDate, type IsoDate } from './dates';
+import { formatDate, formatShortDate, type IsoDate } from './dates';
 import { formatCents } from './money';
 
 /** The status pill for a policy: its state plus, while active, whether money is owed or on its way. */
@@ -46,9 +46,17 @@ export function listSummary(total: number, owing: number): string {
   return `${policies} · ${owe}`;
 }
 
-/** The small line under the balance on B3. */
-export function balanceNote(balanceCents: number, paymentWaiting = false): string {
+/** "Sep 1, 2026 → Sep 1, 2027", or "Sep 1, 2026 → Dec 1, 2026 (cancelled)": a cancelled policy ends on its cancel day. */
+export function policyPeriod(start: IsoDate, end: IsoDate, cancelledOn: IsoDate | null | undefined): string {
+  return cancelledOn
+    ? `${formatDate(start)} → ${formatDate(cancelledOn)} (cancelled)`
+    : `${formatDate(start)} → ${formatDate(end)}`;
+}
+
+/** The small line under the balance on B3. {@code refundPendingCents}: refunds sent to Stripe and not yet settled. */
+export function balanceNote(balanceCents: number, paymentWaiting = false, refundPendingCents = 0): string {
   if (paymentWaiting) return 'Waiting for the bank';
+  if (refundPendingCents > 0) return `Refund of ${formatCents(refundPendingCents)} on its way`;
   if (balanceCents > 0) return 'Not paid yet';
   if (balanceCents < 0) return 'We owe the customer this';
   return 'Nothing owed';

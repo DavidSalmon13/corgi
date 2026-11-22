@@ -119,6 +119,11 @@ describe('homePaymentState', () => {
   it('shows the cancellation instead of any payment state', () => {
     expect(homePaymentState({ ...base, cancelled: true, payment: payment({ status: 'FAILED' }) })).toBe('cancelled');
   });
+
+  // covers cancel-refund AC10, T11 — paying what's still owed after a cancellation shows the payment on its way
+  it('shows a payment still with the bank on a cancelled policy', () => {
+    expect(homePaymentState({ ...base, cancelled: true, payment: payment({ status: 'PROCESSING' }) })).toBe('waiting');
+  });
 });
 
 describe('P1 payment copy', () => {

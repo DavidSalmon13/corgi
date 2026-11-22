@@ -48,8 +48,14 @@ function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate })
   );
 }
 
-/** One bar per cover across the cover period, with a marker for today. */
-export function CoverTimeline({ start, end, today, covers, cancelledFrom, variant = 'full' }: Props) {
+/**
+ * One bar per cover across the cover period, with a marker for today. On a cancelled policy each bar stops on the
+ * cancel day and the unused days after it are striped.
+ */
+export function CoverTimeline({ start, end, today, covers: given, cancelledFrom, variant = 'full' }: Props) {
+  const covers = cancelledFrom
+    ? given.map((c) => ({ ...c, to: c.to > cancelledFrom ? cancelledFrom : c.to, from: c.from > cancelledFrom ? cancelledFrom : c.from }))
+    : given;
   const todayPct = positionPct(start, end, today);
   const showToday = today >= start && today <= end;
   const hatchLeft = cancelledFrom ? positionPct(start, end, cancelledFrom) : null;

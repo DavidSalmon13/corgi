@@ -30,12 +30,26 @@ public class LedgerPostingService {
 
     /** Refuses a line that breaks the ledger's rules; returns it as it should be stored. */
     private NewEntry check(long policyId, Long policyTransactionId, NewEntry e) {
-        boolean fromPolicyAction = e.type() == EntryType.CHARGE || e.type() == EntryType.REVERSAL;
+        boolean fromPolicyAction =
+                e.type() == EntryType.CHARGE || e.type() == EntryType.REVERSAL || e.type() == EntryType.CREDIT;
         if (fromPolicyAction && policyTransactionId == null) {
             throw new IllegalArgumentException(e.type() + " lines must come from a policy transaction");
         }
         if (e.type() == EntryType.CHARGE && e.calc() == null) {
             throw new IllegalArgumentException("a charge must carry its pro-rata arithmetic");
+        }
+        if (e.type() == EntryType.CREDIT) {
+            if (e.calc() == null || e.coverageId() == null) {
+                throw new IllegalArgumentException("a credit must name its cover and carry its pro-rata arithmetic");
+            }
+            if (e.amountCents() >= 0 || e.amountCents() != -e.calc().amountCents()) {
+                throw new IllegalArgumentException("a credit must be the negative of the unused days it prices");
+            }
+            long coverPolicy = ledger.policyOfCoverage(e.coverageId())
+                    .orElseThrow(() -> new IllegalArgumentException("no coverage " + e.coverageId()));
+            if (coverPolicy != policyId) {
+                throw new IllegalArgumentException("a credit must be for a cover on the same policy");
+            }
         }
         if (e.type() == EntryType.PAYMENT) {
             if (e.paymentId() == null || e.stripeEventId() == null || e.stripeEventId().isBlank()) {

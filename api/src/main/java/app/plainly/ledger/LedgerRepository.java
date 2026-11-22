@@ -97,6 +97,10 @@ public class LedgerRepository {
         return jdbc.sql("select policy_id from payments where id = ?").param(paymentId).query(Long.class).optional();
     }
 
+    public Optional<Long> policyOfCoverage(long coverageId) {
+        return jdbc.sql("select policy_id from coverages where id = ?").param(coverageId).query(Long.class).optional();
+    }
+
     /** Lines oldest first with a running balance and the records each one links to. */
     public List<LedgerLine> lines(long policyId) {
         return jdbc.sql("""

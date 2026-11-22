@@ -95,8 +95,8 @@ export function homePaymentState({
   amountDueCents: number;
   payment: PaymentSummary | null;
 }): HomePaymentState {
-  if (cancelled) return 'cancelled';
   if (payment?.status === 'PROCESSING') return 'waiting';
+  if (cancelled) return 'cancelled';
   if (amountDueCents <= 0) return 'nothing';
   if (payment?.status === 'FAILED') return 'failed';
   return 'due';

@@ -195,3 +195,27 @@ B4 picks its tab from `?tab=correct`, so B3's Correct action can link straight t
 ## 2026-11-22: A refund is failed only when Stripe says no; an unclear answer is asked again, never re-sent
 
 This replaces part of "A refund already promised isn't planned again": Stripe being unreachable no longer marks a refund FAILED. A timeout or 5xx can arrive after Stripe has made the refund. Marking it FAILED offered the broker a Retry, and a retry's new key would have sent the money a second time while the ledger showed it once. Now only a definite 4xx refusal fails a refund. An unclear answer leaves it PENDING with no Stripe id, and a scheduled sweep (`RefundSweep`, every minute, for refunds older than two minutes) sends it again under the same attempt's key. Every send, sweep or retry first asks Stripe for a refund already carrying our `refund_id` and adopts it, which still holds after Stripe forgets an idempotency key (about 24 hours). A refund webhook locks the policy before settling, so it queues behind a correction on the same policy. The insert of the REFUND line already waited on the policy row through its foreign key, so the explicit lock writes down an ordering we were relying on by accident. A webhook whose amount or payment intent doesn't match our refund is ignored.
+
+## 2026-11-22: Cancelling: open payments are cancelled before anything is written, and "kept back" names the latest change
+
+The cancel save calls `cancelOpenIntents` before inserting the CANCEL transaction, the same order as a correction, so a payment found with the bank stops the save before any write (the spec listed it after the writes; the outcome is the same because the transaction rolls back either way). The preview's "Unpaid balance kept back" line needs to say what that balance is for, so the plan carries `keptBackFor`: the type of the newest policy change (ISSUE, ADD_COVERAGE, CORRECT), the same rule P1 already uses for "why you owe". It is null when nothing is kept back.
+
+## 2026-11-22: P1 and P6 read a cancellation back from what it posted
+
+`MyCoverService` builds the `cancellation` block from the CANCEL transaction, its CREDIT lines and the refunds recorded against it, rather than storing a summary, so P6 can never disagree with the statement. A failed cancellation refund still reads as PENDING ("Refund on its way") to the customer, because the broker retries it and the money is still owed, the same rule as `refundWaiting`. `settledOn` is the day of the last REFUND line, posted only by a signed webhook.
+
+## 2026-11-22: Cancelling posts one CREDIT line per cover instead of reversing and rebilling
+
+Corrections reverse the original charge and rebill it, but a cancellation doesn't: it posts one negative CREDIT line per live cover for its unused days (annual price × unused days ÷ days in term, rounded half-up once per line), tied to the CANCEL transaction, the cover and its calculation. Reversing and rebilling would strike through charges the customer really did owe for the days they were covered, and would give four lines where the designs show two ("Base cover, unused days refunded"). The original charges stay live and unstruck above the credits, so the statement reads top to bottom as what was charged, then what came back. The database check `ledger_credit_traced` keeps every CREDIT negative and traced, and no row is ever edited.
+
+## 2026-11-22: A cancelled policy's status flips at save, and the words take their tense from the date
+
+The policy becomes CANCELLED when the broker saves, even when the cancel day is in the future, and `cancelled_on` records the day cover stops. There is no scheduled job to flip it on the day itself (out of scope). Instead, the copy compares the cancel day with today: "Your cover ends on Dec 1, 2026" before it, "ended" from that day on, because cover stops at the start of the cancel day. `end_date` keeps the original term end, since it sets the days in the term that every credit divides by.
+
+## 2026-11-22: When the credit is smaller than what's owed, the rest stays owed and payable
+
+If the unused days are worth less than the unpaid balance, nothing is refunded and the difference stays on the ledger as what the customer owes for the days they were covered ("$299.18 due · for the 91 days you were covered"). We don't write it off, which would need its own approval and is out of scope. P1 and P6 keep a Pay button for it, and `PaymentService.start` already accepts a payment on a cancelled policy. A payment still with the bank on a cancelled policy shows P1's "on its way" card, ahead of the cancelled card, so the customer doesn't pay twice.
+
+## 2026-11-22: "Kept back" names a change only when that change alone left the balance owing
+
+This replaces the "kept back names the latest change" part of the earlier cancelling entry. A code review found that the newest change can be the wrong answer: if the extra cover was never paid and then its start was corrected, B4 said "Correction still owed" and P6 said "from the start-date fix" for $656.00 that was mostly unpaid extra cover. Now `CancelPolicyPlan.soleCauseOfBalance` names the newest change only when the balance just before its first ledger line was paid off (zero or less). Otherwise it returns null, and the words stay neutral ("Still owed" on B4, "The $656.00, still owed" on P6). B4's preview and P6's read-back both use this one rule, so they can't disagree.

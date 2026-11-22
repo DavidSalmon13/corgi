@@ -24,10 +24,13 @@ public class PolicyRepository {
             LocalDate lastOn, boolean paymentWaiting) {}
 
     /** The policy and its customer for the detail view. */
-    public record Head(String number, String status, LocalDate start, LocalDate end, PolicyViews.Customer customer) {}
+    public record Head(String number, String status, LocalDate start, LocalDate end, LocalDate cancelledOn,
+            PolicyViews.Customer customer) {}
 
     /** The policy's term and status, as a policy change needs it. */
-    public record Term(long id, String status, LocalDate start, LocalDate end) {}
+    /** {@code cancelledOn} is the day all cover stopped, set only when the policy is CANCELLED; {@code end} stays the
+     * original term end, which prices every line. */
+    public record Term(long id, String status, LocalDate start, LocalDate end, LocalDate cancelledOn) {}
 
     /** Numbers the policy GL-&lt;start year&gt;-&lt;sequence&gt;. */
     public Created insert(long customerId, LocalDate start, LocalDate end) {
@@ -58,26 +61,36 @@ public class PolicyRepository {
 
     public Optional<Head> findHead(long policyId) {
         return jdbc.sql("""
-                select p.policy_number, p.status, p.start_date, p.end_date,
+                select p.policy_number, p.status, p.start_date, p.end_date, p.cancelled_on,
                        c.legal_name, c.business_description, c.owner_name, c.owner_email, u.signed_up_at
                 from policies p join customers c on c.id = p.customer_id
                 left join app_users u on u.customer_id = c.id and u.role = 'POLICYHOLDER'
                 where p.id = ?""")
                 .param(policyId)
                 .query((rs, n) -> new Head(rs.getString(1), rs.getString(2), rs.getObject(3, LocalDate.class),
-                        rs.getObject(4, LocalDate.class),
-                        new PolicyViews.Customer(rs.getString(5), rs.getString(6), rs.getString(7), rs.getString(8),
-                                rs.getObject(9, OffsetDateTime.class))))
+                        rs.getObject(4, LocalDate.class), rs.getObject(5, LocalDate.class),
+                        new PolicyViews.Customer(rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                                rs.getObject(10, OffsetDateTime.class))))
                 .optional();
     }
 
     /** {@code lock} holds the row ({@code for update}) until the caller's transaction ends. */
     public Optional<Term> findTerm(long policyId, boolean lock) {
-        return jdbc.sql("select id, status, start_date, end_date from policies where id = ?" + (lock ? " for update" : ""))
+        return jdbc.sql("select id, status, start_date, end_date, cancelled_on from policies where id = ?"
+                        + (lock ? " for update" : ""))
                 .param(policyId)
                 .query((rs, n) -> new Term(rs.getLong(1), rs.getString(2), rs.getObject(3, LocalDate.class),
-                        rs.getObject(4, LocalDate.class)))
+                        rs.getObject(4, LocalDate.class), rs.getObject(5, LocalDate.class)))
                 .optional();
+    }
+
+    /**
+     * Marks an ACTIVE policy CANCELLED from {@code day} (the start of that day). Returns false if it was already
+     * cancelled, so a second cancellation changes nothing. The term's end stays as it was.
+     */
+    public boolean markCancelled(long policyId, LocalDate day) {
+        return jdbc.sql("update policies set status = 'CANCELLED', cancelled_on = ? where id = ? and status = 'ACTIVE'")
+                .params(day, policyId).update() == 1;
     }
 
     /** The newest policy of a customer (one policy per customer for now). */

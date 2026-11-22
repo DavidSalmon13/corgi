@@ -153,11 +153,6 @@ public class PaymentService {
         return new PaymentView(p.id(), p.status(), p.amountCents(), p.cardLast4(), p.createdAt(), due);
     }
 
-    /** Payments that took money on this policy, newest first. */
-    public List<Collected> collected(long policyId) {
-        return payments.succeededNewestFirst(policyId);
-    }
-
     /**
      * The latest payment the owner actually sent to their bank. An OPEN one only means the pay page was opened,
      * so it isn't shown.

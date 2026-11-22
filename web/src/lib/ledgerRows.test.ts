@@ -113,4 +113,25 @@ describe('toLedgerRows', () => {
       correction: false,
     });
   });
+
+  // covers cancel-refund AC9, T10 — a cancellation's credit line says what was given back and how
+  it('shows a cancellation credit as unused days refunded, with its calculation', () => {
+    const [row] = toLedgerRows([
+      line({
+        displayId: 'LE-0009', type: 'CREDIT', entryDate: '2026-11-22', description: 'Base cover, unused days',
+        amountCents: -90_082, calcAnnualCents: 120_000, calcDays: 274, calcTermDays: 365,
+        coverFrom: '2026-12-01', coverTo: '2027-09-01', policyTransactionDisplayId: 'PTX-0004', balanceAfterCents: -88_682,
+      }),
+    ]);
+    expect(row).toMatchObject({
+      title: 'Base cover, unused days refunded',
+      calc: '$1,200.00 × 274 ÷ 365',
+      calcTone: 'ink',
+      amount: '−$900.82',
+      balance: '−$886.82',
+      refs: ['LE-0009', 'PTX-0004'],
+      struck: false,
+      correction: false,
+    });
+  });
 });

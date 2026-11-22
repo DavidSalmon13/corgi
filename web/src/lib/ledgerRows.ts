@@ -27,6 +27,7 @@ export type LedgerRow = {
 function calculation(l: LedgerLine): { calc: string; calcTone: Tone } {
   switch (l.type) {
     case 'CHARGE':
+    case 'CREDIT':
       return l.calcAnnualCents != null && l.calcDays != null && l.calcTermDays != null
         ? { calc: `${formatCents(l.calcAnnualCents)} × ${l.calcDays} ÷ ${l.calcTermDays}`, calcTone: 'ink' }
         : { calc: '', calcTone: 'ink' };
@@ -48,7 +49,8 @@ export function toLedgerRows(lines: LedgerLine[]): LedgerRow[] {
   return lines.map((l) => ({
     key: l.displayId,
     date: formatDate(l.entryDate),
-    title: l.description,
+    // A cancellation's credit gives back a cover's unused days ("Base cover, unused days refunded").
+    title: l.type === 'CREDIT' ? `${l.description} refunded` : l.description,
     note: l.reversedByDisplayId
       ? `Undone by ${l.reversedByDisplayId}`
       : l.type === 'PAYMENT' && l.amountCents === 0

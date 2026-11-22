@@ -6,6 +6,7 @@ import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -30,15 +33,17 @@ public class RefundService {
     static final String ONLY_FAILED = "Only a refund that didn't go through can be retried.";
 
     private final RefundRepository refunds;
+    private final PaymentRepository payments;
     private final StripeGateway stripe;
     private final LedgerPostingService ledger;
     private final Today today;
     /** Each send runs in its own transaction, so the refund row stays locked while Stripe is asked, then commits. */
     private final TransactionTemplate ownTransaction;
 
-    public RefundService(RefundRepository refunds, StripeGateway stripe, LedgerPostingService ledger, Today today,
-            PlatformTransactionManager transactions) {
+    public RefundService(RefundRepository refunds, PaymentRepository payments, StripeGateway stripe,
+            LedgerPostingService ledger, Today today, PlatformTransactionManager transactions) {
         this.refunds = refunds;
+        this.payments = payments;
         this.stripe = stripe;
         this.ledger = ledger;
         this.today = today;
@@ -67,6 +72,64 @@ public class RefundService {
     /** Refunds already promised on the policy that the ledger doesn't show yet (pending, or failed awaiting retry). */
     public long unsettledTotal(long policyId) {
         return refunds.unsettledTotal(policyId);
+    }
+
+    /**
+     * What goes back to cards once a change leaves the policy at {@code balanceAfterCents}. A credit pays off the open
+     * balance first, refunds already promised but not yet settled are spoken for, and only the rest is refunded,
+     * latest payment first. Writes nothing, so a preview can call it.
+     */
+    public List<PlannedRefund> plan(long policyId, long balanceAfterCents) {
+        long owed = -balanceAfterCents - refunds.unsettledTotal(policyId);
+        return owed > 0
+                ? allocate(owed, payments.succeededNewestFirst(policyId), refundedPerPayment(policyId))
+                : List.of();
+    }
+
+    /**
+     * Splits what we owe over the payments that took money, newest first, each capped at what it collected less
+     * what has already gone (or is going) back from it. Anything left over stays as a credit on the balance.
+     */
+    static List<PlannedRefund> allocate(long owedCents, List<PaymentService.Collected> newestFirst,
+            Map<Long, Long> alreadyRefunded) {
+        List<PlannedRefund> planned = new ArrayList<>();
+        long left = owedCents;
+        for (PaymentService.Collected p : newestFirst) {
+            if (left <= 0) {
+                break;
+            }
+            long room = p.amountCents() - alreadyRefunded.getOrDefault(p.paymentId(), 0L);
+            long take = Math.min(left, room);
+            if (take > 0) {
+                planned.add(new PlannedRefund(p.paymentId(), p.displayId(), p.cardLast4(), take));
+                left -= take;
+            }
+        }
+        return List.copyOf(planned);
+    }
+
+    /**
+     * Records each planned refund as PENDING in the caller's transaction, against the change that owes it, and sends
+     * them once that transaction commits, so money never leaves for a change that rolled back.
+     */
+    public List<RefundStarted> recordAndSendAfterCommit(long policyId, long policyTransactionId,
+            List<PlannedRefund> planned) {
+        List<RefundStarted> started = new ArrayList<>();
+        List<Long> toSend = new ArrayList<>();
+        for (PlannedRefund r : planned) {
+            Recorded recorded = recordPending(policyId, r.paymentId(), policyTransactionId, r.amountCents());
+            started.add(new RefundStarted(recorded.displayId(), r.paymentId(), r.amountCents()));
+            toSend.add(recorded.id());
+        }
+        if (!toSend.isEmpty()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    toSend.forEach(RefundService.this::send);
+                }
+            });
+        }
+        return List.copyOf(started);
     }
 
     /** Records a refund as PENDING in the caller's transaction. Nothing goes to Stripe until {@link #send}. */

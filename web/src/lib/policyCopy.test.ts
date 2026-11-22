@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { balanceNote, balanceText, lastActionText, listSummary, policyStatus } from './policyCopy';
+import { balanceNote, balanceText, lastActionText, listSummary, policyPeriod, policyStatus } from './policyCopy';
 
 // covers AC8, AC9, T16
 describe('policy copy', () => {
@@ -39,5 +39,16 @@ describe('policy copy', () => {
     expect(policyStatus('ACTIVE', 120_000, true)).toEqual({ label: 'Active · waiting for the bank', tone: 'wait' });
     expect(balanceNote(120_000, true)).toBe('Waiting for the bank');
     expect(balanceNote(120_000, false)).toBe('Not paid yet');
+  });
+
+  // covers cancel-refund AC9, T10 — a cancelled policy's period ends on the cancel day, and a pending refund is named
+  it('ends the period on the cancel day once cancelled', () => {
+    expect(policyPeriod('2026-09-01', '2027-09-01', null)).toBe('Sep 1, 2026 → Sep 1, 2027');
+    expect(policyPeriod('2026-09-01', '2027-09-01', '2026-12-01')).toBe('Sep 1, 2026 → Dec 1, 2026 (cancelled)');
+  });
+
+  it('says a refund is on its way under the balance', () => {
+    expect(balanceNote(-143_482, false, 143_482)).toBe('Refund of $1,434.82 on its way');
+    expect(balanceNote(0, false, 0)).toBe('Nothing owed');
   });
 });

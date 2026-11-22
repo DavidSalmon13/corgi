@@ -9,8 +9,7 @@ import { Money } from '../../components/Money';
 import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
 import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/correctCopy';
-import { formatDate } from '../../lib/dates';
-import { balanceNote, balanceText, policyStatus } from '../../lib/policyCopy';
+import { balanceNote, balanceText, policyPeriod, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
 import type { ChangeSavedState } from './ChangePolicyPage';
 
@@ -145,7 +144,12 @@ export function PolicyWorkspace() {
   const canAddCover = p.status === 'ACTIVE' && !hasExtra;
   // correct-effective-date AC1: an active policy with extra cover can correct it (B4 explains if it's blocked).
   const canCorrect = p.status === 'ACTIVE' && hasExtra;
+  // cancel-refund AC1: an active policy can be cancelled (B4 explains if a payment is still with the bank).
+  const canCancel = p.status === 'ACTIVE';
   const failedRefunds = (p.refunds ?? []).filter((r) => r.status === 'FAILED');
+  const refundPendingCents = (p.refunds ?? [])
+    .filter((r) => r.status === 'PENDING')
+    .reduce((sum, r) => sum + r.amountCents, 0);
 
   return (
     <>
@@ -170,10 +174,7 @@ export function PolicyWorkspace() {
                 {ownerAccountLine(p.customer.ownerName, p.customer.ownerSignedUpAt)}
               </span>
             </span>
-            <span className="tabular-nums">
-              {formatDate(p.start)} → {formatDate(p.end)}
-              {cancelled && ' (cancelled)'}
-            </span>
+            <span className="tabular-nums">{policyPeriod(p.start, p.end, cancelled ? p.cancelledOn : null)}</span>
             <StatusPill tone={status.tone}>{status.label}</StatusPill>
           </div>
         </div>
@@ -183,9 +184,9 @@ export function PolicyWorkspace() {
             <div className={`text-[28px] font-bold tabular-nums ${p.balanceCents > 0 ? 'text-accent-ink' : 'text-ink'}`}>
               {balanceText(p.balanceCents)}
             </div>
-            <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting)}</div>
+            <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting, refundPendingCents)}</div>
           </div>
-          {(canAddCover || canCorrect) && (
+          {(canAddCover || canCorrect || canCancel) && (
             <div className="flex flex-wrap gap-2">
               {canAddCover && (
                 <Link to={`/broker/policies/${p.policyId}/change`} className={ACTION}>
@@ -195,6 +196,11 @@ export function PolicyWorkspace() {
               {canCorrect && (
                 <Link to={`/broker/policies/${p.policyId}/change?tab=correct`} className={ACTION_MAIN}>
                   Correct
+                </Link>
+              )}
+              {canCancel && (
+                <Link to={`/broker/policies/${p.policyId}/change?tab=cancel`} className={ACTION}>
+                  Cancel
                 </Link>
               )}
             </div>
@@ -210,6 +216,7 @@ export function PolicyWorkspace() {
           start={p.start}
           end={p.end}
           today={p.today}
+          cancelledFrom={cancelled ? (p.cancelledOn ?? undefined) : undefined}
           covers={p.coverages.map((c) => ({
             id: c.id,
             kind: c.kind,

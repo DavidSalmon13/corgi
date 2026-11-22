@@ -19,11 +19,13 @@ public class PolicyTransactionRepository {
     /** The new transaction's row id and the reader-facing id (PT-0001). */
     public record Recorded(long id, String displayId) {}
 
-    public Recorded insert(long policyId, String type, LocalDate effectiveDate, LocalDate recordedOn, long createdBy) {
+    /** {@code reason} is the broker's words for the customer, or null when the action needs none. */
+    public Recorded insert(long policyId, String type, LocalDate effectiveDate, LocalDate recordedOn, long createdBy,
+            String reason) {
         return jdbc.sql("""
-                insert into policy_transactions (policy_id, type, effective_date, recorded_on, created_by)
-                values (?, ?, ?, ?, ?) returning id, display_id""")
-                .params(policyId, type, effectiveDate, recordedOn, createdBy)
+                insert into policy_transactions (policy_id, type, effective_date, recorded_on, created_by, reason)
+                values (?, ?, ?, ?, ?, ?) returning id, display_id""")
+                .params(policyId, type, effectiveDate, recordedOn, createdBy, reason)
                 .query((rs, n) -> new Recorded(rs.getLong("id"), rs.getString("display_id"))).single();
     }
 

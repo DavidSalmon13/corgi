@@ -100,6 +100,15 @@ public class RefundRepository {
                 .list();
     }
 
+    /**
+     * What refunds on the policy have promised but the ledger doesn't show yet: PENDING ones not yet settled, and
+     * FAILED ones waiting for a retry. A SUCCEEDED refund is already a REFUND line.
+     */
+    public long unsettledTotal(long policyId) {
+        return jdbc.sql("select coalesce(sum(amount_cents), 0) from refunds where policy_id = ? and status <> 'SUCCEEDED'")
+                .param(policyId).query(Long.class).single();
+    }
+
     /** Per payment on the policy, the total refunded or on its way (PENDING or SUCCEEDED). */
     public List<Refunded> refundedPerPayment(long policyId) {
         return jdbc.sql("""

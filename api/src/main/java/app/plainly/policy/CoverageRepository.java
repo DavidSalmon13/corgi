@@ -39,6 +39,12 @@ public class CoverageRepository {
                 .optional();
     }
 
+    /** Points a corrected cover at the row that replaces it. A row is replaced at most once (unique in V8). */
+    public void markReplaced(long oldId, long newId) {
+        jdbc.sql("update coverages set replaced_by_coverage_id = ? where id = ? and replaced_by_coverage_id is null")
+                .params(newId, oldId).update();
+    }
+
     public boolean exists(long policyId, CoverKind kind) {
         return jdbc.sql("select exists (select 1 from coverages where policy_id = ? and kind = ?)")
                 .params(policyId, kind.name()).query(Boolean.class).single();

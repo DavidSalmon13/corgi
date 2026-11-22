@@ -3,9 +3,13 @@ package app.plainly.policy;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.RefundService;
 import app.plainly.common.NotFoundException;
+import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
+import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.LedgerQueryService;
 import app.plainly.ledger.LiveCharge;
+import app.plainly.ledger.NewEntry;
+import app.plainly.ledger.PostedEntry;
 import app.plainly.pricing.ProRata;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +19,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Corrects when a policy's extra cover started. Nothing is edited: the live charge is undone to the cent, a corrected
@@ -38,17 +45,24 @@ public class CorrectCoverageService {
 
     private final PolicyRepository policies;
     private final CoverageRepository coverages;
+    private final PolicyTransactionRepository transactions;
+    private final LedgerPostingService poster;
     private final LedgerQueryService ledger;
     private final PaymentService payments;
     private final RefundService refunds;
+    private final Today today;
 
-    public CorrectCoverageService(PolicyRepository policies, CoverageRepository coverages, LedgerQueryService ledger,
-            PaymentService payments, RefundService refunds) {
+    public CorrectCoverageService(PolicyRepository policies, CoverageRepository coverages,
+            PolicyTransactionRepository transactions, LedgerPostingService poster, LedgerQueryService ledger,
+            PaymentService payments, RefundService refunds, Today today) {
         this.policies = policies;
         this.coverages = coverages;
+        this.transactions = transactions;
+        this.poster = poster;
         this.ledger = ledger;
         this.payments = payments;
         this.refunds = refunds;
+        this.today = today;
     }
 
     /** What saving did, with the ids the broker will see and the policy's new balance. */
@@ -66,8 +80,49 @@ public class CorrectCoverageService {
     }
 
     /** Saves the correction all or nothing, and records any refund it owes. */
+    @Transactional
     public Corrected correct(long policyId, CorrectCoverageCommand cmd, long brokerUserId) {
-        throw new UnsupportedOperationException("not built yet (T8)");
+        Loaded loaded = load(policyId, true);
+        validate(loaded, cmd.startDate(), cmd.reason(), true);
+        CorrectionPlan plan = plan(loaded, cmd.startDate());
+        // An old pay page must not pay the old amount. If the bank already has one, the correction waits.
+        if (!payments.cancelOpenIntents(policyId)) {
+            throw new ValidationException(Map.of("policy", PAYMENT_WAITING));
+        }
+        LocalDate recordedOn = today.date();
+
+        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "CORRECT", plan.newStart(), recordedOn,
+                brokerUserId, cmd.reason().strip());
+        CorrectionPlan.Rebill rebill = plan.rebill();
+        long newCoverage = coverages.insert(policyId, CoverKind.PRODUCT_LIABILITY, rebill.calc().annualCents(),
+                rebill.from(), rebill.to());
+        coverages.markReplaced(plan.coverageId(), newCoverage);
+        List<PostedEntry> posted = poster.post(policyId, tx.id(), List.of(
+                NewEntry.reversal(recordedOn, "Undo: " + plan.undo().label(), plan.undo().entryId(),
+                        plan.undo().amountCents()),
+                NewEntry.charge(recordedOn, rebill.label(), newCoverage, rebill.calc(), rebill.from(), rebill.to())));
+
+        List<RefundStarted> started = new ArrayList<>();
+        List<Long> toSend = new ArrayList<>();
+        for (CorrectionPlan.PlannedRefund r : plan.refunds()) {
+            RefundService.Recorded recorded = refunds.recordPending(policyId, r.paymentId(), tx.id(), r.amountCents());
+            started.add(new RefundStarted(recorded.displayId(), r.paymentId(), r.amountCents()));
+            toSend.add(recorded.id());
+        }
+        afterCommit(() -> toSend.forEach(refunds::send));
+
+        return new Corrected(policyId, tx.displayId(), posted.get(0).displayId(), posted.get(1).displayId(),
+                plan.netCents(), ledger.balance(policyId), List.copyOf(started));
+    }
+
+    /** Runs once this transaction commits, so money never leaves for a correction that rolled back. */
+    private static void afterCommit(Runnable work) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                work.run();
+            }
+        });
     }
 
     /** The policy, its live extra cover and whether a payment is with the bank, read together. */
@@ -136,8 +191,10 @@ public class CorrectCoverageService {
 
         long net = calc.amountCents() + undo.amountCents();
         long balanceAfter = ledger.balance(policy.id()) + net;
-        List<CorrectionPlan.PlannedRefund> planned = balanceAfter < 0
-                ? allocate(-balanceAfter, payments.collected(policy.id()), refunds.refundedPerPayment(policy.id()))
+        // Refunds already recorded but not yet settled are credit that is spoken for: don't send it twice.
+        long owed = -balanceAfter - refunds.unsettledTotal(policy.id());
+        List<CorrectionPlan.PlannedRefund> planned = owed > 0
+                ? allocate(owed, payments.collected(policy.id()), refunds.refundedPerPayment(policy.id()))
                 : List.of();
         return new CorrectionPlan(policy.id(), cover.id(), cover.from(), newStart, undo, rebill, net, balanceAfter,
                 planned);

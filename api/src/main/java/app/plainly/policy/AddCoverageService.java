@@ -72,7 +72,7 @@ public class AddCoverageService {
         AddCoveragePlan plan = plan(policy, cmd.kind(), cmd.startDate());
         LocalDate recordedOn = today.date();
 
-        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ADD_COVERAGE", plan.from(), recordedOn, brokerUserId);
+        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ADD_COVERAGE", plan.from(), recordedOn, brokerUserId, null);
         long coverageId = coverages.insert(policyId, plan.kind(), plan.calc().annualCents(), plan.from(), plan.to());
         List<PostedEntry> posted = ledger.post(policyId, tx.id(),
                 List.of(NewEntry.charge(recordedOn, plan.label(), coverageId, plan.calc(), plan.from(), plan.to())));

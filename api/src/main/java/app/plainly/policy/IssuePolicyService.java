@@ -84,7 +84,7 @@ public class IssuePolicyService {
 
         PolicyRepository.Created policy = policies.insert(customerId, plan.start(), plan.end());
         long policyId = policy.id();
-        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ISSUE", plan.start(), recordedOn, brokerUserId);
+        PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ISSUE", plan.start(), recordedOn, brokerUserId, null);
 
         List<NewEntry> entries = new ArrayList<>();
         for (IssuePlan.Line line : plan.lines()) {

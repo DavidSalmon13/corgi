@@ -4,6 +4,7 @@ import app.plainly.billing.RefundService;
 import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerQueryService;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +65,17 @@ public class PolicyService {
     /** Holds the policy row until the caller's transaction ends. */
     public void lock(long policyId) {
         policies.lock(policyId);
+    }
+
+    /**
+     * Who made each change on the policy, by transaction id (PTX-…), oldest first. A change with no recorded author
+     * has no entry, so callers fall back to "your broker".
+     */
+    public Map<String, String> actorNames(long policyId) {
+        Map<String, String> names = new LinkedHashMap<>();
+        transactions.actorsForPolicy(policyId)
+                .forEach(a -> names.put(a.transactionDisplayId(), a.name()));
+        return names;
     }
 
     /** The name of the broker who issued the policy, if known. */

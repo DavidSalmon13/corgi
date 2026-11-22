@@ -39,6 +39,19 @@ public class PolicyTransactionRepository {
                 .list();
     }
 
+    /** Who recorded one transaction: its reader-facing id and the person's display name. */
+    public record Actor(String transactionDisplayId, String name) {}
+
+    /** The person behind each of the policy's transactions, oldest first; ones with no recorded author are left out. */
+    public List<Actor> actorsForPolicy(long policyId) {
+        return jdbc.sql("""
+                select t.display_id, u.display_name from policy_transactions t join app_users u on u.id = t.created_by
+                where t.policy_id = ? order by t.id""")
+                .param(policyId)
+                .query((rs, n) -> new Actor(rs.getString(1), rs.getString(2)))
+                .list();
+    }
+
     /** The name of the broker who issued the policy (a read of app_users). */
     public Optional<String> issuedByName(long policyId) {
         return jdbc.sql("""

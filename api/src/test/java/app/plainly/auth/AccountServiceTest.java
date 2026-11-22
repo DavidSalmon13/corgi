@@ -16,9 +16,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 // covers real-sign-in AC1, AC2, AC4, AC5, T6
 @IntegrationTest
-class AccountsTest {
+class AccountServiceTest {
 
-    @Autowired Accounts accounts;
+    @Autowired AccountService accounts;
     @Autowired IssuePolicyService issue;
     @Autowired JdbcClient jdbc;
 
@@ -51,7 +51,7 @@ class AccountsTest {
 
         assertThatThrownBy(() -> accounts.signUp(ownerEmail, "another-one-1", "another-one-1"))
                 .isInstanceOfSatisfying(ValidationException.class,
-                        e -> assertThat(e.fields()).containsExactlyEntriesOf(java.util.Map.of("email", Accounts.ALREADY_SIGNED_UP)));
+                        e -> assertThat(e.fields()).containsExactlyEntriesOf(java.util.Map.of("email", AccountService.ALREADY_SIGNED_UP)));
     }
 
     @Test
@@ -63,7 +63,7 @@ class AccountsTest {
                 .isInstanceOfSatisfying(ValidationException.class, e -> assertThat(e.fields()).containsOnlyKeys("email", "password"));
         assertThatThrownBy(() -> accounts.signUp("stranger@example.com", "ten-chars-ok", "ten-chars-ok"))
                 .isInstanceOfSatisfying(ValidationException.class,
-                        e -> assertThat(e.fields()).containsEntry("email", Accounts.NO_POLICY));
+                        e -> assertThat(e.fields()).containsEntry("email", AccountService.NO_POLICY));
         assertThatThrownBy(() -> accounts.signUp(ownerEmail, "x".repeat(73), "x".repeat(73)))
                 .isInstanceOfSatisfying(ValidationException.class, e -> assertThat(e.fields()).containsOnlyKeys("password"));
         assertThat(jdbc.sql("select count(*) from app_users where email = ? and password_hash is null")
@@ -74,6 +74,6 @@ class AccountsTest {
     void aBrokerEmailIsNeverClaimable() {
         assertThatThrownBy(() -> accounts.signUp("sam@plainly.test", "taking-over", "taking-over"))
                 .isInstanceOfSatisfying(ValidationException.class,
-                        e -> assertThat(e.fields()).containsEntry("email", Accounts.ALREADY_SIGNED_UP));
+                        e -> assertThat(e.fields()).containsEntry("email", AccountService.ALREADY_SIGNED_UP));
     }
 }

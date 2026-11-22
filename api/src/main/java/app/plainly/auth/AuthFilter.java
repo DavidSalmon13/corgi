@@ -15,7 +15,7 @@ import org.springframework.web.util.UrlPathHelper;
 
 /**
  * Who is signed in, and what they may reach (real-sign-in spec). The {@value #COOKIE} cookie holds a
- * session token, looked up through {@link Sessions}. /api/broker/** needs a broker, /api/me/** needs a
+ * session token, looked up through {@link SessionService}. /api/broker/** needs a broker, /api/me/** needs a
  * policyholder, and every other /api route except /api/health and /api/auth/** needs someone signed
  * in (deny by default).
  *
@@ -33,10 +33,10 @@ public class AuthFilter extends OncePerRequestFilter {
     /** Decodes %xx, strips ";params" and collapses "//", matching how Spring MVC sees the path. */
     private static final UrlPathHelper PATHS = UrlPathHelper.defaultInstance;
 
-    private final Sessions sessions;
-    private final Accounts accounts;
+    private final SessionService sessions;
+    private final AccountService accounts;
 
-    public AuthFilter(Sessions sessions, Accounts accounts) {
+    public AuthFilter(SessionService sessions, AccountService accounts) {
         this.sessions = sessions;
         this.accounts = accounts;
     }

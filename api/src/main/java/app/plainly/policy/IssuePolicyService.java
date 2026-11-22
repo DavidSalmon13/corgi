@@ -1,6 +1,6 @@
 package app.plainly.policy;
 
-import app.plainly.auth.Accounts;
+import app.plainly.auth.AccountService;
 import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
@@ -62,8 +62,8 @@ public class IssuePolicyService {
         String legalName = cmd.legalName().strip();
         String ownerName = cmd.ownerName().strip();
 
-        // Normalised once, in Java, so sign-up (Accounts.normalize) finds exactly what was stored.
-        String ownerEmail = Accounts.trim(cmd.ownerEmail());
+        // Normalised once, in Java, so sign-up (AccountService.normalize) finds exactly what was stored.
+        String ownerEmail = AccountService.trim(cmd.ownerEmail());
         long customerId;
         try {
             customerId = jdbc.sql("""
@@ -75,7 +75,7 @@ public class IssuePolicyService {
             jdbc.sql("""
                     insert into app_users (role, display_name, subtitle, customer_id, email)
                     values ('POLICYHOLDER', ?, ?, ?, ?)""")
-                    .params(ownerName, "Owner, " + legalName, customerId, Accounts.normalize(ownerEmail)).update();
+                    .params(ownerName, "Owner, " + legalName, customerId, AccountService.normalize(ownerEmail)).update();
         } catch (DuplicateKeyException e) {
             // A concurrent issue, or an account (a broker's) that took this email after validation.
             throw new ValidationException(Map.of("ownerEmail", EMAIL_TAKEN));
@@ -129,7 +129,7 @@ public class IssuePolicyService {
         text(cmd.legalName(), "legalName", "Enter the business's legal name.", errors);
         text(cmd.businessDescription(), "businessDescription", "Say in a few words what the business does.", errors);
         text(cmd.ownerName(), "ownerName", "Enter the owner's name.", errors);
-        String email = Accounts.trim(cmd.ownerEmail());
+        String email = AccountService.trim(cmd.ownerEmail());
         if (!EMAIL.matcher(email).matches() || email.length() > MAX_TEXT) {
             errors.put("ownerEmail", "Enter an email like name@business.com.");
         } else if (emailTaken(email)) {
@@ -146,7 +146,7 @@ public class IssuePolicyService {
         return jdbc.sql("""
                 select exists (select 1 from customers where lower(owner_email) = lower(?))
                     or exists (select 1 from app_users where email = ?)""")
-                .params(email, Accounts.normalize(email)).query(Boolean.class).single();
+                .params(email, AccountService.normalize(email)).query(Boolean.class).single();
     }
 
     private static void text(String value, String field, String message, Map<String, String> errors) {

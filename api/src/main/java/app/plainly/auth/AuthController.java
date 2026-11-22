@@ -24,11 +24,11 @@ class AuthController {
     static final Map<String, String> WRONG_CREDENTIALS = Map.of("error", "wrong_credentials",
             "message", "That email and password don't match. Check them and try again.");
 
-    private final Accounts accounts;
-    private final Sessions sessions;
+    private final AccountService accounts;
+    private final SessionService sessions;
     private final boolean secureCookie;
 
-    AuthController(Accounts accounts, Sessions sessions, @Value("${plainly.session.secure-cookie:false}") boolean secureCookie) {
+    AuthController(AccountService accounts, SessionService sessions, @Value("${plainly.session.secure-cookie:false}") boolean secureCookie) {
         this.accounts = accounts;
         this.sessions = sessions;
         this.secureCookie = secureCookie;
@@ -66,7 +66,7 @@ class AuthController {
     private ResponseEntity<SignedInUser> startSession(SignedInUser user, HttpServletRequest request) {
         AuthFilter.token(request).ifPresent(sessions::end);
         String token = sessions.create(user.id());
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(token, Sessions.LIFETIME.toSeconds(), request)).body(user);
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(token, SessionService.LIFETIME.toSeconds(), request)).body(user);
     }
 
     /** Secure whenever the request came over HTTPS (Railway's proxy headers are trusted), or when configured. */

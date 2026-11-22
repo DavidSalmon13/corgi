@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 // covers real-sign-in AC7, AC8, T5
 @IntegrationTest
-class SessionsTest {
+class SessionServiceTest {
 
-    @Autowired Sessions sessions;
+    @Autowired SessionService sessions;
     @Autowired JdbcClient jdbc;
 
     long brokerId;
@@ -49,7 +49,7 @@ class SessionsTest {
 
         String expired = sessions.create(brokerId);
         jdbc.sql("update sessions set expires_at = now() - interval '1 second' where token_hash = ?")
-                .param(Sessions.hash(expired)).update();
+                .param(SessionService.hash(expired)).update();
         assertThat(sessions.userFor(expired)).isEmpty();
 
         String ended = sessions.create(brokerId);

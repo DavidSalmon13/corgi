@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 class DemoSeederTest {
 
     @Autowired DemoSeeder seeder;
-    @Autowired Accounts accounts;
+    @Autowired AccountService accounts;
     @Autowired JdbcClient jdbc;
 
     @Test

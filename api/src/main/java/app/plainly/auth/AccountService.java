@@ -1,15 +1,12 @@
 package app.plainly.auth;
 
 import app.plainly.common.ValidationException;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -17,25 +14,23 @@ import org.springframework.transaction.annotation.Transactional;
  * created, with their email and no password, when their broker issues the policy, and the owner
  * claims it by signing up with that email.
  */
-@Component
-public class Accounts {
+@Service
+public class AccountService {
 
     public static final int MIN_PASSWORD = 10;
 
     static final String NO_POLICY = "We can't find a policy for that email. Check with your broker that they used this address.";
     static final String ALREADY_SIGNED_UP = "This email already has an account. Sign in instead.";
 
-    private static final String SELECT = "select id, role, display_name, subtitle, customer_id, email from app_users";
+    private static final Pattern EDGE_SPACE = Pattern.compile("^[\\s\\p{Z}]+|[\\s\\p{Z}]+$");
 
-    private final JdbcClient jdbc;
+    private final AccountRepository accounts;
     private final Passwords passwords;
 
-    public Accounts(JdbcClient jdbc, Passwords passwords) {
-        this.jdbc = jdbc;
+    public AccountService(AccountRepository accounts, Passwords passwords) {
+        this.accounts = accounts;
         this.passwords = passwords;
     }
-
-    private static final Pattern EDGE_SPACE = Pattern.compile("^[\\s\\p{Z}]+|[\\s\\p{Z}]+$");
 
     /** Removes spaces of any kind (tabs, non-breaking spaces) from both ends, keeping the case. */
     public static String trim(String email) {
@@ -48,19 +43,27 @@ public class Accounts {
     }
 
     public Optional<SignedInUser> find(long id) {
-        return jdbc.sql(SELECT + " where id = ?").param(id).query(Accounts::map).optional();
+        return accounts.find(id);
     }
 
     /** The account when the email and password match. Unknown emails and wrong passwords look the same. */
     public Optional<SignedInUser> signIn(String email, String password) {
-        record Row(SignedInUser user, String hash) {}
-        Optional<Row> row = jdbc.sql("""
-                select id, role, display_name, subtitle, customer_id, email, password_hash
-                from app_users where email = ?""")
-                .param(normalize(email))
-                .query((rs, n) -> new Row(map(rs, n), rs.getString("password_hash"))).optional();
-        String hash = row.map(Row::hash).orElse(null);
-        return passwords.matches(password, hash) ? row.map(Row::user) : Optional.empty();
+        Optional<AccountRepository.WithHash> row = accounts.findWithHash(normalize(email));
+        String hash = row.map(AccountRepository.WithHash::passwordHash).orElse(null);
+        return passwords.matches(password, hash) ? row.map(AccountRepository.WithHash::user) : Optional.empty();
+    }
+
+    /** True when any account (a broker's or a policyholder's) already uses this email. */
+    public boolean emailInUse(String email) {
+        return accounts.emailExists(normalize(email));
+    }
+
+    /**
+     * The owner's account, waiting with their email and no password until they sign up (real-sign-in AC4).
+     * Joins the caller's transaction; throws DuplicateKeyException if another account took the email.
+     */
+    public void createWaitingOwner(String ownerName, String legalName, long customerId, String email) {
+        accounts.insertWaitingOwner(ownerName, "Owner, " + legalName, customerId, normalize(email));
     }
 
     /**
@@ -84,12 +87,8 @@ public class Accounts {
             errors.put("confirmPassword", "The two passwords don't match.");
         }
 
-        record Waiting(long id, Role role, boolean signedUp) {}
-        Optional<Waiting> account = normalized.isEmpty() ? Optional.empty()
-                : jdbc.sql("select id, role, password_hash is not null as signed_up from app_users where email = ? for update")
-                        .param(normalized)
-                        .query((rs, n) -> new Waiting(rs.getLong("id"), Role.valueOf(rs.getString("role")), rs.getBoolean("signed_up")))
-                        .optional();
+        Optional<AccountRepository.Claimable> account = normalized.isEmpty() ? Optional.empty()
+                : accounts.lockByEmail(normalized);
         if (!normalized.isEmpty()) {
             if (account.isEmpty()) {
                 errors.put("email", NO_POLICY);
@@ -102,18 +101,9 @@ public class Accounts {
         }
 
         long id = account.orElseThrow().id();
-        int claimed = jdbc.sql("""
-                update app_users set password_hash = ?, signed_up_at = now()
-                where id = ? and role = 'POLICYHOLDER' and password_hash is null""")
-                .params(passwords.hash(password), id).update();
-        if (claimed != 1) {
+        if (accounts.claim(id, passwords.hash(password)) != 1) {
             throw new ValidationException(Map.of("email", ALREADY_SIGNED_UP));
         }
         return find(id).orElseThrow();
-    }
-
-    private static SignedInUser map(ResultSet rs, int row) throws SQLException {
-        return new SignedInUser(rs.getLong("id"), Role.valueOf(rs.getString("role")), rs.getString("display_name"),
-                rs.getString("subtitle"), rs.getObject("customer_id", Long.class), rs.getString("email"));
     }
 }

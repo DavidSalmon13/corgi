@@ -132,6 +132,8 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
   const plan = startDate && !preview.isError ? preview.data : undefined;
   // True while the panel may not yet match the date, so the broker can't save a price they haven't seen.
   const repricing = startDate !== '' && (pricedStart !== startDate || preview.isFetching);
+  // No price, no save: if the price couldn't be worked out, the broker would be charging an amount they never saw.
+  const cantSave = repricing || previewFailed;
 
   const save = useMutation({
     mutationFn: () =>
@@ -201,7 +203,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
           aria-label="Add cover"
           onSubmit={(e) => {
             e.preventDefault();
-            save.mutate();
+            if (!cantSave && !save.isPending) save.mutate();
           }}
           className="flex min-w-0 flex-[1_1_460px] flex-col gap-5 rounded-2xl border border-line bg-card p-5 md:p-6"
         >
@@ -305,7 +307,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
             <button
               type="submit"
               form="add-cover"
-              disabled={save.isPending || repricing}
+              disabled={save.isPending || cantSave}
               className="inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 text-base font-bold text-on-accent disabled:opacity-60"
             >
               {save.isPending ? 'Adding…' : saveLabel(p.customer.ownerName)}

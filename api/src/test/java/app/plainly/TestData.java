@@ -1,12 +1,18 @@
 package app.plainly;
 
 import java.time.LocalDate;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** Minimal rows for tests that need a policy to hang ledger lines on. Never cleans up (append-only). */
 public final class TestData {
 
     private TestData() {}
+
+    /** An owner email no other test uses: owner emails are unique across customers (real-sign-in AC6). */
+    public static String uniqueEmail(String name) {
+        return name + "-" + UUID.randomUUID() + "@example.com";
+    }
 
     public static long policy(JdbcClient jdbc, LocalDate start, LocalDate end) {
         long customerId = jdbc.sql("""

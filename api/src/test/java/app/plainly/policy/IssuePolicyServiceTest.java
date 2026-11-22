@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import app.plainly.IntegrationTest;
+import app.plainly.TestData;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerLine;
 import app.plainly.ledger.LedgerQueries;
@@ -30,7 +31,7 @@ class IssuePolicyServiceTest {
 
     static IssuePolicyCommand juniper(boolean extra) {
         return new IssuePolicyCommand("Juniper & Rye Bakery LLC", "a neighborhood bakery", "Maya Okafor",
-                "maya@example.com", SEP_1, extra);
+                TestData.uniqueEmail("maya"), SEP_1, extra);
     }
 
     @Test
@@ -133,6 +134,32 @@ class IssuePolicyServiceTest {
                         .containsEntry("ownerEmail", "Enter an email like name@business.com.")
                         .containsEntry("startDate", "Pick the day cover should start."));
         assertThat(count("customers")).isEqualTo(before);
+    }
+
+    // covers real-sign-in AC6, T2 — one email belongs to one customer, so sign-up knows whose policy it is
+    @Test
+    void anOwnerEmailAnotherCustomerAlreadyUsesIsRejectedIgnoringCase() {
+        String email = TestData.uniqueEmail("taken");
+        service.issue(new IssuePolicyCommand("First Shop LLC", "a shop", "Ann Owner", email, SEP_1, false), brokerId());
+        long before = count("customers");
+        var again = new IssuePolicyCommand("Second Shop LLC", "a shop", "Bo Owner", "  " + email.toUpperCase() + " ", SEP_1, false);
+        assertThatThrownBy(() -> service.issue(again, brokerId()))
+                .isInstanceOfSatisfying(ValidationException.class, e -> assertThat(e.fields())
+                        .containsOnlyKeys("ownerEmail")
+                        .containsEntry("ownerEmail", "Another customer already uses this email."));
+        assertThat(count("customers")).isEqualTo(before);
+    }
+
+    // covers real-sign-in AC4, T2 — the owner's login is waiting for them, with no password until they sign up
+    @Test
+    void issuingGivesTheOwnerAnAccountWithTheirEmailButNoPasswordYet() {
+        String email = TestData.uniqueEmail("waiting");
+        var issued = service.issue(new IssuePolicyCommand("Waiting Shop LLC", "a shop", "Wes Owner", email, SEP_1, false), brokerId());
+        var row = jdbc.sql("""
+                select u.email, u.password_hash is null, u.signed_up_at is null from app_users u
+                join policies p on p.customer_id = u.customer_id where p.id = ?""")
+                .param(issued.policyId()).query((rs, n) -> List.of(rs.getString(1), rs.getBoolean(2), rs.getBoolean(3))).single();
+        assertThat(row).containsExactly(email, true, true);
     }
 
     @Test

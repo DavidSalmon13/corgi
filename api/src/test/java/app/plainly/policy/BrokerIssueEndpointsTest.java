@@ -72,13 +72,26 @@ class BrokerIssueEndpointsTest {
     void issuingReturnsThePolicyNumberAndWhereToFindIt() throws Exception {
         mvc.perform(json("/api/broker/policies", """
                 {"legalName":"Endpoint Bakery LLC","businessDescription":"a bakery","ownerName":"Lee Owner",
-                 "ownerEmail":"lee@example.com","startDate":"2026-09-01","productLiability":false}"""))
+                 "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""".formatted(app.plainly.TestData.uniqueEmail("lee"))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("/api/broker/policies/\\d+")))
                 .andExpect(jsonPath("$.policyNumber", matchesPattern("GL-2026-\\d{4}")))
                 .andExpect(jsonPath("$.transactionDisplayId", matchesPattern("PTX-\\d{4,}")))
                 .andExpect(jsonPath("$.entries[0].displayId", matchesPattern("LE-\\d{4,}")))
                 .andExpect(jsonPath("$.totalCents").value(120000));
+    }
+
+    // covers real-sign-in AC6, T2
+    @Test
+    void anOwnerEmailAnotherCustomerUsesGetsAFieldError() throws Exception {
+        String email = app.plainly.TestData.uniqueEmail("dup");
+        String body = """
+                {"legalName":"Dup Bakery LLC","businessDescription":"a bakery","ownerName":"Dee Owner",
+                 "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""";
+        mvc.perform(json("/api/broker/policies", body.formatted(email))).andExpect(status().isCreated());
+        mvc.perform(json("/api/broker/policies", body.formatted(email)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.fields.ownerEmail").value("Another customer already uses this email."));
     }
 
     @Test

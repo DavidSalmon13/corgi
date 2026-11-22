@@ -1,5 +1,7 @@
 package app.plainly.policy;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,18 +27,33 @@ public class CoverageRepository {
     }
 
     /** The cover of this kind nobody has replaced. */
-    public record Live(long id, long annualPremiumCents, LocalDate from, LocalDate to) {}
+    public record Live(long id, CoverKind kind, long annualPremiumCents, LocalDate from, LocalDate to) {}
 
     /** The cover of this kind that a correction hasn't replaced, if the policy has one. */
     public Optional<Live> findLive(long policyId, CoverKind kind) {
         return jdbc.sql("""
-                select id, annual_premium_cents, effective_from, effective_to from coverages
+                select id, kind, annual_premium_cents, effective_from, effective_to from coverages
                 where policy_id = ? and kind = ? and replaced_by_coverage_id is null
                 order by id desc limit 1""")
                 .params(policyId, kind.name())
-                .query((rs, n) -> new Live(rs.getLong(1), rs.getLong(2), rs.getObject(3, LocalDate.class),
-                        rs.getObject(4, LocalDate.class)))
+                .query((rs, n) -> live(rs))
                 .optional();
+    }
+
+    /** Every cover on the policy that a correction hasn't replaced, oldest first (base cover, then extra cover). */
+    public List<Live> listLive(long policyId) {
+        return jdbc.sql("""
+                select id, kind, annual_premium_cents, effective_from, effective_to from coverages
+                where policy_id = ? and replaced_by_coverage_id is null
+                order by id""")
+                .param(policyId)
+                .query((rs, n) -> live(rs))
+                .list();
+    }
+
+    private static Live live(ResultSet rs) throws SQLException {
+        return new Live(rs.getLong(1), CoverKind.valueOf(rs.getString(2)), rs.getLong(3),
+                rs.getObject(4, LocalDate.class), rs.getObject(5, LocalDate.class));
     }
 
     /** Points a corrected cover at the row that replaces it. A row is replaced at most once (unique in V8). */

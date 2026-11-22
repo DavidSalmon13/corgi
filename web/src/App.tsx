@@ -6,6 +6,7 @@ import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
 import { HomePage } from './pages/me/HomePage';
 import { SignIn } from './pages/SignIn';
+import { SignUp } from './pages/SignUp';
 
 // Placeholder for broker pages not built yet in this spec.
 function Soon() {
@@ -24,6 +25,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
       <Route
         path="/broker"
         element={

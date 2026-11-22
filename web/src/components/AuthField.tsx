@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 const INPUT =
   'min-h-11 w-full rounded-control border-[1.5px] bg-card px-3 py-2.5 text-base text-ink placeholder:text-ink-2/70';
@@ -16,6 +16,8 @@ export function AuthField(props: {
   autoComplete?: string;
   hint?: string;
   error?: string;
+  /** Shown after the error, e.g. a link to the fix. */
+  errorAction?: ReactNode;
 }) {
   const [shown, setShown] = useState(false);
   const password = props.type === 'password';
@@ -61,7 +63,7 @@ export function AuthField(props: {
       </div>
       {props.error && (
         <span id={errId} className="text-sm font-semibold text-bad">
-          {props.error}
+          {props.error} {props.errorAction}
         </span>
       )}
     </div>

@@ -24,6 +24,7 @@ class BrokerPolicyReadTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
+    @Autowired AddCoverageService addCover;
 
     Cookie broker;
     IssuePolicyService.Issued juniper;
@@ -97,5 +98,22 @@ class BrokerPolicyReadTest {
         mvc.perform(get(url).cookie(broker))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customer.ownerSignedUpAt").isNotEmpty());
+    }
+
+    // covers add-coverage AC10, T2 — B1 shows adding cover as the last action, and the policy owes money
+    @Test
+    void addedExtraCoverIsTheLastActionInTheList() throws Exception {
+        long brokerId = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
+        long policyId = issue.issue(new IssuePolicyCommand("Last Action Bakery LLC", "a neighborhood bakery", "Maya Okafor",
+                TestData.uniqueEmail("maya"), LocalDate.of(2026, 9, 1), false), brokerId).policyId();
+        addCover.add(policyId, new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, LocalDate.of(2026, 10, 15)), brokerId);
+
+        String row = "$[?(@.policyId == " + policyId + ")]";
+        mvc.perform(get("/api/broker/policies").cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(row + ".lastAction.type").value("ADD_COVERAGE"))
+                .andExpect(jsonPath(row + ".lastAction.recordedOn").value("2026-11-22"))
+                .andExpect(jsonPath(row + ".balanceCents").value(120000 + 64200))
+                .andExpect(jsonPath(row + ".owesMoney").value(true));
     }
 }

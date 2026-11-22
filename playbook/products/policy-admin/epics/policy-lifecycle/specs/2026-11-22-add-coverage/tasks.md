@@ -13,7 +13,7 @@
 ## Backend
 
 - [x] T4 `AddCoveragePlan` + `AddCoverageService.preview` with validation and a shared `plan()` (api/.../policy/)
-- [ ] T5 `AddCoverageService.add`: policy row lock, ADD_COVERAGE transaction, coverage row, `LedgerPostingService.post` of the CHARGE, `Added` result
+- [x] T5 `AddCoverageService.add`: policy row lock, ADD_COVERAGE transaction, coverage row, `LedgerPostingService.post` of the CHARGE, `Added` result
 - [ ] T6 `AddCoverageController` (`/api/broker/policies/{id}/coverages`, `/preview`) with `AddCoverageRequest` parsing
 - [ ] T7 `MyCoverController`: `DueReason.EXTRA_COVER` + `latestChangeFrom`; API suite green
 

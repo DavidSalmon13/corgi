@@ -4,13 +4,21 @@ import type { IsoDate } from '../lib/dates';
 
 export type Role = 'BROKER' | 'POLICYHOLDER';
 
-export type DemoUser = {
+/** auth.SignedInUser: who the session belongs to. Never carries a password. */
+export type SignedInUser = {
   id: number;
   role: Role;
   displayName: string;
   subtitle: string | null;
   customerId: number | null;
+  email: string;
 };
+
+/** POST /api/auth/signin body. */
+export type SignInRequest = { email: string; password: string };
+
+/** POST /api/auth/signup body. The email must be the one the broker entered for the business. */
+export type SignUpRequest = { email: string; password: string; confirmPassword: string };
 
 export type EntryType = 'CHARGE' | 'REVERSAL' | 'PAYMENT' | 'REFUND';
 export type CoverKind = 'BASE' | 'PRODUCT_LIABILITY';
@@ -108,7 +116,14 @@ export type PolicyDetail = {
   start: IsoDate;
   end: IsoDate;
   today: IsoDate;
-  customer: { legalName: string; businessDescription: string; ownerName: string; ownerEmail: string };
+  customer: {
+    legalName: string;
+    businessDescription: string;
+    ownerName: string;
+    ownerEmail: string;
+    /** When the owner created their account; null until they do. */
+    ownerSignedUpAt: string | null;
+  };
   balanceCents: number;
   coverages: Coverage[];
   ledger: LedgerLine[];

@@ -25,7 +25,7 @@
 - [x] T11 `types.ts` additions + `lib/correctCopy.ts`; `myCoverCopy.ts` and `ledgerRows.ts` updates
 - [x] T12 `ChangePolicyPage.tsx` tabs (Add cover · Correct, per-tab blocked states) + `CorrectCoverForm.tsx` with preview, reason, confirm dialog, 422 mapping (AC1–AC7)
 - [x] T13 `PolicyWorkspace.tsx`: Correct action, saved banner, failed-refund alert + Retry, timeline "was" label; `HomePage.tsx` refund-on-its-way state (AC1, AC7, AC11–AC13)
-- [ ] T14 DECISIONS.md: coverage replaced (not edited) on correction; refund sent after commit with per-attempt idempotency key; corrections blocked while a payment is with the bank; REFUND line posted only on webhook success
+- [x] T14 DECISIONS.md: coverage replaced (not edited) on correction; refund sent after commit with per-attempt idempotency key; corrections blocked while a payment is with the bank; REFUND line posted only on webhook success
 
 ## Verification
 

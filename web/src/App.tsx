@@ -1,43 +1,44 @@
-import { useQuery } from '@tanstack/react-query';
-import { Route, Routes } from 'react-router';
-import { ThemeToggle } from './components/ThemeToggle';
+import { Link, Route, Routes } from 'react-router';
+import { BrokerShell } from './components/BrokerShell';
+import { HomeRedirect, RequireRole } from './components/RouteGuards';
+import { SignIn } from './pages/SignIn';
 
-type Health = { status: string; database: string };
-
-async function fetchHealth(): Promise<Health> {
-  const res = await fetch('/api/health');
-  if (!res.ok) throw new Error(`API answered ${res.status}`);
-  return res.json();
-}
-
-// Placeholder shell: the real screens (SignIn, B1–B3, P1) replace this in T13–T18.
-function Scaffold() {
-  const health = useQuery({ queryKey: ['health'], queryFn: fetchHealth });
+// Placeholder until B1–B3 (T15–T17) and P1 (T18) land.
+function Soon() {
   return (
-    <main className="mx-auto max-w-xl px-4 py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Plainly</h1>
-        <ThemeToggle />
-      </div>
-      <p className="mt-2 text-ink-2">Business insurance, explained in plain language.</p>
-      <div className="mt-6 rounded-card border-[1.5px] border-line bg-card p-4">
-        <p className="text-lg font-bold text-accent-ink tabular-nums">$1,200.00 due</p>
-        <span className="mt-2 inline-flex rounded-full bg-wait-soft px-2.5 py-0.5 text-[13px] font-semibold text-wait">
-          Waiting for bank
-        </span>
-        <p className="mt-2 font-mono text-[13px] text-ink-2">LE-0001 · PTX-0001</p>
-      </div>
-      <p className="mt-6 text-sm text-ink-2" data-testid="api-status">
-        API: {health.isPending ? 'checking…' : health.isError ? 'unreachable' : health.data.status}
-      </p>
-    </main>
+    <div className="px-5 py-10">
+      <p className="text-ink-2">This page is on its way.</p>
+      <Link to="/signin" className="mt-2 inline-block font-semibold">
+        Switch person
+      </Link>
+    </div>
   );
 }
 
 export function App() {
   return (
     <Routes>
-      <Route path="*" element={<Scaffold />} />
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/signin" element={<SignIn />} />
+      <Route
+        path="/broker"
+        element={
+          <RequireRole role="BROKER">
+            <BrokerShell />
+          </RequireRole>
+        }
+      >
+        <Route path="*" element={<Soon />} />
+      </Route>
+      <Route
+        path="/me/*"
+        element={
+          <RequireRole role="POLICYHOLDER">
+            <Soon />
+          </RequireRole>
+        }
+      />
+      <Route path="*" element={<HomeRedirect />} />
     </Routes>
   );
 }

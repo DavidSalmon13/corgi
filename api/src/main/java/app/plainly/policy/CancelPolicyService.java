@@ -151,12 +151,11 @@ public class CancelPolicyService {
         long balanceBefore = ledger.balance(policy.id());
         long credit = credits.stream().mapToLong(CancelPolicyPlan.Credit::amountCents).sum();
         List<PlannedRefund> planned = refunds.plan(policy.id(), balanceBefore + credit);
-        return CancelPolicyPlan.of(policy, cancelDate, credits, balanceBefore, latestChange(policy.id()), planned);
+        return CancelPolicyPlan.of(policy, cancelDate, credits, balanceBefore, whatIsOwedFor(policy.id()), planned);
     }
 
-    /** The newest policy change before this one, which names what a balance still owed is for. */
-    private String latestChange(long policyId) {
-        List<PolicyViews.Transaction> all = transactions.listForPolicy(policyId);
-        return all.isEmpty() ? null : all.getLast().type();
+    /** What the balance still owed is for, if one change alone explains it (see CancelPolicyPlan.soleCauseOfBalance). */
+    private String whatIsOwedFor(long policyId) {
+        return CancelPolicyPlan.soleCauseOfBalance(ledger.lines(policyId), transactions.listForPolicy(policyId));
     }
 }

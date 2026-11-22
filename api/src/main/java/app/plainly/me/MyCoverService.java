@@ -7,6 +7,7 @@ import app.plainly.billing.StripeGateway;
 import app.plainly.common.NotFoundException;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerLine;
+import app.plainly.policy.CancelPolicyPlan;
 import app.plainly.policy.CoverKind;
 import app.plainly.policy.PolicyService;
 import app.plainly.policy.PolicyViews;
@@ -155,7 +156,9 @@ public class MyCoverService {
                 .map(LedgerLine::entryDate).max(Comparator.naturalOrder()).orElse(null);
 
         long keptBack = Math.max(0, credit - refundCents);
-        String keptBackFor = keptBack > 0 && at > 0 ? txs.get(at - 1).type() : null;
+        List<LedgerLine> before = p.ledger().stream().takeWhile(l -> !ptx.equals(l.policyTransactionDisplayId()))
+                .toList();
+        String keptBackFor = keptBack > 0 ? CancelPolicyPlan.soleCauseOfBalance(before, txs.subList(0, at)) : null;
         long used = ChronoUnit.DAYS.between(p.start(), p.cancelledOn());
         long term = ChronoUnit.DAYS.between(p.start(), p.end());
         return new Cancellation(p.cancelledOn(), cancel.reason(), used, term - used, term, List.copyOf(credits),

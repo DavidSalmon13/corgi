@@ -200,6 +200,30 @@ class CancelPolicyServiceTest {
         assertThat(plan.refunds()).containsExactly(new PlannedRefund(paid, paymentDisplayId(paid), "4242", 120_000));
     }
 
+    // covers AC3, AC11, T5, T7 — "kept back" names a change only when that change alone left the balance owing
+    @Test
+    void whatIsKeptBackIsNotPinnedOnTheLatestChangeWhenAnEarlierOneIsAlsoUnpaid() throws Exception {
+        Owner owner = owner();
+        payInFull(owner); // the first year is paid
+        adder.add(owner.policyId(), new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, OCT_15), brokerId());
+        // the extra cover is never paid, then its start is corrected: CORRECT is newest, but most of it is extra cover
+        corrector.correct(owner.policyId(), new CorrectCoverageCommand(OCT_8, "Signed request was dated Oct 8."),
+                brokerId());
+        assertThat(ledger.balance(owner.policyId())).isEqualTo(65_600);
+
+        CancelPolicyPlan plan = service.preview(owner.policyId(), DEC_1);
+        assertThat(plan.keptBackCents()).isEqualTo(65_600);
+        assertThat(plan.keptBackFor()).isNull();
+
+        service.cancel(owner.policyId(), from(DEC_1), brokerId());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/me/cover")
+                        .cookie(owner.session()))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.cancellation.keptBackCents").value(65600))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.cancellation.keptBackFor").doesNotExist());
+    }
+
     // --- a credit smaller than what's owed (AC5) ---
 
     @Test

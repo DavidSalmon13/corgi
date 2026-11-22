@@ -1,6 +1,7 @@
 package app.plainly.policy;
 
 import app.plainly.billing.PlannedRefund;
+import app.plainly.ledger.LedgerLine;
 import app.plainly.pricing.ProRata;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
@@ -84,5 +85,27 @@ public record CancelPolicyPlan(long policyId, LocalDate cancelDate, LocalDate po
         return new CancelPolicyPlan(policy.id(), cancelDate, policy.start(), policy.end(), used, term - used, term,
                 credits, balanceBefore, keptBack, keptBack > 0 ? owedFor : null, balanceAfter,
                 Math.max(0, balanceAfter), refunds);
+    }
+
+    /**
+     * The policy change that alone left the balance owing, to name what the credit keeps back ("Correction still
+     * owed"): the newest change, but only if everything owed before its first line was already paid. Otherwise the
+     * balance mixes several changes and naming one would mislead, so it is null and the words stay neutral.
+     *
+     * @param lines        the ledger, oldest first, before the cancellation
+     * @param transactions the policy changes, oldest first, before the cancellation
+     */
+    public static String soleCauseOfBalance(List<LedgerLine> lines, List<PolicyViews.Transaction> transactions) {
+        if (transactions.isEmpty()) {
+            return null;
+        }
+        PolicyViews.Transaction newest = transactions.getLast();
+        for (int i = 0; i < lines.size(); i++) {
+            if (newest.displayId().equals(lines.get(i).policyTransactionDisplayId())) {
+                long owedBefore = i == 0 ? 0 : lines.get(i - 1).balanceAfterCents();
+                return owedBefore <= 0 ? newest.type() : null;
+            }
+        }
+        return null;
     }
 }

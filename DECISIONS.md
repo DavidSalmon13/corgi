@@ -215,3 +215,7 @@ The policy becomes CANCELLED when the broker saves, even when the cancel day is 
 ## 2026-11-22: When the credit is smaller than what's owed, the rest stays owed and payable
 
 If the unused days are worth less than the unpaid balance, nothing is refunded and the difference stays on the ledger as what the customer owes for the days they were covered ("$299.18 due · for the 91 days you were covered"). We don't write it off, which would need its own approval and is out of scope. P1 and P6 keep a Pay button for it, and `PaymentService.start` already accepts a payment on a cancelled policy. A payment still with the bank on a cancelled policy shows P1's "on its way" card, ahead of the cancelled card, so the customer doesn't pay twice.
+
+## 2026-11-22: "Kept back" names a change only when that change alone left the balance owing
+
+This replaces the "kept back names the latest change" part of the earlier cancelling entry. A code review found that the newest change can be the wrong answer: if the extra cover was never paid and then its start was corrected, B4 said "Correction still owed" and P6 said "from the start-date fix" for $656.00 that was mostly unpaid extra cover. Now `CancelPolicyPlan.soleCauseOfBalance` names the newest change only when the balance just before its first ledger line was paid off (zero or less). Otherwise it returns null, and the words stay neutral ("Still owed" on B4, "The $656.00, still owed" on P6). B4's preview and P6's read-back both use this one rule, so they can't disagree.

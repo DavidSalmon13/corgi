@@ -38,6 +38,9 @@ public class PaymentService {
 
     public record SavedCardConfirm(String status, String clientSecret) {}
 
+    /** A payment as P1 shows it. */
+    public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
+
     private record OpenPayment(long id, String intentId, long amountCents) {}
 
     private record OwnedPayment(long id, long policyId, String status, String intentId, long amountCents,
@@ -107,6 +110,20 @@ public class PaymentService {
         OwnedPayment p = owned(me, paymentId);
         long due = Math.max(0, ledger.balance(p.policyId()));
         return new PaymentView(p.id(), p.status(), p.amountCents(), p.cardLast4(), p.createdAt(), due);
+    }
+
+    /**
+     * The latest payment the owner actually sent to their bank. An OPEN one only means the pay page was opened,
+     * so it isn't shown.
+     */
+    public Optional<PaymentSummary> latestSubmitted(long policyId) {
+        return jdbc.sql("""
+                select status, amount_cents, card_last4, created_at from payments
+                where policy_id = ? and status <> 'OPEN' order by id desc limit 1""")
+                .param(policyId)
+                .query((rs, n) -> new PaymentSummary(rs.getString(1), rs.getLong(2), rs.getString(3),
+                        rs.getObject(4, OffsetDateTime.class).toInstant()))
+                .optional();
     }
 
     /** A payment on the signed-in owner's own policy; anyone else's is "not found", never "forbidden". */

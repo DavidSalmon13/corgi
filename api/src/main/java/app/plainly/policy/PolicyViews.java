@@ -12,9 +12,9 @@ public final class PolicyViews {
 
     public record LastAction(String type, LocalDate recordedOn) {}
 
-    /** One row on B1. */
+    /** One row on B1. {@code paymentWaiting}: a payment is with the bank and not settled yet. */
     public record ListRow(long policyId, String customerName, String ownerName, String policyNumber, String status,
-            long balanceCents, boolean owesMoney, LastAction lastAction) {}
+            long balanceCents, boolean owesMoney, boolean paymentWaiting, LastAction lastAction) {}
 
     /** {@code ownerSignedUpAt} is null until the owner creates their account (real-sign-in AC11). */
     public record Customer(String legalName, String businessDescription, String ownerName, String ownerEmail,
@@ -26,6 +26,6 @@ public final class PolicyViews {
 
     /** Everything B3 shows: header, covers for the timeline, and the ledger with where each line came from. */
     public record Detail(long policyId, String policyNumber, String status, LocalDate start, LocalDate end, LocalDate today,
-            Customer customer, long balanceCents, List<Coverage> coverages, List<LedgerLine> ledger,
+            Customer customer, long balanceCents, boolean paymentWaiting, List<Coverage> coverages, List<LedgerLine> ledger,
             List<Transaction> transactions) {}
 }

@@ -28,7 +28,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 - [x] T7 Add `StripeGateway`, `StripeJavaGateway`, the `plainly.stripe.*` config and the disabled mode, and add the Stripe keys to `.env.example`.
 - [x] T8 Add `WebhookHandler` and `StripeWebhookController`, and exempt `/api/stripe/webhook` in `AuthFilter`.
 - [x] T9 Add `PaymentService` and `MyPaymentsController`: start a payment, confirm with the saved card, and GET a payment for polling.
-- [ ] T10 Extend the read models: `MyCover.payment` and `paymentsEnabled`, the Stripe refs on `LedgerLine`, and `paymentWaiting` on `Detail` and `ListRow`.
+- [x] T10 Extend the read models: `MyCover.payment` and `paymentsEnabled`, the Stripe refs on `LedgerLine`, and `paymentWaiting` on `Detail` and `ListRow`.
 
 ## Web
 

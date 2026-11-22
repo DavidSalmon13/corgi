@@ -26,11 +26,13 @@ public class LedgerQueries {
                        ptx.display_id as ptx_display_id,
                        rev_of.display_id as reverses_display_id,
                        rev_by.display_id as reversed_by_display_id,
+                       pay.stripe_payment_intent_id, le.stripe_event_id,
                        sum(le.amount_cents) over (order by le.id) as balance_after
                 from ledger_entries le
                 left join policy_transactions ptx on ptx.id = le.policy_transaction_id
                 left join ledger_entries rev_of on rev_of.id = le.reverses_entry_id
                 left join ledger_entries rev_by on rev_by.reverses_entry_id = le.id
+                left join payments pay on pay.id = le.payment_id
                 where le.policy_id = ?
                 order by le.id""")
                 .param(policyId)
@@ -50,6 +52,8 @@ public class LedgerQueries {
                         rs.getString("ptx_display_id"),
                         rs.getString("reverses_display_id"),
                         rs.getString("reversed_by_display_id"),
+                        rs.getString("stripe_payment_intent_id"),
+                        rs.getString("stripe_event_id"),
                         rs.getLong("balance_after")))
                 .list();
     }

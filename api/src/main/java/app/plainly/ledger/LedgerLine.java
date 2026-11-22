@@ -19,4 +19,7 @@ public record LedgerLine(
         String policyTransactionDisplayId,
         String reversesDisplayId,
         String reversedByDisplayId,
+        /** For a PAYMENT line: the Stripe PaymentIntent (pi_…) and the event (evt_…) that settled it. */
+        String stripePaymentIntentId,
+        String stripeEventId,
         long balanceAfterCents) {}

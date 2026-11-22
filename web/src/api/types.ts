@@ -8,7 +8,7 @@ export type DemoUser = {
   id: number;
   role: Role;
   displayName: string;
-  subtitle: string;
+  subtitle: string | null;
   customerId: number | null;
 };
 

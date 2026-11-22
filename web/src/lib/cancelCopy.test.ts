@@ -7,6 +7,7 @@ import {
   cancelSaveLabel,
   cancelledBanner,
   cancelledCard,
+  cancelSaveProblems,
   cancellationTitle,
   coverEndsSentence,
   customerWillSeeCancel,
@@ -311,5 +312,31 @@ describe('the customer side', () => {
       sentence: 'Stripe confirmed the refund on Nov 24. Your bank may take 5–10 days to show it.',
     });
     expect(refundPill(owing)).toBeNull();
+  });
+});
+
+// covers AC6, AC7 — the form checks what the server checks, so it never sends the save just to find out what to fix
+describe('what to fix before cancelling', () => {
+  it('asks for the cover-end day and a reason, in form order', () => {
+    expect(cancelSaveProblems('', '   ')).toEqual({
+      message: '2 things to fix before you can save.',
+      fields: {
+        cancelDate: 'Pick the day cover ends.',
+        reason: 'Say why the policy is being cancelled. The customer sees this.',
+      },
+    });
+  });
+
+  it('measures the reason the way the server does, without the spaces around it', () => {
+    const long = 'x'.repeat(498);
+    expect(cancelSaveProblems('2026-12-01', `${long}\n\n\n`)).toBeNull();
+    expect(cancelSaveProblems('2026-12-01', 'x'.repeat(501))).toEqual({
+      message: '1 thing to fix before you can save.',
+      fields: { reason: 'Keep the reason under 500 characters.' },
+    });
+  });
+
+  it('has nothing to fix with a day and a reason', () => {
+    expect(cancelSaveProblems('2026-12-01', 'Closing the bakery.')).toBeNull();
   });
 });

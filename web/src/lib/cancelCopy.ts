@@ -248,3 +248,23 @@ export function refundPill(
   }
   return null;
 }
+
+const REASON_MAX = 500;
+
+/**
+ * What to fix before the Cancel tab may ask "Cancel this policy?", with the server's own words and rules (the reason
+ * is measured without the spaces around it). The form checks this instead of sending the save to find out, because
+ * a save the server accepts cancels the policy and sends the refund without the confirm.
+ */
+export function cancelSaveProblems(
+  cancelDate: string,
+  reason: string,
+): { message: string; fields: { cancelDate?: string; reason?: string } } | null {
+  const fields: { cancelDate?: string; reason?: string } = {};
+  if (cancelDate === '') fields.cancelDate = 'Pick the day cover ends.';
+  const trimmed = reason.trim();
+  if (trimmed === '') fields.reason = 'Say why the policy is being cancelled. The customer sees this.';
+  else if (trimmed.length > REASON_MAX) fields.reason = `Keep the reason under ${REASON_MAX} characters.`;
+  const n = Object.keys(fields).length;
+  return n === 0 ? null : { message: `${n} ${n === 1 ? 'thing' : 'things'} to fix before you can save.`, fields };
+}

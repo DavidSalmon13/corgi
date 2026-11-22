@@ -10,6 +10,7 @@ import {
   cancelPreviewHeading,
   cancelPreviewRows,
   cancelSaveLabel,
+  cancelSaveProblems,
   customerWillSeeCancel,
   refundPieces,
   type MoneyRow,
@@ -112,10 +113,16 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
 
   const submit = () => {
     if (cantSave || save.isPending) return;
-    // Without a price or a usable reason there's nothing to confirm: let the server say what to fix, under the field.
-    const reasonOk = reason.trim() !== '' && reason.length <= REASON_MAX;
-    if (plan && reasonOk) setConfirming(true);
-    else save.mutate();
+    // Check here rather than sending the save to find out: a save the server accepts would cancel the policy and send
+    // the refund without the "Cancel this policy?" step (AC7).
+    const problems = cancelSaveProblems(cancelDate, reason);
+    if (problems) {
+      setErrors(problems);
+      setFailedSaves((n) => n + 1);
+      return;
+    }
+    // A day outside the term already shows under the date from the preview; there's nothing to confirm without a price.
+    if (plan) setConfirming(true);
   };
 
   const dateError = errors?.fields.cancelDate ?? previewFields?.cancelDate;
@@ -181,7 +188,7 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
             />
             <span id="reason-hint" className={HINT}>
               The customer sees this reason word for word.
-              {reason.length >= REASON_COUNT_FROM && ` ${reason.length} of ${REASON_MAX} characters.`}
+              {reason.trim().length >= REASON_COUNT_FROM && ` ${reason.trim().length} of ${REASON_MAX} characters.`}
             </span>
             <FieldError id="reason-error" message={reasonError} />
           </div>

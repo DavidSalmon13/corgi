@@ -33,7 +33,7 @@ specs:
       - web/src/api/client.ts
   - folder: 2026-11-22-collect-premium
     slug: collect-premium
-    status: shaped
+    status: done
     branch: feat/policy-lifecycle/collect-premium
     covers:
       - /me/pay

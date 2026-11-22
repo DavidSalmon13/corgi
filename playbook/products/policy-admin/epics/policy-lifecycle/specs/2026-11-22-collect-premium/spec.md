@@ -1,7 +1,7 @@
 # Collect premium
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/policy-lifecycle/collect-premium
 > Covers: /me/pay, /api/me/payments, /api/stripe/webhook, api/src/main/java/**/billing/**, api/src/main/resources/db/migration/V6__payments.sql, web/src/pages/me/PayPage.tsx
 

@@ -35,9 +35,17 @@
 | # | Severity | Issue | Route |
 |---|---|---|---|
 | 1 | low | Nobody has looked at the P5/P1/B3 payment states in a browser. Their copy and state choice are covered by tests and the live API pass. | Owner to look before the demo |
-| 2 | low | spec.md `> Status:` still says `shaped`, but every task is done | Update when the PR opens |
+| 2 | med | Earlier PaymentIntents (left open, or declined and then retried) are never cancelled at Stripe. A second tab can still pay one after "Try again", which charges the customer twice (`PaymentService.start`). | /hotfix |
+| 3 | med | Card payments switch on without `STRIPE_WEBHOOK_SECRET`. The card is charged, but every webhook gets 400, so the ledger never shows the money (`StripeJavaGateway` constructor). | /hotfix |
+| 4 | med | Cards go straight to succeeded with no `payment_intent.processing`. Until the webhook lands, the payment still looks OPEN: P1 offers Pay again, and the AC7 409 guard doesn't fire (`PaymentService.start`, `paymentCopy.ts`). | /hotfix |
+| 5 | low | A saved-card confirm that fails says "Nothing was charged" even when the intent had already succeeded (`StripeJavaGateway`, `PaymentProblem`). | /hotfix |
+| 6 | low | A live (`sk_live_`) key only logs a warning instead of turning payments off. | /hotfix |
+| 7 | low | A PROCESSING payment that ends with `payment_intent.canceled`/`payment_failed` and no `charge.failed` stays PROCESSING and blocks paying. An event that can't be read is still marked as processed (`WebhookHandler`). | /hotfix |
+| 8 | low | Stripe network calls run while the policy row is locked (`PaymentService.start`). | note |
 
 ## Notes
+
+- Findings 2–8 come from the code and security reviews of 2026-11-22. Neither review found anything critical or high. The user chose to open the PRs and fix these afterwards.
 
 - Setup mode, so the browser-check gap stays a note.
 - B1 labels the waiting state "Active · waiting for the bank" (`lib/policyCopy.ts`), which carries the AC11 wording inside the status chip.

@@ -23,12 +23,14 @@
 - build: `cd web && npm run build` — pass
 - lint: no lint script in `web/` or `api/` — n/a
 - typecheck: `cd web && npm run typecheck` — pass
-- tests: `cd api && ./gradlew test` — pass (347 passed, 0 failed; `HistoryServiceTest` 12, `BrokerHistoryEndpointTest` 4); `cd web && npm test` — pass (215 passed, 19 files)
+- tests: `cd api && ./gradlew test` — pass (347 passed, 0 failed; `HistoryServiceTest` 12, `BrokerHistoryEndpointTest` 4); `cd web && npm test` — pass (216 passed, 19 files, after the fix below)
 - runtime: current API on :8081 against the local DB, a second Vite dev server on :5174 proxying to it, headless Chromium (Playwright). Fictional policy GL-2026-0009 for "QA Hearth & Hops LLC" (owner Jordan Ash) was issued, given extra cover from Oct 15, corrected to Oct 8, then corrected again to Oct 22.
 
 ## Issues Found
 
-(none)
+| # | Severity | Issue | Route |
+|---|---|---|---|
+| 1 | med | Found by the code review after this run: a card with more than one line (a policy issued with extra cover, a cancellation of both covers) described only its first line, and neither the total nor any line amount opened the drawer (AC4, AC7) | Fixed on this branch: `historyCopy.ts` `eachLine` gives every line its sums and signed amount, so each one becomes a button. Test: `historyCopy.test.ts` "describes every line on a card with more than one". Live re-check (GL-2026-0010, issued with extra cover) at 1280 light and 390 dark: "+$1,200.00" and "+$730.00" each open their own drawer with focus returned, no h-scroll |
 
 ## Notes
 

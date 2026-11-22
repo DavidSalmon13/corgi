@@ -92,7 +92,26 @@ function quoted(reason: string | null, lead: string): string {
   return reason ? `${lead}: “${reason}”` : `${lead}.`;
 }
 
+/**
+ * "Base cover, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00." — one per line, for a card made of several lines.
+ * The signed amount is what HistoryPage turns into a "How we got this" button, so every line stays traceable.
+ */
+function eachLine(a: HistoryAction): string {
+  return a.rows
+    .map((r) => {
+      const sums = calc(r);
+      const amount = formatCents(r.amountCents, { signed: true });
+      return `${r.title}: ${sums ? `${sums} = ${amount}` : amount}.`;
+    })
+    .join(' ');
+}
+
 function changeDetail(a: HistoryAction): string {
+  if (a.changeType === 'ISSUE' && a.rows.length > 1) {
+    const m = a.rows[0].trace.maths;
+    const span = m.from && m.to ? `, ${formatDate(m.from)} to ${formatDate(m.to)}` : '';
+    return `Cover for a year${span}. ${eachLine(a)}`;
+  }
   if (a.changeType === 'ISSUE') {
     const first = a.rows[0];
     const m = first?.trace.maths;
@@ -113,7 +132,8 @@ function changeDetail(a: HistoryAction): string {
     });
     return `Start moved from ${formatShortDate(c.oldStart)} to ${formatShortDate(c.newStart)}. ${parts.join(', ')}.`;
   }
-  // extra cover, a cancellation, or anything else: each line's title and its sums
+  if (a.rows.length > 1) return eachLine(a);
+  // one line of extra cover, a cancellation, or anything else: its title and its sums (the card total opens it)
   return a.rows.map((r) => `${r.title}.${calc(r) ? ` ${calc(r)}.` : ''}`).join(' ');
 }
 

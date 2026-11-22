@@ -294,6 +294,44 @@ describe('actionDetail', () => {
     expect(actionDetail(cancel)).toBe('Base cover, money back from Mar 1. $1,200.00 × 182 ÷ 365.');
   });
 
+  // covers AC4, AC7 — a card with two lines describes each, with the signed amount the page turns into a button
+  it('describes every line on a card with more than one, each with its amount', () => {
+    const year = { ...noMaths, days: 365, termDays: 365, from: '2026-09-01', to: '2027-09-01' };
+    const issueBoth = action({
+      amountCents: 193_000,
+      rows: [
+        row({ id: 'LE-0001', title: 'Base cover, full year', trace: { maths: { ...year, annualCents: 120_000, resultCents: 120_000 } } }),
+        row({
+          id: 'LE-0002',
+          title: 'Extra cover, full year',
+          amountCents: 73_000,
+          trace: { maths: { ...year, annualCents: 73_000, resultCents: 73_000 } },
+        }),
+      ],
+    });
+    expect(actionDetail(issueBoth)).toBe(
+      'Cover for a year, Sep 1, 2026 to Sep 1, 2027. Base cover, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00. Extra cover, full year: $730.00 × 365 ÷ 365 = +$730.00.',
+    );
+
+    const cancelBoth = action({
+      ...cancel,
+      amountCents: -96_236,
+      rows: [
+        cancel.rows[0],
+        row({
+          id: 'LE-0010',
+          kind: 'CREDIT',
+          title: 'Extra cover, money back from Mar 1',
+          amountCents: -36_400,
+          trace: { maths: { ...noMaths, annualCents: 73_000, days: 182, termDays: 365, from: '2027-03-01', to: '2027-09-01', resultCents: -36_400 } },
+        }),
+      ],
+    });
+    expect(actionDetail(cancelBoth)).toBe(
+      'Base cover, money back from Mar 1: $1,200.00 × 182 ÷ 365 = −$598.36. Extra cover, money back from Mar 1: $730.00 × 182 ÷ 365 = −$364.00.',
+    );
+  });
+
   it("shows Stripe's status and refs for a payment", () => {
     expect(actionDetail(paid)).toBe('Paid. Confirmed by Stripe (pi_3QpaidA, evt_1QpaidA).');
     expect(actionDetail(waiting)).toBe(

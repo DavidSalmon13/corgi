@@ -75,6 +75,19 @@ export type Issued = { policyId: number; policyNumber: string; transactionDispla
 /** 422 body from ApiErrorHandler. */
 export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
 
+export type DueReason = 'FIRST_YEAR' | 'CHANGE' | 'NOTHING_DUE';
+
+/** me.MyCoverController.MyCover, from GET /api/me/cover. */
+export type MyCover = {
+  business: { legalName: string; description: string; ownerName: string };
+  policy: { policyNumber: string; status: PolicyStatus; start: IsoDate; end: IsoDate };
+  covers: Coverage[];
+  amountDueCents: number;
+  dueReason: DueReason;
+  broker: { name: string };
+  today: IsoDate;
+};
+
 /** policy.PolicyViews.ListRow */
 export type PolicyListRow = {
   policyId: number;

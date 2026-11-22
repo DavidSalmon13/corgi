@@ -66,3 +66,7 @@ The brief doesn't limit start dates. A start date more than a year in the past o
 ## 2026-11-22: Web unit tests with Vitest; ledger and jargon work on phones
 
 The web package had no test runner, and money formatting and timeline geometry are logic that must be tested first. I added Vitest, which reads the existing `vite.config.ts`, so no new config file was needed. Amounts are formatted from integer cents without floating point, and credits use a true minus sign (U+2212). The ledger is a table on wide screens and a stacked list below 768 px, so it never scrolls sideways at 390 px. `Term` keeps the design's dotted-underline `abbr` with a hover title, and also opens a small bubble on tap or keyboard focus, because a title attribute alone does nothing on a phone.
+
+## 2026-11-22: P1 broker contact and "how we got this" for now
+
+The design links "Your broker, Sam Reyes" to an email address, but the API stores no broker email and this spec doesn't add one. So P1 shows the broker's name as plain text, not a link, rather than a made-up address. The amount due on P1 doesn't open a breakdown yet: the "How we got this" drawer (P4) and the statement (P3) belong to later specs. Until they ship, the broker's B3 ledger shows the calculation behind every amount.

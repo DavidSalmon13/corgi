@@ -3,6 +3,7 @@ import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
 import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
+import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
 import { SignIn } from './pages/SignIn';
 
 // Placeholder until B1–B3 (T15–T17) and P1 (T18) land.
@@ -32,6 +33,7 @@ export function App() {
       >
         <Route path="policies" element={<PoliciesPage />} />
         <Route path="policies/new" element={<NewPolicyPage />} />
+        <Route path="policies/:id" element={<PolicyWorkspace />} />
         <Route path="*" element={<Soon />} />
       </Route>
       <Route

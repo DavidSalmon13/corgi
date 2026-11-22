@@ -33,7 +33,7 @@
 - [x] T14 SignIn (`SignIn.dc.html`): role switcher, demo notice, role-based redirect and route guards
 - [x] T15 B2 New customer and policy (`B2-NewPolicy.dc.html`): form, error summary and per-field errors, debounced live price panel, "Customer will see" sentence, Create policy
 - [x] T16 B1 Policies (`B1-Policies.dc.html`): table, summary line, All / Owes money chips, empty state
-- [ ] T17 B3 Policy workspace (`B3-Workspace.dc.html`): header, status and balance, cover timeline with Today marker, ledger table with references; no action buttons yet
+- [x] T17 B3 Policy workspace (`B3-Workspace.dc.html`): header, status and balance, cover timeline with Today marker, ledger table with references; no action buttons yet
 - [ ] T18 P1 Home (`P1-Home.dc.html`, 390 px): amount due and reason, protection sentence, cover period and timeline, broker contact; no Pay button yet
 - [ ] T19 Jargon and fidelity pass: wrap or remove terms (AC11); check dark mode, 390 px and money signs on all five screens (AC12)
 

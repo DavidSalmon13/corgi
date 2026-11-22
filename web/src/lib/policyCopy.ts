@@ -40,3 +40,10 @@ export function listSummary(total: number, owing: number): string {
   const owe = owing === 0 ? 'nobody owes money' : `${owing} ${owing === 1 ? 'owes' : 'owe'} money`;
   return `${policies} · ${owe}`;
 }
+
+/** The small line under the balance on B3. */
+export function balanceNote(balanceCents: number): string {
+  if (balanceCents > 0) return 'Not paid yet';
+  if (balanceCents < 0) return 'We owe the customer this';
+  return 'Nothing owed';
+}

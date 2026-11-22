@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useSession } from '../api/client';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -10,6 +10,8 @@ const link = ({ isActive }: { isActive: boolean }) =>
 /** Desktop shell for broker pages (B1–B3): wordmark, nav, who's signed in. */
 export function BrokerShell() {
   const session = useSession();
+  // "Policies" covers the list and every policy's workspace, but not the new-customer form.
+  const onNew = useLocation().pathname.startsWith('/broker/policies/new');
   const who = session.data ? `${session.data.displayName} · Broker` : '';
   return (
     <div className="min-h-dvh bg-bg">
@@ -17,7 +19,7 @@ export function BrokerShell() {
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 md:px-8">
           <span className="mr-2 text-xl font-bold tracking-[-0.01em]">Plainly</span>
           <nav aria-label="Broker" className="flex gap-6">
-            <NavLink to="/broker/policies" end className={link}>
+            <NavLink to="/broker/policies" className={({ isActive }) => link({ isActive: isActive && !onNew })}>
               Policies
             </NavLink>
             <NavLink to="/broker/policies/new" className={link}>

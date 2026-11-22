@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Policy history</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--wait:#8A5300;--bad:#B0281F;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--wait:#F2B861;--bad:#F4928A;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.ref{font-family:'Source Code Pro',ui-monospace,monospace;font-size:12.5px;background:var(--track);border-radius:5px;padding:2px 7px;color:var(--ink);text-decoration:none;white-space:nowrap}
+a.ref:hover{background:var(--accentSoft)}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;padding:10px 4px}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="min-height: 1040px; box-sizing: border-box">
+  <header class="nav" style="border-bottom: 1px solid var(--line); background: var(--card)">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-right: 8px">Plainly</span>
+      <a href="B1-Policies.dc.html">Policies</a>
+      <a href="B2-NewPolicy.dc.html">New customer</a>
+      <span style="flex: 1"></span>
+      <span style="font-size: 15px; color: var(--ink2)">Sam Reyes · Broker</span>
+    </div>
+  </header>
+
+  <main style="max-width: 960px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <a href="B3-Workspace.dc.html" style="font-size: 15px; font-weight: 600; text-decoration: none">‹ Juniper &amp; Rye Bakery LLC · GL-2026-0042</a>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.015em">History</h1>
+      <p style="margin: 0; font-size: 16px; color: var(--ink2)">Every action on this policy, oldest first, with what it did to the money.</p>
+    </div>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+      <sc-for list="{{items}}" as="it" hint-placeholder-count="7">
+        <li style="display: grid; grid-template-columns: 120px 20px minmax(0, 1fr); gap: 0 16px">
+          <div style="padding: 18px 0; text-align: right">
+            <div class="num" style="font-weight: 600; font-size: 15px">{{it.date}}</div>
+            <div style="font-size: 13px; color: var(--ink2)">{{it.who}}</div>
+          </div>
+          <div aria-hidden="true" style="position: relative; display: flex; justify-content: center">
+            <div style="position: absolute; top: 0; bottom: 0; width: 2px; background: var(--line)"></div>
+            <div style="position: relative; margin-top: 22px; width: 12px; height: 12px; border-radius: 50%; background: {{it.dot}}; box-shadow: 0 0 0 3px var(--bg)"></div>
+          </div>
+          <div style="padding: 12px 0">
+            <div style="background: var(--card); border: {{it.border}}; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline">
+                <span style="font-weight: 700; font-size: 17px">{{it.what}}</span>
+                <span class="num" style="font-weight: 700; font-size: 17px; color: {{it.moneyColor}}">{{it.money}}</span>
+              </div>
+              <div style="font-size: 15px; color: var(--ink2); line-height: 1.45">{{it.detail}}</div>
+              <sc-if value="{{it.hasReason}}" hint-placeholder-val="{{ false }}">
+                <blockquote style="margin: 0; padding: 10px 12px; background: var(--bg); border-radius: 10px; font-size: 15px; line-height: 1.45"><span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">Reason</span><br>“Customer's signed request was dated Oct 8; cover was entered a week late.”</blockquote>
+              </sc-if>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--ink2)">
+                <span>Ledger lines</span>
+                <sc-for list="{{it.refs}}" as="r" hint-placeholder-count="2">
+                  <a class="ref" href="B3-Workspace.dc.html">{{r}}</a>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </li>
+      </sc-for>
+    </ol>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const plain = '1px solid var(--line)';
+    const it = (o) => Object.assign({ hasReason: false, border: plain, dot: 'var(--ink2)', moneyColor: 'var(--ink)' }, o);
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      items: [
+        it({ date: 'Sep 1, 2026', who: 'Sam Reyes', what: 'Policy created · PTX-0001', detail: 'Base cover for a year, Sep 1, 2026 to Sep 1, 2027. $1,200.00 × 365 ÷ 365.', money: '+$1,200.00', refs: ['LE-0001'] }),
+        it({ date: 'Sep 1, 2026', who: 'Maya Okafor', what: 'Payment, card ending 4242', detail: 'Paid. Confirmed by Stripe (pi_3Q…).', money: '−$1,200.00', dot: 'var(--good)', refs: ['LE-0002'] }),
+        it({ date: 'Oct 15, 2026', who: 'Sam Reyes', what: 'Extra cover added · PTX-0002', detail: 'Product liability from Oct 15. $730.00 × 321 ÷ 365.', money: '+$642.00', refs: ['LE-0003'] }),
+        it({ date: 'Oct 15, 2026', who: 'Maya Okafor', what: 'Payment attempt, card ending 0002', detail: 'Didn’t go through. Card declined, no money moved.', money: '$0.00', dot: 'var(--bad)', refs: ['LE-0004'] }),
+        it({ date: 'Oct 15, 2026', who: 'Maya Okafor', what: 'Payment, card ending 4242', detail: 'Paid. Confirmed by Stripe (pi_3Q…).', money: '−$642.00', dot: 'var(--good)', refs: ['LE-0005'] }),
+        it({ date: 'Nov 5, 2026', who: 'Sam Reyes', what: 'Start date corrected · PTX-0003', detail: 'Product liability start moved from Oct 15 to Oct 8. Oct 15 line undone in full (−$642.00), corrected line added ($730.00 × 328 ÷ 365 = +$656.00).', money: '+$14.00 net', moneyColor: 'var(--accentInk)', hasReason: true, border: '1.5px solid var(--accent)', dot: 'var(--accent)', refs: ['LE-0006', 'LE-0007'] }),
+        it({ date: 'Nov 22, 2026', who: 'Maya Okafor', what: 'Payment, card ending 4242', detail: 'Waiting for the bank. Stripe reports it as processing (evt_1Q…). Shown as paid only once Stripe confirms.', money: '−$14.00 pending', moneyColor: 'var(--ink2)', dot: 'var(--wait)', refs: ['LE-0008'] })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

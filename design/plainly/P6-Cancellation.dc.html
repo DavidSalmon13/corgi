@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cancellation summary</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--track:#EFE8DA;--base:#2E3A52;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--track:#2A2F3A;--base:#8FA3C7}
+.num{font-variant-numeric:tabular-nums}
+.perf{height:9px;background-image:radial-gradient(circle at 7px 0,var(--bg) 5px,transparent 5.5px);background-size:14px 9px;background-repeat:repeat-x}
+.row{display:flex;gap:12px;padding:14px 18px;border-top:1px dashed var(--line)}
+.meta{font-size:13px;color:var(--ink2);margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px}
+.hatch{background-image:repeating-linear-gradient(135deg,var(--line) 0 2px,transparent 2px 7px)}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="width: 390px; height: 1060px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px 0 8px">
+    <a href="P1-Home.dc.html" style="display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 8px; font-size: 16px; font-weight: 600; text-decoration: none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+      Your cover
+    </a>
+    <span style="font-size: 18px; font-weight: 700">Plainly</span>
+  </header>
+
+  <main style="padding: 12px 20px 32px; display: flex; flex-direction: column; gap: 20px">
+    <div>
+      <h1 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.015em">Your cover has ended</h1>
+      <p style="margin: 2px 0 0; color: var(--ink2); font-size: 15px">Juniper &amp; Rye Bakery LLC · Policy GL-2026-0042</p>
+    </div>
+
+    <section aria-label="Summary" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+      <p style="margin: 0; font-size: 19px; line-height: 1.4; font-weight: 500">Your cover ended on Dec 1, 2026. {{lead}} <strong class="num" style="color: var(--accentInk)">$1,434.82</strong> {{leadTail}}</p>
+      <span class="pill" style="align-self: flex-start; background: {{pillBg}}; color: {{pillFg}}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{pillDot}}"></span>{{pill}}</span>
+      <span style="font-size: 14px; color: var(--ink2); line-height: 1.45">{{when}}</span>
+    </section>
+
+    <section aria-label="Days used" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px">
+      <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px"><span>Sep 1</span><span>Dec 1</span><span>Sep 1, 2027</span></div>
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 6px">
+        <div style="position: relative; height: 14px; border-radius: 7px; background: var(--track); overflow: hidden"><div style="position: absolute; left: 0; width: 24.93%; top: 0; bottom: 0; background: var(--base)"></div><div class="hatch" style="position: absolute; left: 24.93%; right: 0; top: 0; bottom: 0"></div></div>
+        <div style="position: relative; height: 14px; border-radius: 7px; background: var(--track); overflow: hidden"><div style="position: absolute; left: 10.14%; width: 14.79%; top: 0; bottom: 0; background: var(--accent)"></div><div class="hatch" style="position: absolute; left: 24.93%; right: 0; top: 0; bottom: 0"></div></div>
+      </div>
+      <p style="margin: 10px 0 0; font-size: 14px; color: var(--ink2); line-height: 1.45">91 days used. The striped part, 274 <abbr class="term" title="Unearned premium: money for days you’d paid for but won’t be covered, which you get back.">unused days</abbr>, comes back to you.</p>
+    </section>
+
+    <section aria-label="How we worked it out" style="background: var(--card); border: 1px solid var(--line); border-top: none; border-radius: 0 0 16px 16px; overflow: hidden">
+      <div class="perf"></div>
+      <div style="padding: 10px 18px 4px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">How we worked it out</div>
+      <div class="row" style="border-top: none">
+        <div style="flex: 1"><div style="font-weight: 600">Base cover, unused days</div><div class="meta num">$1,200.00 × 274 ÷ 365</div></div>
+        <span class="num" style="font-weight: 600">−$900.82</span>
+      </div>
+      <div class="row">
+        <div style="flex: 1"><div style="font-weight: 600">Extra cover, unused days</div><div class="meta num">$730.00 × 274 ÷ 365</div></div>
+        <span class="num" style="font-weight: 600">−$548.00</span>
+      </div>
+      <div class="row">
+        <div style="flex: 1"><div style="font-weight: 600">Unpaid balance kept back</div><div class="meta">The $14.00 from the start-date fix, still owed</div></div>
+        <span class="num" style="font-weight: 600">+$14.00</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 18px; border-top: 1.5px solid var(--ink)">
+        <div><div style="font-weight: 700; font-size: 17px"><abbr class="term" title="Cancellation refund: unused days refunded, minus anything you still owe.">Money back</abbr> to card ending 4242</div><div class="meta">No cancellation fee</div></div>
+        <span class="num" style="font-weight: 700; font-size: 22px; color: var(--accentInk)">$1,434.82</span>
+      </div>
+    </section>
+
+    <p style="margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink2)">Tap any amount on your <a href="Main.dc.html">statement</a> to see the Stripe refund reference. Questions? Your broker Sam Reyes can help.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["refund waiting","refunded"],"default":"refund waiting"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const done = (this.props.state ?? 'refund waiting') === 'refunded';
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      lead: done ? 'We sent' : 'We’re sending',
+      leadTail: done ? 'back to your card ending 4242.' : 'back to your card ending 4242.',
+      pill: done ? 'Refunded' : 'Refund on its way',
+      pillBg: done ? 'var(--goodSoft)' : 'var(--waitSoft)',
+      pillFg: done ? 'var(--good)' : 'var(--wait)',
+      pillDot: done ? 'var(--good)' : 'var(--accent)',
+      when: done
+        ? 'Stripe confirmed the refund on Dec 1. Your bank may take 5–10 days to show it.'
+        : 'We’ve asked Stripe to send it. Once it’s sent, banks take 5–10 days to show it.'
+    };
+  }
+}
+</script>
+</body>
+</html>

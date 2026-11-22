@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Policy workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;--base:#2E3A52;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A;--base:#8FA3C7}
+.num{font-variant-numeric:tabular-nums}
+.ref{font-family:'Source Code Pro',ui-monospace,monospace;font-size:12.5px;background:var(--track);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:10px;background:var(--accent);color:#1D2433;font-weight:700;font-size:15px;text-decoration:none}
+.btn2{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border-radius:10px;border:1.5px solid var(--line);color:var(--ink);font-weight:600;font-size:15px;text-decoration:none}
+table{border-collapse:collapse;width:100%;min-width:880px}
+th{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:10px 12px;border-bottom:1.5px solid var(--ink)}
+td{padding:12px;border-bottom:1px dashed var(--line);font-size:15px;vertical-align:top}
+.r{text-align:right}
+.tick{position:absolute;top:0;font-size:12px;color:var(--ink2)}
+.hatch{background-image:repeating-linear-gradient(135deg,var(--line) 0 2px,transparent 2px 7px)}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;padding:10px 4px}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="min-height: 1320px; box-sizing: border-box">
+  <header class="nav" style="border-bottom: 1px solid var(--line); background: var(--card)">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-right: 8px">Plainly</span>
+      <a href="B1-Policies.dc.html">Policies</a>
+      <a href="B2-NewPolicy.dc.html">New customer</a>
+      <span style="flex: 1"></span>
+      <span style="font-size: 15px; color: var(--ink2)">Sam Reyes · Broker</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+    <section aria-label="Policy" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; justify-content: space-between">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <a href="B1-Policies.dc.html" style="font-size: 15px; font-weight: 600; text-decoration: none">‹ All policies</a>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.015em">Juniper &amp; Rye Bakery LLC</h1>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 15px; color: var(--ink2)">
+          <span class="num">GL-2026-0042 · <abbr class="term" title="General Liability: pays if someone is hurt or their property is damaged because of the business.">General Liability</abbr></span>
+          <span>Maya Okafor</span>
+          <span class="num">{{period}}</span>
+          <span class="pill" style="background: {{stBg}}; color: {{stFg}}">{{status}}</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end">
+        <div style="text-align: right">
+          <div style="font-size: 13px; color: var(--ink2)">Balance</div>
+          <div class="num" style="font-size: 28px; font-weight: 700; color: {{balColor}}">{{balance}}</div>
+          <div style="font-size: 13px; color: var(--ink2)">{{balNote}}</div>
+        </div>
+        <sc-if value="{{canAct}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <a class="btn2" href="B4-ChangePreview.dc.html">Add cover</a>
+            <a class="btn" href="B4-ChangePreview.dc.html">Correct</a>
+            <a class="btn2" href="B4-ChangePreview.dc.html">Cancel</a>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+
+    <section aria-label="Cover timeline" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px">
+        <h2 style="margin: 0; font-size: 18px">Cover timeline</h2>
+        <a href="B5-History.dc.html" style="font-size: 15px; font-weight: 600">History</a>
+      </div>
+      <div style="display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 10px 16px; align-items: center">
+        <span></span>
+        <div style="position: relative; height: 18px">
+          <span class="tick" style="left: 0">Sep</span><span class="tick" style="left: 8.22%">Oct</span><span class="tick" style="left: 16.71%">Nov</span><span class="tick" style="left: 24.93%">Dec</span><span class="tick" style="left: 33.42%">Jan</span><span class="tick" style="left: 41.92%">Feb</span><span class="tick" style="left: 49.59%">Mar</span><span class="tick" style="left: 58.08%">Apr</span><span class="tick" style="left: 66.30%">May</span><span class="tick" style="left: 74.79%">Jun</span><span class="tick" style="left: 83.01%">Jul</span><span class="tick" style="left: 91.51%">Aug</span>
+        </div>
+        <span style="font-weight: 600; font-size: 15px">Base cover<br><span class="num" style="font-weight: 400; color: var(--ink2); font-size: 13px">$1,200.00 a year</span></span>
+        <div style="position: relative; height: 32px; border-radius: 8px; background: var(--track)">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{baseW}}; border-radius: 8px; background: var(--base)"></div>
+          <sc-if value="{{cancelled}}" hint-placeholder-val="{{ false }}"><div class="hatch" style="position: absolute; left: 24.93%; right: 0; top: 0; bottom: 0; border-radius: 0 8px 8px 0"></div></sc-if>
+          <div aria-hidden="true" style="position: absolute; left: 22.47%; top: -6px; bottom: -6px; width: 2px; background: var(--ink)"></div>
+        </div>
+        <span style="font-weight: 600; font-size: 15px">Product liability<br><span class="num" style="font-weight: 400; color: var(--ink2); font-size: 13px">$730.00 a year</span></span>
+        <div style="position: relative; height: 32px; border-radius: 8px; background: var(--track)">
+          <div style="position: absolute; left: 12.05%; right: 0; top: 0; bottom: 0; border: 1.5px dashed var(--ink2); border-radius: 8px; opacity: .7"></div>
+          <div style="position: absolute; left: 10.14%; top: 0; bottom: 0; width: {{extraW}}; border-radius: 8px; background: var(--accent); display: flex; align-items: center; padding-left: 10px; font-size: 13px; font-weight: 600; color: #1D2433; white-space: nowrap; overflow: hidden; box-sizing: border-box">from Oct 8 · was Oct 15</div>
+          <sc-if value="{{cancelled}}" hint-placeholder-val="{{ false }}"><div class="hatch" style="position: absolute; left: 24.93%; right: 0; top: 0; bottom: 0; border-radius: 0 8px 8px 0"></div></sc-if>
+          <div aria-hidden="true" style="position: absolute; left: 22.47%; top: -6px; bottom: -6px; width: 2px; background: var(--ink)"></div>
+        </div>
+        <span></span>
+        <div style="position: relative; height: 18px"><span style="position: absolute; left: 22.47%; transform: translateX(-50%); font-size: 13px; font-weight: 700; white-space: nowrap">Today, Nov 22</span></div>
+      </div>
+    </section>
+
+    <section aria-label="Ledger" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px">
+        <h2 style="margin: 0; font-size: 18px">Ledger</h2>
+        <span style="font-size: 14px; color: var(--ink2)">Every line, oldest first. Lines are never edited; corrections add an undo and a new line.</span>
+      </div>
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Line</th><th>Calculation</th><th class="r">Amount</th><th class="r">Balance</th><th>References</th></tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+              <tr style="background: {{r.bg}}">
+                <td class="num" style="white-space: nowrap; color: var(--ink2)">{{r.date}}</td>
+                <td><span style="font-weight: 600; text-decoration: {{r.deco}}; color: {{r.lineColor}}">{{r.line}}</span><br><span style="font-size: 13px; color: var(--ink2)">{{r.sub}}</span></td>
+                <td class="num" style="color: {{r.calcColor}}; font-weight: {{r.calcWeight}}">{{r.calc}}</td>
+                <td class="num r" style="font-weight: 600; text-decoration: {{r.deco}}; white-space: nowrap">{{r.amt}}</td>
+                <td class="num r" style="white-space: nowrap">{{r.bal}}</td>
+                <td><span style="display: flex; flex-wrap: wrap; gap: 4px"><span class="ref">{{r.le}}</span><span class="ref">{{r.ref}}</span></span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["active","balance due","cancelled"],"default":"balance due"},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state ?? 'balance due';
+    const cancelled = s === 'cancelled';
+    const paid = s === 'active';
+    const C = { good: 'var(--good)', wait: 'var(--wait)', bad: 'var(--bad)', ink2: 'var(--ink2)' };
+    const row = (o) => Object.assign({ bg: 'transparent', deco: 'none', lineColor: 'var(--ink)', calcColor: 'var(--ink)', calcWeight: '400', sub: '' }, o);
+    const rows = [
+      row({ date: 'Sep 1, 2026', line: 'Base cover, full year', calc: '$1,200.00 × 365 ÷ 365', amt: '+$1,200.00', bal: '$1,200.00', le: 'LE-0001', ref: 'PTX-0001' }),
+      row({ date: 'Sep 1, 2026', line: 'Payment, card ending 4242', calc: 'Paid', calcColor: C.good, calcWeight: '600', amt: '−$1,200.00', bal: '$0.00', le: 'LE-0002', ref: 'pi_3Q…' }),
+      row({ date: 'Oct 15, 2026', line: 'Extra cover from Oct 15', sub: 'Undone by LE-0006', deco: 'line-through', lineColor: C.ink2, calc: '$730.00 × 321 ÷ 365', amt: '+$642.00', bal: '$642.00', le: 'LE-0003', ref: 'PTX-0002' }),
+      row({ date: 'Oct 15, 2026', line: 'Payment attempt, card ending 0002', sub: 'No money moved', calc: 'Didn’t go through', calcColor: C.bad, calcWeight: '600', amt: '$0.00', bal: '$642.00', le: 'LE-0004', ref: 'pi_3Q…' }),
+      row({ date: 'Oct 15, 2026', line: 'Payment, card ending 4242', calc: 'Paid', calcColor: C.good, calcWeight: '600', amt: '−$642.00', bal: '$0.00', le: 'LE-0005', ref: 'pi_3Q…' }),
+      row({ date: 'Nov 5, 2026', line: 'Extra cover from Oct 15 reversed', sub: 'Correction: wrong start date', calc: 'Undo of LE-0003', amt: '−$642.00', bal: '−$642.00', le: 'LE-0006', ref: 'PTX-0003', bg: 'var(--accentSoft)' }),
+      row({ date: 'Nov 5, 2026', line: 'Extra cover from Oct 8 (corrected)', sub: 'Net change +$14.00', calc: '$730.00 × 328 ÷ 365', amt: '+$656.00', bal: '$14.00', le: 'LE-0007', ref: 'PTX-0003', bg: 'var(--accentSoft)' }),
+      row({ date: 'Nov 22, 2026', line: 'Payment, card ending 4242',
+        calc: paid ? 'Paid' : (cancelled ? 'Didn’t go through' : 'Waiting for the bank'),
+        calcColor: paid ? C.good : (cancelled ? C.bad : C.wait), calcWeight: '600',
+        amt: paid ? '−$14.00' : (cancelled ? '$0.00' : 'Pending'),
+        bal: paid ? '$0.00' : '$14.00 due', le: 'LE-0008', ref: 'evt_1Q…' })
+    ];
+    if (cancelled) {
+      rows.push(row({ date: 'Dec 1, 2026', line: 'Base cover, unused days refunded', calc: '$1,200.00 × 274 ÷ 365', amt: '−$900.82', bal: '−$886.82', le: 'LE-0009', ref: 'PTX-0004' }));
+      rows.push(row({ date: 'Dec 1, 2026', line: 'Extra cover, unused days refunded', calc: '$730.00 × 274 ÷ 365', amt: '−$548.00', bal: '−$1,434.82', le: 'LE-0010', ref: 'PTX-0004' }));
+      rows.push(row({ date: 'Dec 1, 2026', line: 'Refund to card ending 4242', sub: 'Unpaid $14.00 kept back', calc: 'Refund on its way', calcColor: C.wait, calcWeight: '600', amt: '+$1,434.82', bal: '$0.00', le: 'LE-0011', ref: 're_3Q…' }));
+    }
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      cancelled, canAct: !cancelled, rows,
+      period: cancelled ? 'Sep 1, 2026 → Dec 1, 2026 (cancelled)' : 'Sep 1, 2026 → Sep 1, 2027',
+      status: cancelled ? 'Cancelled' : (paid ? 'Active · paid up' : 'Active · balance due'),
+      stBg: cancelled ? 'var(--track)' : (paid ? 'var(--goodSoft)' : 'var(--waitSoft)'),
+      stFg: cancelled ? 'var(--ink2)' : (paid ? 'var(--good)' : 'var(--wait)'),
+      balance: paid || cancelled ? '$0.00' : '$14.00 due',
+      balColor: paid || cancelled ? 'var(--ink)' : 'var(--accentInk)',
+      balNote: cancelled ? 'Refund of $1,434.82 on its way' : (paid ? 'Nothing owed' : 'Payment waiting for the bank'),
+      baseW: cancelled ? '24.93%' : '100%',
+      extraW: cancelled ? '14.79%' : '89.86%'
+    };
+  }
+}
+</script>
+</body>
+</html>

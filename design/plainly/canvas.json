@@ -1,0 +1,40 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-22T12:00:00Z"},
+  "title": "Plainly",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 390, "h": 1600, "title": "P3 · Statement", "is_interactive": true},
+    "P1-Home.dc.html": {"x": 470, "y": 0, "w": 390, "h": 1080, "title": "P1 · Home: Your cover", "is_interactive": true},
+    "P4-HowWeGotThis.dc.html": {"x": 940, "y": 0, "w": 390, "h": 1000, "title": "P4 · How we got this"},
+    "P2-Timeline.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 1000, "title": "P2 · Cover timeline", "is_interactive": true},
+    "P5-Pay.dc.html": {"x": 1880, "y": 0, "w": 390, "h": 900, "title": "P5 · Pay", "is_interactive": true},
+    "P6-Cancellation.dc.html": {"x": 2350, "y": 0, "w": 390, "h": 1060, "title": "P6 · Cancellation summary"},
+    "SignIn.dc.html": {"x": 2820, "y": 0, "w": 390, "h": 844, "title": "Sign in · demo", "is_interactive": true},
+    "B4-ChangePreview.dc.html": {"x": 0, "y": 1960, "w": 1280, "h": 1040, "title": "B4 · Change with money preview", "expand": "fill", "is_interactive": true},
+    "B3-Workspace.dc.html": {"x": 1360, "y": 1960, "w": 1280, "h": 1320, "title": "B3 · Policy workspace", "expand": "fill", "is_interactive": true},
+    "B1-Policies.dc.html": {"x": 2720, "y": 1960, "w": 1280, "h": 860, "title": "B1 · Policies", "expand": "fill", "is_interactive": true},
+    "B2-NewPolicy.dc.html": {"x": 4080, "y": 1960, "w": 1280, "h": 1000, "title": "B2 · New customer and policy", "expand": "fill"},
+    "B5-History.dc.html": {"x": 5440, "y": 1960, "w": 1280, "h": 1040, "title": "B5 · History", "expand": "fill"}
+  },
+  "order": [
+    "Main.dc.html",
+    "P1-Home.dc.html",
+    "P4-HowWeGotThis.dc.html",
+    "P2-Timeline.dc.html",
+    "P5-Pay.dc.html",
+    "P6-Cancellation.dc.html",
+    "SignIn.dc.html",
+    "B4-ChangePreview.dc.html",
+    "B3-Workspace.dc.html",
+    "B1-Policies.dc.html",
+    "B2-NewPolicy.dc.html",
+    "B5-History.dc.html"
+  ],
+  "notes": {
+    "t1": {"x": 0, "y": -300, "text": "Policyholder · mobile", "kind": "title1", "maxW": 3210},
+    "t2": {"x": 0, "y": 1660, "text": "Broker · desktop", "kind": "title1", "maxW": 6720}
+  },
+  "designSystems": []
+}

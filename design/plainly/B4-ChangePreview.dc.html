@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Change with money preview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label,.lbl{font-size:14px;font-weight:600}
+.input{min-height:44px;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:16px}
+.hint{font-size:13px;color:var(--ink2);line-height:1.4}
+.prow{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px dashed var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:10px;background:var(--accent);color:#1D2433;font-weight:700;font-size:16px;text-decoration:none;border:none;font-family:inherit;cursor:pointer}
+.btn2{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:10px;border:1.5px solid var(--line);color:var(--ink);font-weight:600;font-size:16px;text-decoration:none;background:transparent;font-family:inherit;cursor:pointer}
+.tab{min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.struck{text-decoration:line-through;color:var(--ink2)}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;padding:10px 4px}
+</style>
+</helmet>
+<div class="{{theme}}" style="position: relative; min-height: 1040px; box-sizing: border-box">
+  <header class="nav" style="border-bottom: 1px solid var(--line); background: var(--card)">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-right: 8px">Plainly</span>
+      <a href="B1-Policies.dc.html">Policies</a>
+      <a href="B2-NewPolicy.dc.html">New customer</a>
+      <span style="flex: 1"></span>
+      <span style="font-size: 15px; color: var(--ink2)">Sam Reyes · Broker</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <a href="B3-Workspace.dc.html" style="font-size: 15px; font-weight: 600; text-decoration: none">‹ Juniper &amp; Rye Bakery LLC · GL-2026-0042</a>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.015em">Change this policy</h1>
+      <p style="margin: 0; color: var(--ink2); font-size: 16px">Nothing is saved until you've seen what it costs or refunds the customer.</p>
+    </div>
+
+    <div role="group" aria-label="Action" style="display: flex; flex-wrap: wrap; gap: 8px">
+      <button type="button" class="{{tabAddCls}}" onClick="{{goAdd}}" aria-pressed="{{tAdd}}">Add cover</button>
+      <button type="button" class="{{tabCorrectCls}}" onClick="{{goCorrect}}" aria-pressed="{{tCorrect}}">Correct</button>
+      <button type="button" class="{{tabCancelCls}}" onClick="{{goCancel}}" aria-pressed="{{tCancel}}">Cancel</button>
+    </div>
+
+    <!-- ============ CORRECT ============ -->
+    <sc-if value="{{tCorrect}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <section aria-label="Correct a start date" style="flex: 1 1 460px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+          <h2 style="margin: 0; font-size: 20px">Correct a start date</h2>
+          <div class="field">
+            <label for="cv">Which cover</label>
+            <select id="cv" class="input"><option>Extra cover · Product liability ($730.00 a year)</option></select>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end">
+            <div class="field" style="flex: 1 1 160px">
+              <span class="lbl">Starts on now</span>
+              <div class="input num struck" style="display: flex; align-items: center; background: var(--track); border-color: transparent">Oct 15, 2026</div>
+            </div>
+            <svg width="24" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--ink2)"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            <div class="field" style="flex: 1 1 160px">
+              <label for="nd">Correct <abbr class="term" title="Effective date: the first day this cover protects the customer.">start date</abbr></label>
+              <input id="nd" class="input num" type="text" value="{{newDate}}" style="border-color: var(--accent)">
+            </div>
+          </div>
+          <div class="field">
+            <label for="rs">Reason <span style="font-weight: 400; color: var(--ink2)">(required)</span></label>
+            <textarea id="rs" class="input" rows="3" style="resize: vertical; line-height: 1.45">{{reason}}</textarea>
+            <span class="hint">The customer sees this reason on their statement, word for word.</span>
+          </div>
+        </section>
+
+        <section aria-label="Money preview" style="flex: 1 1 420px; min-width: 0; background: var(--card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <sc-if value="{{sSaved}}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="background: var(--goodSoft); color: var(--good); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+              <strong style="font-size: 16px">Saved. Maya now owes $14.00 and we've told her why.</strong>
+              <span class="num" style="font-size: 14px">Correction PTX-0003 · undo LE-0006 · corrected line LE-0007</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{sRefundFailed}}" hint-placeholder-val="{{ false }}">
+            <div role="alert" style="background: var(--badSoft); color: var(--bad); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+              <strong style="font-size: 16px">The $14.00 refund didn't go through.</strong>
+              <span style="font-size: 14px; line-height: 1.45; color: var(--ink)">The correction is saved (PTX-0003), but Stripe couldn't send the money to card ending 4242. Maya still sees “We owe you $14.00” until it goes through.</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                <button type="button" class="btn">Retry refund</button>
+                <a class="btn2" href="mailto:maya@example.com">Email Maya</a>
+              </div>
+            </div>
+          </sc-if>
+
+          <div>
+            <h2 style="margin: 0; font-size: 20px">What this does to Maya's bill</h2>
+            <p style="margin: 4px 0 0; font-size: 15px; color: var(--ink2)">The Oct 15 line stays on the statement, undone in full. Nothing is edited.</p>
+          </div>
+          <div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Undo: extra cover from Oct 15</div><div class="hint num">$730.00 × 321 ÷ 365 · <abbr class="term" title="Reversal: we cancel a wrong line in full instead of editing it.">reversal</abbr></div></div>
+              <span class="num" style="font-weight: 600">−$642.00</span>
+            </div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Corrected: extra cover from {{newShort}}</div><div class="hint num">$730.00 × {{newDays}} ÷ 365 · <abbr class="term" title="Rebill: the right amount, charged again after an undo.">rebill</abbr></div></div>
+              <span class="num" style="font-weight: 600">{{rebill}}</span>
+            </div>
+            <div class="prow" style="border-top: 1.5px solid var(--ink); align-items: baseline">
+              <div><div style="font-weight: 700; font-size: 17px">Net change</div><div class="hint num">{{netWhy}}</div></div>
+              <span class="num" style="font-weight: 700; font-size: 24px; color: var(--accentInk)">{{net}}</span>
+            </div>
+          </div>
+
+          <div style="background: var(--bg); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">Customer will see</span>
+            <p style="margin: 0; font-size: 17px; line-height: 1.45; font-weight: 500">{{customerSees}}</p>
+          </div>
+          <p class="hint" style="margin: 0; font-size: 14px">{{settle}}</p>
+
+          <sc-if value="{{showActions}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px">
+              <button type="button" class="btn">{{saveLabel}}</button>
+              <button type="button" class="btn2">Discard</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{sSaved}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px">
+              <a class="btn2" href="B3-Workspace.dc.html">Back to policy</a>
+              <a class="btn2" href="B5-History.dc.html">See in history</a>
+            </div>
+          </sc-if>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ============ ADD COVER ============ -->
+    <sc-if value="{{tAdd}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <section aria-label="Add cover" style="flex: 1 1 460px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+          <h2 style="margin: 0; font-size: 20px">Add extra cover</h2>
+          <div class="field">
+            <label for="ac">Cover</label>
+            <select id="ac" class="input"><option>Product liability ($730.00 a year, $2.00 a day)</option></select>
+            <span class="hint">Pays if something the business sells hurts someone or damages their property.</span>
+          </div>
+          <div class="field">
+            <label for="as">Starts on</label>
+            <input id="as" class="input num" type="text" value="Oct 15, 2026">
+            <span class="hint">Runs to the end of the cover period, Sep 1, 2027.</span>
+          </div>
+        </section>
+        <section aria-label="Money preview" style="flex: 1 1 420px; min-width: 0; background: var(--card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <h2 style="margin: 0; font-size: 20px">What this does to Maya's bill</h2>
+          <div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Extra cover from Oct 15</div><div class="hint num">$730.00 × 321 ÷ 365 · <abbr class="term" title="Pro-rata: yearly price × days ÷ 365.">charged by the day</abbr></div></div>
+              <span class="num" style="font-weight: 600">+$642.00</span>
+            </div>
+            <div class="prow" style="border-top: 1.5px solid var(--ink); align-items: baseline">
+              <div style="font-weight: 700; font-size: 17px">Customer pays</div>
+              <span class="num" style="font-weight: 700; font-size: 24px; color: var(--accentInk)">+$642.00</span>
+            </div>
+          </div>
+          <div style="background: var(--bg); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">Customer will see</span>
+            <p style="margin: 0; font-size: 17px; line-height: 1.45; font-weight: 500">You owe $642.00 for your new extra cover: 321 days from Oct 15 at $2.00 a day.</p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px">
+            <button type="button" class="btn">Add cover and ask Maya to pay</button>
+            <button type="button" class="btn2">Discard</button>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ============ CANCEL ============ -->
+    <sc-if value="{{tCancel}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+        <section aria-label="Cancel policy" style="flex: 1 1 460px; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+          <h2 style="margin: 0; font-size: 20px">Cancel the policy</h2>
+          <div class="field">
+            <label for="ce">Cover ends on</label>
+            <input id="ce" class="input num" type="text" value="Dec 1, 2026">
+            <span class="hint">All cover stops at the start of this day. No cancellation fee.</span>
+          </div>
+          <div class="field">
+            <label for="cr">Reason <span style="font-weight: 400; color: var(--ink2)">(required)</span></label>
+            <textarea id="cr" class="input" rows="3" style="resize: vertical">[Customer's reason for cancelling]</textarea>
+          </div>
+        </section>
+        <section aria-label="Refund preview" style="flex: 1 1 420px; min-width: 0; background: var(--card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <h2 style="margin: 0; font-size: 20px">What Maya gets back</h2>
+          <div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Base cover, unused days</div><div class="hint num">$1,200.00 × 274 ÷ 365</div></div>
+              <span class="num" style="font-weight: 600">−$900.82</span>
+            </div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Extra cover, unused days</div><div class="hint num">$730.00 × 274 ÷ 365</div></div>
+              <span class="num" style="font-weight: 600">−$548.00</span>
+            </div>
+            <div class="prow">
+              <div><div style="font-weight: 600">Unpaid balance kept back</div><div class="hint">Correction still owed</div></div>
+              <span class="num" style="font-weight: 600">+$14.00</span>
+            </div>
+            <div class="prow" style="border-top: 1.5px solid var(--ink); align-items: baseline">
+              <div><div style="font-weight: 700; font-size: 17px">Refund to card ending 4242</div><div class="hint">Sent through Stripe when you confirm</div></div>
+              <span class="num" style="font-weight: 700; font-size: 24px; color: var(--accentInk)">$1,434.82</span>
+            </div>
+          </div>
+          <div style="background: var(--bg); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">Customer will see</span>
+            <p style="margin: 0; font-size: 17px; line-height: 1.45; font-weight: 500">Your cover ends on Dec 1, 2026. We're sending $1,434.82 back to your card ending 4242.</p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px">
+            <button type="button" class="btn">Cancel policy and refund $1,434.82</button>
+            <button type="button" class="btn2">Keep the policy</button>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+  </main>
+
+  <!-- Confirm dialog -->
+  <sc-if value="{{sConfirm}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: rgba(21, 24, 31, .45); display: flex; align-items: flex-start; justify-content: center; padding: 160px 16px 16px">
+      <div role="dialog" aria-modal="true" aria-labelledby="cfh" style="width: 100%; max-width: 480px; background: var(--card); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.25)">
+        <h2 id="cfh" style="margin: 0; font-size: 22px">Save this correction?</h2>
+        <p style="margin: 0; font-size: 16px; line-height: 1.5">Product liability will start on <strong>Oct 8</strong> instead of Oct 15. Maya will owe <strong class="num" style="color: var(--accentInk)">$14.00</strong> more and see your reason on her statement.</p>
+        <div class="num" style="font-size: 15px; color: var(--ink2); background: var(--bg); border-radius: 10px; padding: 12px 14px; line-height: 1.6">Undo −$642.00 · Corrected +$656.00 · Net +$14.00</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <button type="button" class="btn">Yes, save and tell Maya</button>
+          <button type="button" class="btn2">Go back</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"stage":{"editor":"enum","options":["preview: customer owes more","preview: refund due","confirm","saved","refund failed, retry"],"default":"preview: customer owes more"},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.stage ?? 'preview: customer owes more';
+    const tab = (this.state && this.state.tab) || 'correct';
+    const refund = st === 'preview: refund due' || st === 'refund failed, retry';
+    const go = (t) => () => this.setState({ tab: t });
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      tAdd: tab === 'add', tCorrect: tab === 'correct', tCancel: tab === 'cancel',
+      tabAddCls: tab === 'add' ? 'tab on' : 'tab',
+      tabCorrectCls: tab === 'correct' ? 'tab on' : 'tab',
+      tabCancelCls: tab === 'cancel' ? 'tab on' : 'tab',
+      goAdd: go('add'), goCorrect: go('correct'), goCancel: go('cancel'),
+      sConfirm: tab === 'correct' && st === 'confirm',
+      sSaved: st === 'saved',
+      sRefundFailed: st === 'refund failed, retry',
+      showActions: st !== 'saved' && st !== 'refund failed, retry',
+      newDate: refund ? 'Oct 22, 2026' : 'Oct 8, 2026',
+      newShort: refund ? 'Oct 22' : 'Oct 8',
+      newDays: refund ? '314' : '328',
+      rebill: refund ? '+$628.00' : '+$656.00',
+      net: refund ? '−$14.00' : '+$14.00',
+      netWhy: refund ? '7 fewer days × $2.00 · −$642.00 + $628.00' : '7 more days × $2.00 · −$642.00 + $656.00',
+      reason: refund ? 'Customer asked for cover from Oct 22; it was entered from Oct 15 by mistake.' : 'Customer’s signed request was dated Oct 8; cover was entered a week late.',
+      customerSees: refund
+        ? 'We owe you $14.00. It’s on its way to your card ending 4242.'
+        : 'You owe $14.00 because we fixed when your extra cover started.',
+      settle: refund
+        ? 'Nothing is owed, so the $14.00 is refunded to card ending 4242 through Stripe as soon as you save.'
+        : 'Added to Maya’s balance. She’s asked to pay it; no card is charged automatically.',
+      saveLabel: refund ? 'Save and refund $14.00' : 'Save correction'
+    };
+  }
+}
+</script>
+</body>
+</html>

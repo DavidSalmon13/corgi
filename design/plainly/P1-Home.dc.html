@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your cover</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px}
+.btn{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;background:var(--accent);color:#1D2433;font-weight:700;font-size:17px;text-decoration:none;border:none;font-family:inherit}
+.btn2{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;border:1.5px solid var(--line);color:var(--ink);font-weight:600;font-size:16px;text-decoration:none;background:transparent}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+.navrow{display:flex;align-items:center;justify-content:space-between;min-height:56px;padding:0 18px;text-decoration:none;color:var(--ink);border-top:1px solid var(--line);font-weight:600}
+</style>
+</helmet>
+<div class="{{theme}}" style="width: 390px; height: 1080px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px">
+    <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em">Plainly</span>
+    <a href="SignIn.dc.html" aria-label="Account: Maya Okafor" style="width: 44px; height: 44px; border-radius: 50%; background: var(--track); color: var(--ink); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; text-decoration: none">MO</a>
+  </header>
+
+  <main style="padding: 4px 20px 32px; display: flex; flex-direction: column; gap: 18px">
+    <div>
+      <p style="margin: 0; color: var(--ink2); font-size: 15px">Juniper &amp; Rye Bakery LLC</p>
+      <h1 style="margin: 2px 0 0; font-size: 30px; font-weight: 700; letter-spacing: -0.015em">Your cover</h1>
+    </div>
+
+    <!-- Money card: one state at a time -->
+    <sc-if value="{{sDue}}" hint-placeholder-val="{{ true }}">
+      <section aria-label="Amount due" style="background: var(--card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+        <div class="num" style="font-size: 40px; font-weight: 700; letter-spacing: -0.02em; color: var(--accentInk); line-height: 1">$14.00 <span style="font-size: 20px; font-weight: 600">due</span></div>
+        <p style="margin: 0; font-size: 17px; line-height: 1.4">We fixed when your extra cover started. <a href="Main.dc.html" style="font-weight: 600">See why</a></p>
+        <a class="btn" href="P5-Pay.dc.html">Pay $14.00</a>
+      </section>
+    </sc-if>
+    <sc-if value="{{sWaiting}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Payment status" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span class="pill" style="align-self: flex-start; background: var(--waitSoft); color: var(--wait)"><span style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent)"></span>Waiting for your bank</span>
+        <p style="margin: 0; font-size: 19px; line-height: 1.4; font-weight: 500">Your <span class="num">$14.00</span> payment is on its way.</p>
+        <p style="margin: 0; font-size: 15px; color: var(--ink2); line-height: 1.45">We'll show it as paid once your bank confirms. You don't need to do anything. <a href="Main.dc.html" style="font-weight: 600">See statement</a></p>
+      </section>
+    </sc-if>
+    <sc-if value="{{sFailed}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Payment status" style="background: var(--card); border: 1.5px solid var(--bad); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span class="pill" style="align-self: flex-start; background: var(--badSoft); color: var(--bad)"><span style="width: 7px; height: 7px; border-radius: 50%; background: var(--bad)"></span>Didn't go through</span>
+        <p style="margin: 0; font-size: 19px; line-height: 1.4; font-weight: 500">Your <span class="num">$14.00</span> payment didn't go through. No money moved.</p>
+        <p style="margin: 0; font-size: 15px; color: var(--ink2); line-height: 1.45">Your bank declined it. You can try again, or use a different card.</p>
+        <a class="btn" href="P5-Pay.dc.html">Try again</a>
+      </section>
+    </sc-if>
+    <sc-if value="{{sNothing}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Nothing due" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; gap: 16px; align-items: center">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" style="flex: none; color: var(--ink)"><path d="M14 27 L11 7 L25 18 Z" style="fill: var(--accent)"></path><path d="M42 27 L45 7 L31 18 Z" style="fill: var(--accent)"></path><path d="M12 30 C12 18 44 18 44 30 C44 41 37 48 28 48 C19 48 12 41 12 30 Z" style="fill: var(--accent)"></path><path d="M21 39 C21 34 35 34 35 39 C35 44 21 44 21 39 Z" style="fill: var(--card)"></path><circle cx="21" cy="30" r="1.6" fill="currentColor"></circle><circle cx="35" cy="30" r="1.6" fill="currentColor"></circle><path d="M26 37 h4 l-2 2 z" fill="currentColor"></path></svg>
+        <div>
+          <p style="margin: 0; font-size: 19px; font-weight: 600">You're all paid up.</p>
+          <p style="margin: 4px 0 0; font-size: 15px; color: var(--ink2)">Nothing to do right now.</p>
+        </div>
+      </section>
+    </sc-if>
+    <sc-if value="{{sRefund}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Refund" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span class="pill" style="align-self: flex-start; background: var(--waitSoft); color: var(--wait)"><span style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent)"></span>Refund on its way</span>
+        <p style="margin: 0; font-size: 19px; line-height: 1.4; font-weight: 500">We owe you <strong class="num" style="color: var(--accentInk)">$14.00</strong>. It's on its way to your card ending 4242.</p>
+        <p style="margin: 0; font-size: 15px; color: var(--ink2); line-height: 1.45">Your extra cover now starts a week later, so you'd paid for 7 days you weren't covered. <a href="Main.dc.html" style="font-weight: 600">See why</a></p>
+      </section>
+    </sc-if>
+    <sc-if value="{{sCancelled}}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Cover ended" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+        <span class="pill" style="align-self: flex-start; background: var(--track); color: var(--ink2)">Cancelled</span>
+        <p style="margin: 0; font-size: 19px; line-height: 1.4; font-weight: 500">Your cover ended on Dec 1, 2026. We're sending <strong class="num" style="color: var(--accentInk)">$1,434.82</strong> back to your card ending 4242.</p>
+        <a class="btn2" href="P6-Cancellation.dc.html">See how we worked it out</a>
+      </section>
+    </sc-if>
+
+    <!-- What you're protected against -->
+    <section aria-label="What you're covered for" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden">
+      <div style="padding: 20px 20px 16px; display: flex; flex-direction: column; gap: 14px">
+        <p style="margin: 0; font-size: 17px; line-height: 1.45">{{protectLine}}</p>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--ink2)">
+          <span><abbr class="term" title="The dates your policy runs, here Sep 1, 2026 to Sep 1, 2027.">Your cover period</abbr></span>
+          <span class="num" style="color: var(--ink); font-weight: 600">{{periodLine}}</span>
+        </div>
+
+        <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 6px">
+          <div style="position: relative; height: 12px; border-radius: 6px; background: var(--track); overflow: hidden">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{baseW}}; background: var(--ink); opacity: .85"></div>
+          </div>
+          <sc-if value="{{hasExtra}}" hint-placeholder-val="{{ true }}">
+            <div style="position: relative; height: 12px; border-radius: 6px; background: var(--track); overflow: hidden">
+              <div style="position: absolute; left: {{extraLeft}}; top: 0; bottom: 0; width: {{extraW}}; background: var(--accent)"></div>
+            </div>
+          </sc-if>
+          <div style="position: relative; height: 18px; font-size: 12px; color: var(--ink2)">
+            <span style="position: absolute; left: 0">Sep 1</span>
+            <span style="position: absolute; left: 22.47%; transform: translateX(-50%); color: var(--ink); font-weight: 600">Today</span>
+            <span style="position: absolute; right: 0">Sep 1</span>
+          </div>
+        </div>
+
+        <ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 15px">
+          <li style="display: flex; gap: 10px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--ink); opacity: .85; flex: none"></span><span style="flex: 1"><abbr class="term" title="Pays if someone is hurt or their property is damaged because of your business.">Base cover</abbr></span><span class="num" style="color: var(--ink2)">{{baseDates}}</span></li>
+          <sc-if value="{{hasExtra}}" hint-placeholder-val="{{ true }}">
+            <li style="display: flex; gap: 10px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 3px; background: var(--accent); flex: none"></span><span style="flex: 1"><abbr class="term" title="Something added to or changed on your policy partway through.">Extra cover</abbr>: products you sell</span><span class="num" style="color: var(--ink2)">{{extraDates}}</span></li>
+          </sc-if>
+        </ul>
+      </div>
+      <a class="navrow" href="P2-Timeline.dc.html">See your cover timeline
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+      </a>
+    </section>
+
+    <nav aria-label="More" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden">
+      <a class="navrow" href="Main.dc.html" style="border-top: none">Statement
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+      </a>
+      <a class="navrow" href="mailto:sam@example.com">
+        <span style="display: flex; flex-direction: column"><span>Your broker, Sam Reyes</span><span style="font-weight: 400; font-size: 14px; color: var(--ink2)">Questions about your cover</span></span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+      </a>
+    </nav>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["amount due","nothing due","payment waiting","payment failed","refund on its way","cancelled"],"default":"amount due"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state ?? 'amount due';
+    const cancelled = s === 'cancelled';
+    const refund = s === 'refund on its way';
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      sDue: s === 'amount due',
+      sNothing: s === 'nothing due',
+      sWaiting: s === 'payment waiting',
+      sFailed: s === 'payment failed',
+      sRefund: refund,
+      sCancelled: cancelled,
+      hasExtra: true,
+      protectLine: cancelled
+        ? 'You were covered if someone was hurt or their property damaged because of your bakery, or because of something you sold. That cover ended on Dec 1, 2026.'
+        : 'You’re covered if someone is hurt or their property is damaged because of your bakery, or because of something you sell.',
+      periodLine: cancelled ? 'Sep 1 – Dec 1, 2026' : 'Sep 1, 2026 – Sep 1, 2027',
+      baseW: cancelled ? '24.93%' : '100%',
+      extraLeft: refund ? '13.97%' : '10.14%',
+      extraW: cancelled ? '14.79%' : (refund ? '86.03%' : '89.86%'),
+      baseDates: cancelled ? 'Sep 1 – Dec 1' : 'from Sep 1',
+      extraDates: cancelled ? 'Oct ' + (refund ? '22' : '8') + ' – Dec 1' : 'from Oct ' + (refund ? '22' : '8')
+    };
+  }
+}
+</script>
+</body>
+</html>

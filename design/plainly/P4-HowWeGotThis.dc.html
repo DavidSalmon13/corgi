@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How we got this</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;family=Source+Code+Pro:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.sec{padding:18px 20px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:8px}
+.sech{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:0}
+.ref{font-family:'Source Code Pro',ui-monospace,monospace;font-size:13px;background:var(--track);border-radius:6px;padding:2px 7px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="position: relative; width: 390px; height: 1000px; box-sizing: border-box; overflow: hidden">
+  <!-- Statement behind, dimmed -->
+  <div aria-hidden="true" style="padding: 24px 20px; display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 30px; font-weight: 700">Statement</div>
+    <div style="height: 92px; border-radius: 16px; background: var(--card); border: 1px solid var(--line)"></div>
+    <div style="height: 160px; border-radius: 16px; background: var(--card); border: 1px solid var(--line)"></div>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(21, 24, 31, .45)"></div>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="hw" style="position: absolute; left: 0; right: 0; bottom: 0; top: 112px; background: var(--card); border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden">
+    <div aria-hidden="true" style="width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 10px auto 0"></div>
+    <div style="display: flex; align-items: flex-start; gap: 12px; padding: 14px 12px 16px 20px">
+      <div style="flex: 1; min-width: 0">
+        <h2 id="hw" style="margin: 0; font-size: 22px; font-weight: 700">How we got this</h2>
+        <p style="margin: 4px 0 0; font-size: 15px; color: var(--ink2)">{{line}}</p>
+      </div>
+      <button type="button" aria-label="Close" style="width: 44px; height: 44px; border: none; border-radius: 50%; background: var(--track); color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </button>
+    </div>
+
+    <div style="margin: 0 20px 18px; background: var(--accentSoft); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px">
+      <span class="num" style="font-size: 34px; font-weight: 700; letter-spacing: -0.02em; color: var(--accentInk); line-height: 1">{{amount}}</span>
+      <span style="font-size: 15px; line-height: 1.4">{{plain}}</span>
+    </div>
+
+    <div class="sec">
+      <h3 class="sech">The maths</h3>
+      <div class="num" style="font-size: 17px; font-weight: 600; line-height: 1.4">{{formula}}</div>
+      <div style="font-size: 14px; color: var(--ink2); line-height: 1.45">{{formulaNote}}</div>
+    </div>
+
+    <div class="sec">
+      <h3 class="sech">What caused it</h3>
+      <div style="font-size: 16px; font-weight: 600">{{actionWhat}}</div>
+      <div style="font-size: 14px; color: var(--ink2)">{{actionWho}}</div>
+      <sc-if value="{{hasReason}}" hint-placeholder-val="{{ true }}">
+        <blockquote style="margin: 2px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 10px; font-size: 15px; line-height: 1.45">“Customer's signed request was dated Oct 8; cover was entered a week late.”</blockquote>
+      </sc-if>
+    </div>
+
+    <div class="sec">
+      <h3 class="sech">The payment</h3>
+      <sc-if value="{{hasPayment}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+          <span style="font-size: 16px; font-weight: 600">{{payWhat}}</span>
+          <span class="pill" style="background: {{statusBg}}; color: {{statusFg}}">{{status}}</span>
+        </div>
+      </sc-if>
+      <div style="font-size: 14px; color: var(--ink2); line-height: 1.45">{{payNote}}</div>
+    </div>
+
+    <div class="sec">
+      <h3 class="sech">References</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; font-size: 14px; color: var(--ink2)">
+        <sc-for list="{{refs}}" as="r" hint-placeholder-count="3">
+          <span style="display: inline-flex; gap: 6px; align-items: center"><span>{{r.label}}</span><span class="ref">{{r.id}}</span></span>
+        </sc-for>
+      </div>
+      <span style="font-size: 13px; color: var(--ink2)">Quote these if you ever need to ask us or your bank about this line.</span>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["charge","reversal","payment","refund"],"default":"charge"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const k = this.props.kind ?? 'charge';
+    const good = ['var(--goodSoft)', 'var(--good)'];
+    const wait = ['var(--waitSoft)', 'var(--wait)'];
+    const data = {
+      charge: {
+        line: 'Extra cover from Oct 8 (corrected) · Nov 5, 2026',
+        amount: '+$656.00',
+        plain: 'The right price for your extra cover, now that it starts on Oct 8.',
+        formula: '$730.00 a year × 328 days ÷ 365 = $656.00',
+        formulaNote: 'Charged by the day, Oct 8, 2026 to Sep 1, 2027. The end date isn’t counted. Rounded to the cent once.',
+        actionWhat: 'Start date corrected: Oct 15 → Oct 8',
+        actionWho: 'Sam Reyes, your broker · Nov 5, 2026',
+        hasReason: true, hasPayment: true,
+        payWhat: 'Card ending 4242 · Nov 22, 2026',
+        status: 'Waiting for your bank', st: wait,
+        payNote: 'Pays the $14.00 left after the undo (−$642.00 + $656.00). We’ll show it as paid once your bank confirms.',
+        refs: [{ label: 'Change', id: 'PTX-0003' }, { label: 'Line', id: 'LE-0007' }, { label: 'Stripe payment', id: 'pi_3Q…' }, { label: 'Stripe event', id: 'evt_1Q…' }]
+      },
+      reversal: {
+        line: 'Extra cover from Oct 15 reversed · Nov 5, 2026',
+        amount: '−$642.00',
+        plain: 'An undo of the Oct 15 line, in full. We don’t edit lines, so the original stays on your statement.',
+        formula: 'Undoes $730.00 × 321 ÷ 365 = $642.00',
+        formulaNote: 'The same numbers as the original line, with the sign flipped.',
+        actionWhat: 'Start date corrected: Oct 15 → Oct 8',
+        actionWho: 'Sam Reyes, your broker · Nov 5, 2026',
+        hasReason: true, hasPayment: false,
+        payWhat: '', status: '', st: wait,
+        payNote: 'No money moved for this line on its own. It’s settled together with the corrected line: −$642.00 + $656.00 = +$14.00.',
+        refs: [{ label: 'Change', id: 'PTX-0003' }, { label: 'Line', id: 'LE-0006' }, { label: 'Undoes', id: 'LE-0003' }]
+      },
+      payment: {
+        line: 'Payment, card ending 4242 · Oct 15, 2026',
+        amount: '−$642.00',
+        plain: 'You paid for your extra cover in full.',
+        formula: 'Balance $642.00 − paid $642.00 = $0.00',
+        formulaNote: 'An earlier try with card ending 0002 didn’t go through. No money moved that time.',
+        actionWhat: 'You paid by card',
+        actionWho: 'Maya Okafor · Oct 15, 2026',
+        hasReason: false, hasPayment: true,
+        payWhat: 'Card ending 4242 · Oct 15, 2026',
+        status: 'Paid', st: good,
+        payNote: 'Stripe confirmed the payment, so we marked it paid.',
+        refs: [{ label: 'Line', id: 'LE-0005' }, { label: 'Stripe payment', id: 'pi_3Q…' }, { label: 'Stripe event', id: 'evt_1Q…' }]
+      },
+      refund: {
+        line: 'Money back to card ending 4242 · Nov 5, 2026',
+        amount: '+$14.00',
+        plain: 'Your extra cover now starts a week later, so you’d paid for 7 days you weren’t covered.',
+        formula: 'Corrected $628.00 − already paid $642.00 = $14.00 back',
+        formulaNote: '7 fewer days × $2.00 a day. You owed nothing else, so all of it goes back to your card.',
+        actionWhat: 'Start date corrected: Oct 15 → Oct 22',
+        actionWho: 'Sam Reyes, your broker · Nov 5, 2026',
+        hasReason: false, hasPayment: true,
+        payWhat: 'Card ending 4242 · Nov 5, 2026',
+        status: 'Refund sent', st: good,
+        payNote: 'Stripe has sent it. Banks take 5–10 days to show a refund.',
+        refs: [{ label: 'Change', id: 'PTX-0003' }, { label: 'Stripe refund', id: 're_3Q…' }, { label: 'Stripe event', id: 'evt_1Q…' }]
+      }
+    }[k] || {};
+    return Object.assign({}, data, {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      statusBg: data.st ? data.st[0] : '',
+      statusFg: data.st ? data.st[1] : ''
+    });
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New customer and policy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.field{display:flex;flex-direction:column;gap:6px;flex:1 1 240px;min-width:0}
+.field label{font-size:14px;font-weight:600}
+.input{min-height:44px;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;width:100%}
+.err{font-size:14px;color:var(--bad);font-weight:600}
+.hint{font-size:13px;color:var(--ink2)}
+.prow{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px dashed var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:10px;background:var(--accent);color:#1D2433;font-weight:700;font-size:16px;border:none;font-family:inherit;cursor:pointer}
+.btn2{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:10px;border:1.5px solid var(--line);color:var(--ink);font-weight:600;font-size:16px;text-decoration:none}
+.check{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;padding:10px 4px}
+abbr.term{text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="min-height: 1000px; box-sizing: border-box">
+  <header class="nav" style="border-bottom: 1px solid var(--line); background: var(--card)">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-right: 8px">Plainly</span>
+      <a href="B1-Policies.dc.html">Policies</a>
+      <a href="B2-NewPolicy.dc.html" aria-current="page" style="text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 8px">New customer</a>
+      <span style="flex: 1"></span>
+      <span style="font-size: 15px; color: var(--ink2)">Sam Reyes · Broker</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 24px">
+    <div>
+      <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.015em">New customer and policy</h1>
+      <p style="margin: 4px 0 0; font-size: 16px; color: var(--ink2)">The price updates as you type. Nothing is charged until the customer pays.</p>
+    </div>
+
+    <sc-if value="{{errors}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="background: var(--badSoft); color: var(--bad); border-radius: 12px; padding: 14px 16px; font-weight: 600">3 things to fix before you can save.</div>
+    </sc-if>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <form style="flex: 1 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+        <fieldset style="margin: 0; border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--card); display: flex; flex-direction: column; gap: 16px">
+          <legend style="font-size: 18px; font-weight: 700; padding: 0 6px">The business</legend>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px">
+            <div class="field">
+              <label for="bn">Legal business name</label>
+              <input id="bn" class="input" value="{{bizName}}" style="border-color: {{errBorder}}">
+              <sc-if value="{{errors}}" hint-placeholder-val="{{ false }}"><span class="err">Enter the business's legal name.</span></sc-if>
+            </div>
+            <div class="field">
+              <label for="bt">What the business does</label>
+              <input id="bt" class="input" value="Bakery and café">
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px">
+            <div class="field">
+              <label for="on">Owner's name</label>
+              <input id="on" class="input" value="Maya Okafor">
+            </div>
+            <div class="field">
+              <label for="em">Email for receipts</label>
+              <input id="em" class="input" value="{{email}}" style="border-color: {{errBorder}}">
+              <sc-if value="{{errors}}" hint-placeholder-val="{{ false }}"><span class="err">Enter an email like name@business.com.</span></sc-if>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset style="margin: 0; border: 1px solid var(--line); border-radius: 16px; padding: 24px; background: var(--card); display: flex; flex-direction: column; gap: 16px">
+          <legend style="font-size: 18px; font-weight: 700; padding: 0 6px">The cover</legend>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px">
+            <div class="field">
+              <label for="sd"><abbr class="term" title="Effective date: the first day this cover protects the customer.">Starts on</abbr></label>
+              <input id="sd" class="input num" value="{{start}}" style="border-color: {{errBorder}}">
+              <sc-if value="{{errors}}" hint-placeholder-val="{{ false }}"><span class="err">Pick the day cover should start.</span></sc-if>
+            </div>
+            <div class="field">
+              <span style="font-size: 14px; font-weight: 600"><abbr class="term" title="Policy term: the dates the policy runs.">Cover period</abbr></span>
+              <div class="input num" style="display: flex; align-items: center; background: var(--track); border-color: transparent">{{period}}</div>
+              <span class="hint">One year. The end date isn't counted.</span>
+            </div>
+          </div>
+          <label class="check" style="border-color: var(--accent)">
+            <input type="checkbox" checked disabled style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #E9A23B">
+            <span style="flex: 1"><span style="font-weight: 700"><abbr class="term" title="General Liability: pays if someone is hurt or their property is damaged because of the business.">Base cover</abbr></span><br><span class="hint" style="font-size: 14px">Pays if someone is hurt or their property is damaged because of the business. Always included.</span></span>
+            <span class="num" style="font-weight: 600">$1,200.00 a year</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: #E9A23B">
+            <span style="flex: 1"><span style="font-weight: 700">Extra cover: product liability</span><br><span class="hint" style="font-size: 14px">Pays if something the business sells hurts someone. Can also be added later.</span></span>
+            <span class="num" style="font-weight: 600">$730.00 a year</span>
+          </label>
+        </fieldset>
+      </form>
+
+      <aside aria-label="Price preview" style="flex: 1 1 360px; min-width: 0; background: var(--card); border: 1.5px solid var(--accent); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+        <h2 style="margin: 0; font-size: 20px"><abbr class="term" title="Premium: what the customer pays for a year of protection.">Price of the cover</abbr></h2>
+        <sc-if value="{{valid}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <div class="num" style="font-size: 36px; font-weight: 700; letter-spacing: -0.02em; color: var(--accentInk); line-height: 1.1">$1,200.00 <span style="font-size: 18px; font-weight: 600; color: var(--ink)">for 365 days</span></div>
+            <div>
+              <div class="prow">
+                <div><div style="font-weight: 600">Base cover, full year</div><div class="hint num">$1,200.00 × 365 ÷ 365</div></div>
+                <span class="num" style="font-weight: 600">+$1,200.00</span>
+              </div>
+              <div class="prow" style="border-top: 1.5px solid var(--ink)">
+                <span style="font-weight: 700">Customer pays</span>
+                <span class="num" style="font-weight: 700">$1,200.00</span>
+              </div>
+            </div>
+            <div style="background: var(--bg); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink2)">Customer will see</span>
+              <p style="margin: 0; font-size: 16px; line-height: 1.45; font-weight: 500">You're covered from Sep 1, 2026 to Sep 1, 2027. The price is $1,200.00 for the year.</p>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{errors}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink2)">Add a start date and we'll show the price here, before anything is saved.</p>
+        </sc-if>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px">
+          <button type="button" class="btn">Create policy and invite Maya</button>
+          <a class="btn2" href="B1-Policies.dc.html">Cancel</a>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["valid","field errors"],"default":"valid"},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const errors = (this.props.state ?? 'valid') === 'field errors';
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      errors, valid: !errors,
+      errBorder: errors ? 'var(--bad)' : 'var(--line)',
+      bizName: errors ? '' : 'Juniper & Rye Bakery LLC',
+      email: errors ? 'maya@juniperandrye' : 'maya@example.com',
+      start: errors ? '' : 'Sep 1, 2026',
+      period: errors ? 'Starts on the date above' : 'Sep 1, 2026 → Sep 1, 2027'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Policies</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--good:#1E7046;--goodSoft:#E1F0E6;--wait:#8A5300;--waitSoft:#FBEBD0;--bad:#B0281F;--badSoft:#FBE3E0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--good:#74CF9C;--goodSoft:#17301F;--wait:#F2B861;--waitSoft:#3A2C16;--bad:#F4928A;--badSoft:#3B1D1B;--track:#2A2F3A}
+.num{font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:10px;background:var(--accent);color:#1D2433;font-weight:700;font-size:15px;text-decoration:none}
+.chip{min-height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+table{border-collapse:collapse;width:100%;min-width:860px}
+th{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:12px 16px;border-bottom:1.5px solid var(--ink)}
+td{padding:14px 16px;border-bottom:1px solid var(--line);font-size:15px}
+.r{text-align:right}
+.nav a{color:var(--ink);text-decoration:none;font-weight:600;padding:10px 4px}
+a{color:var(--accentInk)}a:hover{color:var(--ink)}
+</style>
+</helmet>
+<div class="{{theme}}" style="min-height: 860px; box-sizing: border-box">
+  <header class="nav" style="border-bottom: 1px solid var(--line); background: var(--card)">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 8px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 24px">
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.01em; margin-right: 8px">Plainly</span>
+      <a href="B1-Policies.dc.html" aria-current="page" style="text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 3px; text-underline-offset: 8px">Policies</a>
+      <a href="B2-NewPolicy.dc.html">New customer</a>
+      <span style="flex: 1"></span>
+      <span style="font-size: 15px; color: var(--ink2)">Sam Reyes · Broker</span>
+    </div>
+  </header>
+
+  <main style="max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between">
+      <div>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.015em">Policies</h1>
+        <p style="margin: 4px 0 0; font-size: 16px; color: var(--ink2)">{{summary}}</p>
+      </div>
+      <a class="btn" href="B2-NewPolicy.dc.html">New customer and policy</a>
+    </div>
+
+    <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+      <section style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 64px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px">
+        <svg width="80" height="80" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true" style="color: var(--ink)"><path d="M14 27 L11 7 L25 18 Z" style="fill: var(--accent)"></path><path d="M42 27 L45 7 L31 18 Z" style="fill: var(--accent)"></path><path d="M12 30 C12 18 44 18 44 30 C44 41 37 48 28 48 C19 48 12 41 12 30 Z" style="fill: var(--accent)"></path><path d="M21 39 C21 34 35 34 35 39 C35 44 21 44 21 39 Z" style="fill: var(--card)"></path><circle cx="21" cy="30" r="1.6" fill="currentColor"></circle><circle cx="35" cy="30" r="1.6" fill="currentColor"></circle><path d="M26 37 h4 l-2 2 z" fill="currentColor"></path></svg>
+        <h2 style="margin: 0; font-size: 22px">No policies yet</h2>
+        <p style="margin: 0; font-size: 16px; color: var(--ink2); max-width: 420px; line-height: 1.5">Add a customer and their first policy. You'll see the price before anything is saved.</p>
+        <a class="btn" href="B2-NewPolicy.dc.html" style="margin-top: 8px">Add your first customer</a>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{populated}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 16px">
+        <div role="group" aria-label="Filter" style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button type="button" class="{{cAll}}" onClick="{{fAll}}" aria-pressed="{{pAll}}">All · 5</button>
+          <button type="button" class="{{cOwes}}" onClick="{{fOwes}}" aria-pressed="{{pOwes}}">Owes money · 2</button>
+          <button type="button" class="{{cFailed}}" onClick="{{fFailed}}" aria-pressed="{{pFailed}}">Payment failed · 1</button>
+        </div>
+        <section aria-label="Policy list" style="background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow-x: auto">
+          <table>
+            <thead><tr><th>Customer</th><th>Policy no.</th><th>Status</th><th class="r">Balance</th><th>Last action</th></tr></thead>
+            <tbody>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+                <tr>
+                  <td><a href="B3-Workspace.dc.html" style="font-weight: 700; color: var(--ink); text-decoration: none">{{r.name}}</a><br><span style="font-size: 13px; color: var(--ink2)">{{r.owner}}</span></td>
+                  <td class="num">{{r.no}}</td>
+                  <td><span class="pill" style="background: {{r.stBg}}; color: {{r.stFg}}">{{r.status}}</span></td>
+                  <td class="num r" style="font-weight: 700; color: {{r.balColor}}">{{r.bal}}</td>
+                  <td style="color: var(--ink2)">{{r.last}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </section>
+        <p style="margin: 0; font-size: 13px; color: var(--ink2)">Demo data. Only Juniper &amp; Rye Bakery is part of the walkthrough.</p>
+      </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["populated","empty"],"default":"populated"},"dark":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const empty = (this.props.state ?? 'populated') === 'empty';
+    const f = (this.state && this.state.f) || 'all';
+    const st = {
+      active: ['Active', 'var(--goodSoft)', 'var(--good)'],
+      waiting: ['Waiting for bank', 'var(--waitSoft)', 'var(--wait)'],
+      failed: ['Payment failed', 'var(--badSoft)', 'var(--bad)'],
+      cancelled: ['Cancelled', 'var(--track)', 'var(--ink2)']
+    };
+    const mk = (name, owner, no, s, bal, last, owes) => ({ name, owner, no, status: st[s][0], stBg: st[s][1], stFg: st[s][2], bal, last, owes, failed: s === 'failed', balColor: owes ? 'var(--accentInk)' : 'var(--ink)' });
+    const all = [
+      mk('Juniper & Rye Bakery LLC', 'Maya Okafor', 'GL-2026-0042', 'waiting', '$14.00 due', 'Corrected start date · Nov 5', true),
+      mk('Northgate Bike Repair', '[Owner name]', 'GL-2026-0044', 'failed', '$96.00 due', 'Payment failed · Nov 20', true),
+      mk('Fernwood Florist LLC', '[Owner name]', 'GL-2026-0039', 'active', '$0.00', 'Payment received · Nov 18', false),
+      mk('Halcyon Yoga Studio', '[Owner name]', 'GL-2026-0031', 'active', '$0.00', 'Added extra cover · Oct 30', false),
+      mk('Ortiz Family Tacos', '[Owner name]', 'GL-2026-0027', 'cancelled', '$0.00', 'Cancelled, refund sent · Oct 1', false)
+    ];
+    const rows = all.filter((r) => f === 'all' || (f === 'owes' && r.owes) || (f === 'failed' && r.failed));
+    const cls = (k) => (f === k ? 'chip on' : 'chip');
+    return {
+      theme: (this.props.dark ?? false) ? 'pl dark' : 'pl',
+      empty, populated: !empty, rows,
+      summary: empty ? 'Your customers’ policies will show up here.' : '5 policies · 2 owe money · 1 payment didn’t go through',
+      cAll: cls('all'), cOwes: cls('owes'), cFailed: cls('failed'),
+      pAll: f === 'all', pOwes: f === 'owes', pFailed: f === 'failed',
+      fAll: () => this.setState({ f: 'all' }),
+      fOwes: () => this.setState({ f: 'owes' }),
+      fFailed: () => this.setState({ f: 'failed' })
+    };
+  }
+}
+</script>
+</body>
+</html>

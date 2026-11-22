@@ -6,8 +6,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import app.plainly.IntegrationTest;
 import app.plainly.AuthTestSupport;
+import app.plainly.IntegrationTest;
+import app.plainly.TestData;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class BrokerIssueEndpointsTest {
     void issuingReturnsThePolicyNumberAndWhereToFindIt() throws Exception {
         mvc.perform(json("/api/broker/policies", """
                 {"legalName":"Endpoint Bakery LLC","businessDescription":"a bakery","ownerName":"Lee Owner",
-                 "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""".formatted(app.plainly.TestData.uniqueEmail("lee"))))
+                 "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""".formatted(TestData.uniqueEmail("lee"))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("/api/broker/policies/\\d+")))
                 .andExpect(jsonPath("$.policyNumber", matchesPattern("GL-2026-\\d{4}")))
@@ -83,7 +84,7 @@ class BrokerIssueEndpointsTest {
     // covers real-sign-in AC6, T2
     @Test
     void anOwnerEmailAnotherCustomerUsesGetsAFieldError() throws Exception {
-        String email = app.plainly.TestData.uniqueEmail("dup");
+        String email = TestData.uniqueEmail("dup");
         String body = """
                 {"legalName":"Dup Bakery LLC","businessDescription":"a bakery","ownerName":"Dee Owner",
                  "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""";

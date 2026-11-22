@@ -3,6 +3,7 @@ package app.plainly;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import app.plainly.auth.DemoSeeder;
 import jakarta.servlet.http.Cookie;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,8 +14,8 @@ public final class AuthTestSupport {
 
     public static final String SESSION_COOKIE = "plainly_session";
     /** The seeded broker (V5 migration) and the demo password every demo account uses. */
-    public static final String BROKER_EMAIL = "sam@plainly.test";
-    public static final String DEMO_PASSWORD = "plainly-demo-2026";
+    public static final String BROKER_EMAIL = DemoSeeder.BROKER_EMAIL;
+    public static final String DEMO_PASSWORD = DemoSeeder.DEMO_PASSWORD;
 
     private AuthTestSupport() {}
 

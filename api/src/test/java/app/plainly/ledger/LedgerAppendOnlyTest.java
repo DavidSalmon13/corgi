@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import app.plainly.IntegrationTest;
+import app.plainly.TestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,7 @@ class LedgerAppendOnlyTest {
         long customerId = jdbc.sql("""
                 insert into customers (legal_name, business_description, owner_name, owner_email)
                 values ('Trigger Test LLC', 'a test shop', 'Test Owner', ?) returning id""")
-                .param(app.plainly.TestData.uniqueEmail("owner")).query(Long.class).single();
+                .param(TestData.uniqueEmail("owner")).query(Long.class).single();
         long policyId = jdbc.sql("""
                 insert into policies (policy_number, customer_id, start_date, end_date)
                 values ('TEST-' || nextval('policy_number_seq'), ?, date '2026-09-01', date '2027-09-01') returning id""")

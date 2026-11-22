@@ -18,7 +18,7 @@
 - [x] T7 `AuthFilter` + `AuthController` (`/api/auth/signin|signup|session`), `SignedInUser`; delete Demo* classes and `/api/demo/*`; update MyCoverController and BrokerIssueController
 - [x] T8 `IssuePolicyService`: duplicate owner-email field error; set the owner user's email; expose `ownerSignedUpAt` through PolicyQueries/PolicyViews
 - [x] T9 `DemoSeeder` (Maya's policy via IssuePolicyService, demo password; `plainly.demo.seed`, off in `@IntegrationTest`); `plainly.session.secure-cookie` config
-- [ ] T10 Move MyCoverTest, BrokerIssueEndpointsTest, BrokerPolicyReadTest, IssueAtomicityTest onto the helpers; whole API suite green
+- [x] T10 Move MyCoverTest, BrokerIssueEndpointsTest, BrokerPolicyReadTest, IssueAtomicityTest onto the helpers; whole API suite green
 
 ## Web
 

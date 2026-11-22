@@ -10,13 +10,15 @@ All people, businesses and money in this app are fictional. Payments use Stripe 
 
 ## Run locally
 
-Requirements: Java 21, Docker. (Node 20+ for the web app, once it lands.)
+Requirements: Java 21, Docker, Node 20.19+.
 
 ```bash
 cp .env.example .env            # optional: the defaults work as-is
 docker compose up -d            # Postgres 16 on localhost:5432
 cd api && ./gradlew bootRun     # API on http://localhost:8080; Flyway migrates on start
 curl localhost:8080/api/health  # {"status":"UP","database":"UP"}
+
+cd web && npm install && npm run dev   # app on http://localhost:5173, /api proxied to :8080
 ```
 
 Tests run against a throwaway Postgres started by Testcontainers, so Docker must be running:

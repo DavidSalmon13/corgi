@@ -1,0 +1,99 @@
+/*
+ * Plainly design tokens, ported from design/plainly/*.dc.html (the `.pl` / `.pl.dark` blocks).
+ * Raw values live in --pl-* custom properties that flip with the theme; Tailwind utilities
+ * (bg-card, text-ink, border-line, …) read them through `@theme inline`.
+ *
+ * Theme choice: the `dark` or `light` class on <html> (set before paint in index.html),
+ * falling back to the OS preference when the viewer hasn't chosen.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --pl-bg: #f8f4ec;
+  --pl-card: #fffdf8;
+  --pl-ink: #1d2433;
+  --pl-ink-2: #555c69;
+  --pl-line: #e4dccd;
+  --pl-accent: #e9a23b;
+  --pl-accent-ink: #8a5300;
+  --pl-accent-soft: #fbebd0;
+  --pl-good: #1e7046;
+  --pl-good-soft: #e1f0e6;
+  --pl-wait: #8a5300;
+  --pl-wait-soft: #fbebd0;
+  --pl-bad: #b0281f;
+  --pl-bad-soft: #fbe3e0;
+  --pl-track: #efe8da;
+  --pl-base: #2e3a52; /* base-cover bar on timelines */
+  color-scheme: light;
+}
+
+
+:root.dark {
+  --pl-bg: #15181f;
+  --pl-card: #1e222b;
+  --pl-ink: #efeae0;
+  --pl-ink-2: #a9afba;
+  --pl-line: #323845;
+  --pl-accent-ink: #f2b861;
+  --pl-accent-soft: #3a2c16;
+  --pl-good: #74cf9c;
+  --pl-good-soft: #17301f;
+  --pl-wait: #f2b861;
+  --pl-wait-soft: #3a2c16;
+  --pl-bad: #f4928a;
+  --pl-bad-soft: #3b1d1b;
+  --pl-track: #2a2f3a;
+  --pl-base: #8fa3c7;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--pl-bg);
+  --color-card: var(--pl-card);
+  --color-ink: var(--pl-ink);
+  --color-ink-2: var(--pl-ink-2);
+  --color-line: var(--pl-line);
+  --color-accent: var(--pl-accent);
+  --color-on-accent: #1d2433; /* text on amber buttons, both themes */
+  --color-accent-ink: var(--pl-accent-ink);
+  --color-accent-soft: var(--pl-accent-soft);
+  --color-good: var(--pl-good);
+  --color-good-soft: var(--pl-good-soft);
+  --color-wait: var(--pl-wait);
+  --color-wait-soft: var(--pl-wait-soft);
+  --color-bad: var(--pl-bad);
+  --color-bad-soft: var(--pl-bad-soft);
+  --color-track: var(--pl-track);
+  --color-base: var(--pl-base);
+
+  --font-sans: 'Source Sans 3', system-ui, sans-serif;
+  --font-mono: 'Source Code Pro', ui-monospace, monospace;
+
+  --radius-control: 10px; /* inputs, buttons */
+  --radius-card: 12px; /* cards, checkable rows */
+}
+
+@layer base {
+  html {
+    background: var(--pl-bg);
+  }
+  body {
+    margin: 0;
+    background: var(--pl-bg);
+    color: var(--pl-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--pl-accent-ink);
+  }
+  a:hover {
+    color: var(--pl-ink);
+  }
+  :focus-visible {
+    outline: 3px solid var(--pl-accent);
+    outline-offset: 2px;
+  }
+}

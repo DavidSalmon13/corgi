@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-issue-policy
 > Branch: feat/policy-lifecycle/issue-policy
+> PR: https://github.com/DavidSalmon13/corgi/pull/22 (last of the stacked screen PRs #14–#22; backend in #3–#13)
 
 ## Scaffolding
 

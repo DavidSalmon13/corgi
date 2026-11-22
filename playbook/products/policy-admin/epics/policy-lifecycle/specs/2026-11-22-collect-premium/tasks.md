@@ -19,7 +19,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
   - status transitions and ledger lines (AC5, AC6, AC10);
   - start-payment rules: amount due, 409 while processing, OPEN reuse and ownership (AC2, AC7, AC12);
   - the saved card (AC3).
-- [ ] T4 Write failing web unit tests for `paymentCopy.ts` and the `ledgerRows` payment states (AC4鈥揂C6, AC11).
+- [x] T4 Write failing web unit tests for `paymentCopy.ts` and the `ledgerRows` payment states (AC4鈥揂C6, AC11).
 
 ## Backend
 

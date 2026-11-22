@@ -33,4 +33,11 @@ describe('policy copy', () => {
     expect(balanceNote(0)).toBe('Nothing owed');
     expect(balanceNote(-500)).toBe('We owe the customer this');
   });
+
+  // covers AC11, T4 — B3 and B1 say when a payment is with the bank
+  it('says a payment is waiting for the bank instead of "not paid yet"', () => {
+    expect(policyStatus('ACTIVE', 120_000, true)).toEqual({ label: 'Active · waiting for the bank', tone: 'wait' });
+    expect(balanceNote(120_000, true)).toBe('Waiting for the bank');
+    expect(balanceNote(120_000, false)).toBe('Not paid yet');
+  });
 });

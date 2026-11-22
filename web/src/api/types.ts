@@ -42,6 +42,10 @@ export type LedgerLine = {
   reversesDisplayId: string | null;
   reversedByDisplayId: string | null;
   balanceAfterCents: number;
+  /** The Stripe PaymentIntent behind a PAYMENT line (pi_…); null for other lines. */
+  stripePaymentIntentId?: string | null;
+  /** The Stripe event that settled a PAYMENT line (evt_…); null for other lines. */
+  stripeEventId?: string | null;
 };
 
 /** policy.PolicyViews.Coverage */
@@ -94,6 +98,42 @@ export type MyCover = {
   dueReason: DueReason;
   broker: { name: string };
   today: IsoDate;
+  /** The latest payment the owner submitted; null before their first one. */
+  payment: PaymentSummary | null;
+  /** False when Stripe isn't set up: the pay button explains instead of opening the card form. */
+  paymentsEnabled: boolean;
+};
+
+/** Where a payment stands. Only a Stripe webhook moves it past OPEN. */
+export type PaymentStatus = 'OPEN' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
+
+/** billing: a payment as P1 and P5 show it. */
+export type PaymentSummary = {
+  status: PaymentStatus;
+  amountCents: number;
+  cardLast4: string | null;
+  /** When it was submitted (ISO instant). */
+  createdAt: string;
+};
+
+/** POST /api/me/payments: what the pay page needs to take a card. */
+export type StartedPayment = {
+  paymentId: number;
+  amountCents: number;
+  clientSecret: string;
+  publishableKey: string;
+  savedCard: { brand: string; last4: string } | null;
+};
+
+/** GET /api/me/payments/{id}: polled by the pay page until Stripe settles it. */
+export type PaymentView = {
+  paymentId: number;
+  status: PaymentStatus;
+  amountCents: number;
+  cardLast4: string | null;
+  createdAt: string;
+  /** What's still owed after this payment, from the ledger. */
+  amountDueCents: number;
 };
 
 /** policy.PolicyViews.ListRow */
@@ -105,6 +145,8 @@ export type PolicyListRow = {
   status: PolicyStatus;
   balanceCents: number;
   owesMoney: boolean;
+  /** A payment is with the bank and not settled yet. */
+  paymentWaiting: boolean;
   lastAction: { type: string; recordedOn: IsoDate } | null;
 };
 
@@ -125,6 +167,8 @@ export type PolicyDetail = {
     ownerSignedUpAt: string | null;
   };
   balanceCents: number;
+  /** A payment is with the bank and not settled yet. */
+  paymentWaiting: boolean;
   coverages: Coverage[];
   ledger: LedgerLine[];
   transactions: { displayId: string; type: string; effectiveDate: IsoDate; recordedOn: IsoDate }[];

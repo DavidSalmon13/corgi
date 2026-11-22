@@ -31,6 +31,8 @@ The brief doesn't say which timezone a policy date belongs to, but it decides th
 
 Real accounts aren't part of the workflow being graded, so sign-in is a role switcher with seeded, fictional Broker and Policyholder users. This is not real security, and the README lists it under "simulated". Real authentication is in Phase 2.
 
+_Superseded the same day by "Real sign-in: brokers are given accounts, owners sign up" below._
+
 ## 2026-11-22: Only Stripe webhooks change payment status
 
 The app never marks a payment as succeeded or failed because the browser said so. The status starts as pending and changes only when a signed Stripe webhook arrives, and each event id is processed once. As a result, the pending, successful and failed states the brief asks for always match Stripe, and each one traces to a Stripe event.
@@ -70,3 +72,20 @@ The web package had no test runner, and money formatting and timeline geometry a
 ## 2026-11-22: P1 broker contact and "how we got this" for now
 
 The design links "Your broker, Sam Reyes" to an email address, but the API stores no broker email and this spec doesn't add one. So P1 shows the broker's name as plain text, not a link, rather than a made-up address. The amount due on P1 doesn't open a breakdown yet: the "How we got this" drawer (P4) and the statement (P3) belong to later specs. Until they ship, the broker's B3 ledger shows the calculation behind every amount.
+
+## 2026-11-22: Real sign-in: brokers are given accounts, owners sign up
+
+Sign-in now uses an email and a password, the way a broker-led insurance portal works. Brokers never sign up; their accounts are created for them (Sam Reyes is seeded). An owner can't buy a policy here: their broker issues it and enters the owner's email, and the owner then creates their account with that email and a password of their own. Passwords are stored only as BCrypt hashes. The session cookie holds a random token, and the database keeps only its SHA-256 hash, so a cookie can't be edited to become someone else and a copy of the table can't be used to sign in. Sessions last 7 days and end on the server at sign-out. I used Spring Security's crypto module only, not the whole framework, because one filter already enforces the two roles and the full framework would add configuration without changing what's protected. Self-serve buying, SSO and password reset are Phase 2.
+
+## 2026-11-22: Sign-up has no email confirmation
+
+The brief needs no email, and the trial has no mail integration yet, so sign-up doesn't send a confirmation link. The risk is that someone who knows an owner's email, before the owner signs up, could create that account and see the owner's cover. I accept that for a demo with fictional data. In production the account would be created only after the owner clicks a link sent to that address. Sign-up also says whether a policy exists for an email; a confirmation link would remove that hint too.
+
+## 2026-11-22: One email belongs to one customer
+
+Sign-up finds the policy by the email the broker entered, so two customers can't share an owner email: the broker's form now refuses a second one ("Another customer already uses this email."). This matches the existing rule of one policy per customer. The V5 migration makes any earlier duplicates in demo data unique by adding "+<customer id>" before the @, so it runs on any existing database.
+
+## 2026-11-22: CSRF and brute force, for the trial
+
+The session cookie is SameSite=Lax, and every endpoint that changes something takes a JSON body, which a form on another site can't send with the cookie. That is the CSRF protection; there are no CSRF tokens. There's no lockout or rate limit on sign-in. BCrypt makes each guess slow, but production would need rate limiting by account and by IP before launch.
+

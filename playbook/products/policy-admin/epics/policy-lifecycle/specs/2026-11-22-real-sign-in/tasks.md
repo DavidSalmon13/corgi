@@ -29,7 +29,7 @@
 
 ## Docs
 
-- [ ] T15 DECISIONS.md entry replacing "Demo sign-in is simulated" (AC13); README demo credentials and integrations table; `SESSION_COOKIE_SECURE=true` noted for Railway
+- [x] T15 DECISIONS.md entry replacing "Demo sign-in is simulated" (AC13); README demo credentials and integrations table; `SESSION_COOKIE_SECURE=true` noted for Railway
 
 ## Verification
 

@@ -2,6 +2,19 @@
 generated: 2026-11-22
 epic: policy-lifecycle
 specs:
+  - folder: 2026-11-22-cancel-refund
+    slug: cancel-refund
+    status: shaped
+    branch: feat/policy-lifecycle/cancel-refund
+    covers:
+      - /api/broker/policies/{id}/cancellation
+      - /api/broker/policies/{id}/cancellation/preview
+      - api/src/main/java/**/policy/Cancel*.java
+      - api/src/main/resources/db/migration/V9__cancellations.sql
+      - web/src/pages/broker/CancelPolicyForm.tsx
+      - web/src/lib/cancelCopy.ts
+      - /me/cancellation
+      - web/src/pages/me/CancellationPage.tsx
   - folder: 2026-11-22-add-coverage
     slug: add-coverage
     status: done
@@ -28,7 +41,7 @@ specs:
       - web/src/lib/paymentCopy.ts
   - folder: 2026-11-22-correct-effective-date
     slug: correct-effective-date
-    status: shaped
+    status: in-progress
     branch: feat/policy-lifecycle/correct-effective-date
     covers:
       - /api/broker/policies/{id}/corrections

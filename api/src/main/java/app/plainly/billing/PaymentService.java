@@ -45,10 +45,10 @@ public class PaymentService {
 
     public record SavedCardConfirm(String status, String clientSecret) {}
 
-    /** A payment as P1 shows it. */
     /** A payment that took money: what a refund can go back against. */
     public record Collected(long paymentId, String displayId, String cardLast4, long amountCents) {}
 
+    /** A payment as P1 shows it. */
     public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
 
     /**
@@ -153,15 +153,15 @@ public class PaymentService {
         return new PaymentView(p.id(), p.status(), p.amountCents(), p.cardLast4(), p.createdAt(), due);
     }
 
-    /**
-     * The latest payment the owner actually sent to their bank. An OPEN one only means the pay page was opened,
-     * so it isn't shown.
-     */
     /** Payments that took money on this policy, newest first. */
     public List<Collected> collected(long policyId) {
         return payments.succeededNewestFirst(policyId);
     }
 
+    /**
+     * The latest payment the owner actually sent to their bank. An OPEN one only means the pay page was opened,
+     * so it isn't shown.
+     */
     public Optional<PaymentSummary> latestSubmitted(long policyId) {
         return payments.latestSubmitted(policyId);
     }

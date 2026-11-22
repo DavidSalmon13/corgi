@@ -1,5 +1,6 @@
 package app.plainly.billing;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -95,6 +96,20 @@ public class RefundRepository {
                     stripe_refund_id = null, sent_at = null, settled_at = null
                 where id = ? and status = 'FAILED' returning attempt""")
                 .param(id).query(Integer.class).optional();
+    }
+
+    /**
+     * PENDING refunds whose current attempt Stripe never confirmed (no Stripe id yet), recorded more than
+     * {@code olderThan} ago, oldest first: a send that never ran, or one whose answer never came back.
+     */
+    public List<Long> findUnsent(Duration olderThan) {
+        return jdbc.sql("""
+                select id from refunds
+                where status = 'PENDING' and stripe_refund_id is null
+                  and created_at <= now() - make_interval(secs => ?)
+                order by id""")
+                .param((double) olderThan.toSeconds())
+                .query(Long.class).list();
     }
 
     /** Oldest first. */

@@ -24,6 +24,11 @@ plainly:
   demo:
     # Seed Maya Okafor's demo policy and account at startup (real-sign-in AC12). Off in tests.
     seed: ${PLAINLY_DEMO_SEED:true}
+  refunds:
+    # Resend refunds that were never confirmed by Stripe (correct-effective-date review fix). Off in tests.
+    sweep: ${PLAINLY_REFUND_SWEEP:true}
+    sweep-after: PT2M
+    sweep-every: PT1M
   stripe:
     # Test-mode keys only, from env (.env locally). Empty = payments are switched off.
     secret-key: ${STRIPE_SECRET_KEY:}

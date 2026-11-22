@@ -3,6 +3,7 @@ package app.plainly;
 import app.plainly.billing.StripeGateway;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -98,28 +99,92 @@ public class FakeStripeGateway implements StripeGateway {
     public record RefundCall(String refundId, String intentId, long amountCents, String idempotencyKey,
             Map<String, String> metadata) {}
 
+    /** A refund as Stripe holds it: only refunds Stripe actually made are here. */
+    private record HeldRefund(String id, String intentId, Map<String, String> metadata) {}
+
+    /** How the next refund calls go wrong, as a test sets it. */
+    public enum RefundTimeout {
+        /** Stripe never got the request. */
+        NOT_MADE,
+        /** Stripe made the refund, but the answer never came back. */
+        MADE_ANYWAY
+    }
+
     private final List<RefundCall> refunds = new CopyOnWriteArrayList<>();
+    private final List<HeldRefund> held = new CopyOnWriteArrayList<>();
+    private final Map<String, String> refundStatuses = new ConcurrentHashMap<>();
+    private final Map<String, String> byKey = new ConcurrentHashMap<>();
     private volatile String refundFailure;
+    private volatile RefundTimeout refundTimeout;
+    private volatile boolean lookupsDown;
 
     /** Makes every refund call fail with this message, as when Stripe refuses it. Pass null to stop. */
     public void failRefunds(String message) {
         this.refundFailure = message;
     }
 
-    /** Records every call, refused or not, so a test can see each attempt's idempotency key. */
+    /** Makes every refund call time out, as {@code how} says. Pass null to stop. */
+    public void timeOutRefunds(RefundTimeout how) {
+        this.refundTimeout = how;
+    }
+
+    /** Makes every refund lookup fail as if Stripe were unreachable. */
+    public void refundLookupsDown(boolean down) {
+        this.lookupsDown = down;
+    }
+
+    /** Moves a refund on Stripe's side, as when Stripe says it failed. */
+    public void setRefundStatus(String stripeRefundId, String status) {
+        refundStatuses.put(stripeRefundId, status);
+    }
+
+    /**
+     * Records every call, refused or not, so a test can see each attempt's idempotency key. Like Stripe, a key it
+     * has already made a refund for returns that refund instead of making another.
+     */
     @Override
     public CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
             Map<String, String> metadata) {
-        String id = "re_fake_" + counter.incrementAndGet();
+        String id = byKey.getOrDefault(idempotencyKey, "re_fake_" + counter.incrementAndGet());
         refunds.add(new RefundCall(id, paymentIntentId, amountCents, idempotencyKey, Map.copyOf(metadata)));
         String failure = refundFailure;
         if (failure != null) {
             throw new RefundRefused(failure);
         }
-        return new CreatedRefund(id, "pending");
+        RefundTimeout timeout = refundTimeout;
+        if (timeout == RefundTimeout.NOT_MADE) {
+            throw new RefundOutcomeUnknown("read timed out");
+        }
+        if (byKey.putIfAbsent(idempotencyKey, id) == null) {
+            held.add(new HeldRefund(id, paymentIntentId, Map.copyOf(metadata)));
+            refundStatuses.put(id, "pending");
+        }
+        if (timeout == RefundTimeout.MADE_ANYWAY) {
+            throw new RefundOutcomeUnknown("read timed out");
+        }
+        return new CreatedRefund(id, refundStatuses.get(id));
     }
 
+    @Override
+    public Optional<CreatedRefund> findRefund(String paymentIntentId, long refundId) {
+        if (lookupsDown) {
+            throw new RefundOutcomeUnknown("couldn't reach Stripe");
+        }
+        return held.stream()
+                .filter(h -> h.intentId().equals(paymentIntentId)
+                        && String.valueOf(refundId).equals(h.metadata().get("refund_id")))
+                .map(h -> new CreatedRefund(h.id(), refundStatuses.get(h.id())))
+                .filter(r -> !r.status().equals("failed") && !r.status().equals("canceled"))
+                .findFirst();
+    }
+
+    /** Every createRefund call for the intent, made or not. */
     public List<RefundCall> refundsFor(String intentId) {
         return refunds.stream().filter(c -> c.intentId().equals(intentId)).toList();
+    }
+
+    /** The refunds Stripe actually made on the intent. */
+    public List<String> refundsMadeOn(String intentId) {
+        return held.stream().filter(h -> h.intentId().equals(intentId)).map(HeldRefund::id).toList();
     }
 }

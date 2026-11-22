@@ -3,6 +3,7 @@ package app.plainly.billing;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
+import app.plainly.policy.PolicyService;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.model.Charge;
 import com.stripe.model.Event;
@@ -29,7 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
  *       becomes FAILED, so the owner can pay again. No money moved, so nothing is posted.
  *   <li>{@code refund.created} / {@code refund.updated} with status succeeded: the money is back on the card. The
  *       refund becomes SUCCEEDED and a REFUND line is posted, once. Status failed or canceled, or
- *       {@code refund.failed}: the refund becomes FAILED with Stripe's reason, for the broker to retry.
+ *       {@code refund.failed}: the refund becomes FAILED with Stripe's reason, for the broker to retry. Either
+ *       way the policy is locked first, so a correction on the same policy waits for it (or it waits for one).
  * </ul>
  *
  * <p>An event we can't read is not recorded: the transaction rolls back and Stripe sends it again.
@@ -43,14 +45,16 @@ class StripeWebhookService {
     private final PaymentRepository payments;
     private final LedgerPostingService ledger;
     private final RefundService refunds;
+    private final PolicyService policies;
     private final Today today;
 
     StripeWebhookService(ProcessedEventRepository events, PaymentRepository payments, LedgerPostingService ledger,
-            RefundService refunds, Today today) {
+            RefundService refunds, PolicyService policies, Today today) {
         this.events = events;
         this.payments = payments;
         this.ledger = ledger;
         this.refunds = refunds;
+        this.policies = policies;
         this.today = today;
     }
 
@@ -127,10 +131,24 @@ class StripeWebhookService {
         }
         long refundId = ours.get();
         String status = "refund.failed".equals(event.getType()) ? "failed" : refund.getStatus();
-        switch (status == null ? "" : status) {
-            case "succeeded" -> refunds.settle(refundId, refund.getId(), event.getId());
-            case "failed", "canceled" -> refunds.fail(refundId, refund.getId(), refund.getFailureReason());
-            default -> log.info("Stripe refund {} is {}; waiting for it to settle", refund.getId(), status);
+        if (!"succeeded".equals(status) && !"failed".equals(status) && !"canceled".equals(status)) {
+            log.info("Stripe refund {} is {}; waiting for it to settle", refund.getId(), status);
+            return;
+        }
+        // Queue behind any correction on the policy, so it never reads the balance and the unsettled refunds on
+        // either side of this refund settling (which would count the same money twice).
+        Optional<Long> policyId = refunds.policyOf(refundId);
+        if (policyId.isEmpty()) {
+            log.info("Stripe refund {} isn't one of ours (refund id {}); ignoring", refund.getId(), refundId);
+            return;
+        }
+        policies.lock(policyId.get());
+        RefundService.SeenRefund seen = new RefundService.SeenRefund(refund.getId(), refund.getPaymentIntent(),
+                refund.getAmount() == null ? -1 : refund.getAmount());
+        if ("succeeded".equals(status)) {
+            refunds.settle(refundId, seen, event.getId());
+        } else {
+            refunds.fail(refundId, seen, refund.getFailureReason());
         }
     }
 

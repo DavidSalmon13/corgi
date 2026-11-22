@@ -1,6 +1,7 @@
 package app.plainly.billing;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The calls Plainly makes to Stripe. Tests swap in a fake so they never reach the network; webhook
@@ -44,12 +45,24 @@ public interface StripeGateway {
      * attempt, so a repeated call for the same attempt never sends the money twice. Stripe's answer only says the
      * refund was accepted: it settles through the {@code refund.*} webhooks.
      *
-     * @throws RefundRefused when Stripe won't send it (or payments are off); the message says why, for the broker
+     * @throws RefundRefused when Stripe definitely won't send it (or payments are off); the message says why, for
+     *     the broker
+     * @throws RefundOutcomeUnknown when we can't tell whether Stripe made the refund (a timeout, a 5xx, a rate
+     *     limit): it must be asked again with the same key, never a new one
      */
     CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
             Map<String, String> metadata);
 
-        record CreatedIntent(String id, String clientSecret) {}
+    /**
+     * The refund Stripe already holds on {@code paymentIntentId} for our refund {@code refundId} (matched on the
+     * {@code refund_id} metadata we send), unless it failed or was canceled. Asked before every send, so an attempt
+     * whose answer we never heard is adopted instead of sent twice.
+     *
+     * @throws RefundOutcomeUnknown when Stripe can't be asked right now
+     */
+    Optional<CreatedRefund> findRefund(String paymentIntentId, long refundId);
+
+    record CreatedIntent(String id, String clientSecret) {}
 
     /** A refund Stripe accepted: its id (re_…) and status (usually pending or succeeded). */
     record CreatedRefund(String id, String status) {}
@@ -57,6 +70,13 @@ public interface StripeGateway {
     /** Stripe didn't take the refund. The message is shown to the broker next to the failed refund. */
     class RefundRefused extends RuntimeException {
         public RefundRefused(String message) {
+            super(message);
+        }
+    }
+
+    /** We couldn't hear whether Stripe made the refund. Nothing is marked failed: the same attempt is asked again. */
+    class RefundOutcomeUnknown extends RuntimeException {
+        public RefundOutcomeUnknown(String message) {
             super(message);
         }
     }

@@ -5,6 +5,7 @@ import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class RefundService {
 
     private static final Logger log = LoggerFactory.getLogger(RefundService.class);
-    static final String UNREACHABLE = "We couldn't reach Stripe.";
     static final String NOT_SENT = "Stripe couldn't send the money back to the card.";
     static final String ONLY_FAILED = "Only a refund that didn't go through can be retried.";
 
@@ -76,30 +76,46 @@ public class RefundService {
     }
 
     /**
-     * Asks Stripe to send a PENDING refund's current attempt, keyed "refund-&lt;id&gt;-&lt;attempt&gt;" so a repeat of
-     * the same attempt never sends twice. Called after the change that owes it has committed. If Stripe won't take
-     * it, the refund is marked FAILED with the reason, for the broker to see and retry. Never throws: the change
-     * that owed the refund is already saved.
+     * Asks Stripe to send a PENDING refund's current attempt, keyed "refund-&lt;id&gt;-&lt;attempt&gt;" so asking
+     * again for the same attempt never sends twice. Stripe is first asked whether it already holds a refund for this
+     * one (an earlier attempt we never heard back about); if so, that refund is adopted instead of making another.
+     * Only a definite refusal marks the refund FAILED, for the broker to see and retry. If the answer is unclear (a
+     * timeout, a 5xx) it stays PENDING with no Stripe id and {@link #resendUnsent} asks again with the same key.
+     * Never throws: the change that owed the refund is already saved.
      */
     public void send(long refundId) {
-        ownTransaction.executeWithoutResult(status -> sendLocked(refundId));
+        try {
+            ownTransaction.executeWithoutResult(status -> sendLocked(refundId));
+        } catch (RuntimeException e) {
+            log.warn("Sending refund {} failed; it stays pending for the next sweep", refundId, e);
+        }
+    }
+
+    /**
+     * Sends again every PENDING refund that Stripe hasn't confirmed and was recorded more than {@code olderThan}
+     * ago. Safe to run any time: each send locks the refund, looks for an existing Stripe refund first, and reuses
+     * the attempt's key.
+     */
+    public void resendUnsent(Duration olderThan) {
+        refunds.findUnsent(olderThan).forEach(this::send);
     }
 
     private void sendLocked(long refundId) {
         RefundRepository.Locked r = refunds.lockById(refundId).orElse(null);
-        if (r == null || !"PENDING".equals(r.status())) {
+        if (r == null || !"PENDING".equals(r.status()) || r.stripeRefundId() != null) {
             return;
         }
         try {
-            StripeGateway.CreatedRefund created = stripe.createRefund(r.intentId(), r.amountCents(),
-                    "refund-" + r.id() + "-" + r.attempt(),
-                    Map.of("refund_id", String.valueOf(r.id()), "policy_id", String.valueOf(r.policyId())));
+            StripeGateway.CreatedRefund created = stripe.findRefund(r.intentId(), r.id())
+                    .orElseGet(() -> stripe.createRefund(r.intentId(), r.amountCents(),
+                            "refund-" + r.id() + "-" + r.attempt(),
+                            Map.of("refund_id", String.valueOf(r.id()), "policy_id", String.valueOf(r.policyId()))));
             refunds.markSent(r.id(), created.id());
         } catch (StripeGateway.RefundRefused e) {
             refunds.markFailed(r.id(), e.getMessage());
-        } catch (RuntimeException e) {
-            log.warn("Sending refund {} failed", r.displayId(), e);
-            refunds.markFailed(r.id(), UNREACHABLE);
+        } catch (StripeGateway.RefundOutcomeUnknown e) {
+            log.warn("No clear answer from Stripe for refund {} (attempt {}); it stays pending and is asked again",
+                    r.displayId(), r.attempt());
         }
     }
 
@@ -137,14 +153,23 @@ public class RefundService {
         return stripeRefundId == null ? Optional.empty() : refunds.idByStripeRefundId(stripeRefundId);
     }
 
+    /** A Stripe refund as an event describes it: its id, the payment intent it refunds and how much. */
+    public record SeenRefund(String id, String intentId, long amountCents) {}
+
+    /** The policy a refund belongs to, so the webhook can take the policy lock before settling it. */
+    public Optional<Long> policyOf(long refundId) {
+        return refunds.find(refundId).map(RefundRepository.Locked::policyId);
+    }
+
     /**
      * Stripe says refund {@code refundId} reached the card. On the PENDING → SUCCEEDED step only, a REFUND line
      * traced to the refund and to {@code eventId} takes the credit off the balance, so a second "succeeded" event
-     * posts nothing. Joins the webhook's transaction.
+     * posts nothing. Joins the webhook's transaction, whose caller must already hold the policy lock so a correction
+     * never reads the balance and the unsettled refunds on either side of this.
      */
     @Transactional
-    public void settle(long refundId, String stripeRefundId, String eventId) {
-        Optional<RefundRepository.Locked> found = lockForEvent(refundId, stripeRefundId);
+    public void settle(long refundId, SeenRefund seen, String eventId) {
+        Optional<RefundRepository.Locked> found = lockForEvent(refundId, seen);
         if (found.isEmpty()) {
             return;
         }
@@ -160,25 +185,30 @@ public class RefundService {
 
     /** Stripe says refund {@code refundId} didn't reach the card. A PENDING refund becomes FAILED with the reason. */
     @Transactional
-    public void fail(long refundId, String stripeRefundId, String failureReason) {
-        lockForEvent(refundId, stripeRefundId).ifPresent(r -> refunds.markFailed(r.id(),
+    public void fail(long refundId, SeenRefund seen, String failureReason) {
+        lockForEvent(refundId, seen).ifPresent(r -> refunds.markFailed(r.id(),
                 failureReason == null || failureReason.isBlank() ? NOT_SENT : failureReason));
     }
 
     /**
-     * The refund an event is about, held until the webhook commits. An event for a refund we never started, or for
-     * an earlier attempt that a retry has replaced, is ignored.
+     * The refund an event is about, held until the webhook commits. An event for a refund we never started, for an
+     * earlier attempt that a retry has replaced, or whose payment or amount isn't ours, is ignored.
      */
-    private Optional<RefundRepository.Locked> lockForEvent(long refundId, String stripeRefundId) {
+    private Optional<RefundRepository.Locked> lockForEvent(long refundId, SeenRefund seen) {
         Optional<RefundRepository.Locked> found = refunds.lockById(refundId);
         if (found.isEmpty()) {
-            log.info("Stripe refund {} isn't one of ours (refund id {}); ignoring", stripeRefundId, refundId);
+            log.info("Stripe refund {} isn't one of ours (refund id {}); ignoring", seen.id(), refundId);
             return Optional.empty();
         }
         RefundRepository.Locked r = found.get();
-        if (r.stripeRefundId() != null && !r.stripeRefundId().equals(stripeRefundId)) {
-            log.info("Ignoring Stripe refund {}: refund {} is now on attempt {} ({})", stripeRefundId, r.displayId(),
+        if (r.stripeRefundId() != null && !r.stripeRefundId().equals(seen.id())) {
+            log.info("Ignoring Stripe refund {}: refund {} is now on attempt {} ({})", seen.id(), r.displayId(),
                     r.attempt(), r.stripeRefundId());
+            return Optional.empty();
+        }
+        if (!r.intentId().equals(seen.intentId()) || r.amountCents() != seen.amountCents()) {
+            log.warn("Ignoring Stripe refund {}: it is {} on {}, but refund {} is {} on {}", seen.id(),
+                    seen.amountCents(), seen.intentId(), r.displayId(), r.amountCents(), r.intentId());
             return Optional.empty();
         }
         return found;

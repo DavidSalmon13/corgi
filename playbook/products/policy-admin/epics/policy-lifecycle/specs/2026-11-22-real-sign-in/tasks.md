@@ -13,7 +13,7 @@
 
 - [x] T3 Add `spring-security-crypto` to api/build.gradle.kts
 - [x] T4 Migration `V5__accounts_and_sessions.sql`: user email/password_hash/signed_up_at, lower(email) unique, sessions table, unique lower(owner_email), Sam's email and demo hash
-- [ ] T5 `Passwords` and `Sessions` (hashed random tokens, 7-day expiry, end on sign-out)
+- [x] T5 `Passwords` and `Sessions` (hashed random tokens, 7-day expiry, end on sign-out)
 - [ ] T6 `Accounts` (from DemoUsers) with `signUp` claiming the unclaimed owner row in one transaction
 - [ ] T7 `AuthFilter` + `AuthController` (`/api/auth/signin|signup|session`), `SignedInUser`; delete Demo* classes and `/api/demo/*`; update MyCoverController and BrokerIssueController
 - [ ] T8 `IssuePolicyService`: duplicate owner-email field error; set the owner user's email; expose `ownerSignedUpAt` through PolicyQueries/PolicyViews

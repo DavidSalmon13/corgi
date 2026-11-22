@@ -1,6 +1,7 @@
 package app.plainly.common;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import org.springframework.stereotype.Component;
 
@@ -16,5 +17,10 @@ public class Today {
 
     public LocalDate date() {
         return LocalDate.now(clock);
+    }
+
+    /** The policy calendar day a moment fell on (9pm in New York is still that day, not the next UTC day). */
+    public LocalDate dayOf(Instant moment) {
+        return moment.atZone(clock.getZone()).toLocalDate();
     }
 }

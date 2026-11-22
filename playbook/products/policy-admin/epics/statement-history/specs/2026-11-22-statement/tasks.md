@@ -3,6 +3,8 @@
 > Epic: statement-history
 > Spec: 2026-11-22-statement
 > Branch: feat/statement-history/statement
+> Reviewed: 2026-11-22 APPROVE
+> SecurityReviewed: 2026-11-22 APPROVE
 
 ## Statement API
 

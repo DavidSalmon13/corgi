@@ -4,6 +4,7 @@ import app.plainly.auth.SignedInUser;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.RefundListing;
 import app.plainly.common.NotFoundException;
+import app.plainly.common.Today;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerLine;
 import app.plainly.me.MyCoverService.DueReason;
@@ -21,7 +22,6 @@ import app.plainly.statement.Statement.RefKind;
 import app.plainly.statement.Statement.Row;
 import app.plainly.statement.Statement.Trace;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -41,10 +41,12 @@ public class StatementService {
 
     private final PolicyService policies;
     private final PaymentService payments;
+    private final Today today;
 
-    public StatementService(PolicyService policies, PaymentService payments) {
+    public StatementService(PolicyService policies, PaymentService payments, Today today) {
         this.policies = policies;
         this.payments = payments;
+        this.today = today;
     }
 
     /** The statement for a policy, every amount traced back to its change, payment or refund. */
@@ -59,7 +61,8 @@ public class StatementService {
     }
 
     private Statement build(PolicyViews.Detail p) {
-        return new Builder(p, policies.actorNames(p.policyId()), payments.sentForPolicy(p.policyId())).build();
+        return new Builder(p, policies.actorNames(p.policyId()), payments.sentForPolicy(p.policyId()), today)
+                .build();
     }
 
     /** One build: the lookups every row needs, made once. */
@@ -68,6 +71,7 @@ public class StatementService {
         private final PolicyViews.Detail p;
         private final Map<String, String> actors;
         private final List<PaymentService.Sent> sent;
+        private final Today today;
         private final Map<String, LedgerLine> linesById;
         private final Map<String, PolicyViews.Transaction> txById;
         private final Map<String, PaymentService.Sent> paymentsByIntent;
@@ -75,10 +79,11 @@ public class StatementService {
         /** A line a correction undid → that correction's change id. */
         private final Map<String, String> correctedBy = new HashMap<>();
 
-        Builder(PolicyViews.Detail p, Map<String, String> actors, List<PaymentService.Sent> sent) {
+        Builder(PolicyViews.Detail p, Map<String, String> actors, List<PaymentService.Sent> sent, Today today) {
             this.p = p;
             this.actors = actors;
             this.sent = sent;
+            this.today = today;
             this.linesById = index(p.ledger(), LedgerLine::displayId);
             this.txById = index(p.transactions(), PolicyViews.Transaction::displayId);
             this.paymentsByIntent = sent.stream().filter(s -> s.intentId() != null)
@@ -235,7 +240,7 @@ public class StatementService {
             long balance = p.balanceCents();
             PaymentService.Sent waiting = waitingPayment();
             if (waiting != null) {
-                LocalDate on = waiting.createdAt().atOffset(ZoneOffset.UTC).toLocalDate();
+                LocalDate on = today.dayOf(waiting.createdAt());
                 long amount = -waiting.amountCents();
                 Trace t = new Trace(EntryType.PAYMENT,
                         new Maths(null, null, null, null, null, amount, false, balance, balance + amount),

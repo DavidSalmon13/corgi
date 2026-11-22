@@ -227,3 +227,11 @@ This replaces the "kept back names the latest change" part of the earlier cancel
 ## 2026-11-22: On P3, money on its way shows its amount, marked "Not counted yet"
 
 The P3 design puts the word "Pending" where a waiting payment's amount would be. We show the amount instead (muted, "−$14.00") with "Not counted yet" under it, because every amount on the statement opens "How we got this" and a tappable "Pending" would hide the number. The banner keeps the design's "Waiting for your bank" pill, and while a payment is waiting it says what is still owed until the bank confirms. The latest correction card starts open and older ones start closed, so the change that explains today's balance is visible without a tap. The statement has no Pay button: P1 owns paying, and it knows whether payments are switched on.
+
+## 2026-11-22: The statement carries each amount's "how we got this", instead of a per-line endpoint
+
+The tech plan had a separate request per ledger line for its explanation. Instead, `GET /api/me/statement` returns every row with its trace inside it: the maths, the change that caused it and who made it, the payment or refund, and the references (PTX-…, LE-…, pi_…, re_…, evt_…). The drawer then opens instantly with nothing to load or fail, and the list and the drawer can't show different numbers because they come from the same response. A policy has a few dozen lines at most, so the extra payload is small. `StatementService` is role-neutral, so the broker's history (`broker-history`) adds a broker controller over the same service rather than a second set of traces.
+
+## 2026-11-22: Money on its way is on the statement but outside the balance
+
+A card payment still with the bank and a refund Stripe hasn't confirmed both appear as statement rows ("Waiting for your bank", "Refund on its way"), so the customer sees the money they've sent or are owed. But they don't change the running balance, because they aren't on the ledger: a payment is posted only when Stripe's webhook says it succeeded, and a refund only when Stripe says it was sent. The running balance therefore always ends at the ledger balance to the cent, and a payment that then fails never has to be taken back off the statement. Each pending row's drawer shows the balance before → after it would make once confirmed, and says it isn't counted yet.

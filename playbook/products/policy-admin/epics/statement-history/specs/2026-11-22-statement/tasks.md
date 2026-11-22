@@ -19,7 +19,7 @@
 
 ## Docs
 
-- [ ] T8 DECISIONS.md: traces embedded in the statement response instead of a per-entry endpoint; pending money shown but outside the balance
+- [x] T8 DECISIONS.md: traces embedded in the statement response instead of a per-entry endpoint; pending money shown but outside the balance
 
 ## Verification
 

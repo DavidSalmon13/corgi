@@ -44,3 +44,14 @@ specs:
       - api/src/main/resources/db/migration/V7__payments_stripe_canceled_at.sql
       - web/src/pages/me/PayPage.tsx
       - web/src/lib/paymentCopy.ts
+  - folder: 2026-11-22-add-coverage
+    slug: add-coverage
+    status: shaped
+    branch: feat/policy-lifecycle/add-coverage
+    covers:
+      - /broker/policies/:id/change
+      - /api/broker/policies/{id}/coverages
+      - /api/broker/policies/{id}/coverages/preview
+      - api/src/main/java/**/policy/AddCoverage*.java
+      - web/src/pages/broker/ChangePolicyPage.tsx
+      - web/src/lib/addCoverCopy.ts

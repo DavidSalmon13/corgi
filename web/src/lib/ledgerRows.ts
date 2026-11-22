@@ -16,7 +16,7 @@ export type LedgerRow = {
   calcTone: Tone;
   amount: string;
   balance: string;
-  /** Ledger id first, then the policy transaction it came from. */
+  /** Ledger id first, then where it came from: the policy transaction, or the Stripe payment. */
   refs: string[];
   /** The line was later undone by a reversal. It stays visible, struck through. */
   struck: boolean;
@@ -33,7 +33,8 @@ function calculation(l: LedgerLine): { calc: string; calcTone: Tone } {
     case 'REVERSAL':
       return { calc: l.reversesDisplayId ? `Undo of ${l.reversesDisplayId}` : 'Undo', calcTone: 'ink' };
     case 'PAYMENT':
-      return { calc: 'Paid', calcTone: 'good' };
+      // A $0.00 payment line is a declined attempt: kept on the ledger so the attempt stays visible.
+      return l.amountCents === 0 ? { calc: "Didn't go through", calcTone: 'bad' } : { calc: 'Paid', calcTone: 'good' };
     case 'REFUND':
       return { calc: 'Refunded', calcTone: 'good' };
   }
@@ -48,11 +49,15 @@ export function toLedgerRows(lines: LedgerLine[]): LedgerRow[] {
     key: l.displayId,
     date: formatDate(l.entryDate),
     title: l.description,
-    note: l.reversedByDisplayId ? `Undone by ${l.reversedByDisplayId}` : '',
+    note: l.reversedByDisplayId
+      ? `Undone by ${l.reversedByDisplayId}`
+      : l.type === 'PAYMENT' && l.amountCents === 0
+        ? 'No money moved'
+        : '',
     ...calculation(l),
     amount: formatCents(l.amountCents, { signed: true }),
     balance: formatCents(l.balanceAfterCents),
-    refs: [l.displayId, l.policyTransactionDisplayId].filter((r): r is string => !!r),
+    refs: [l.displayId, l.policyTransactionDisplayId, l.stripePaymentIntentId].filter((r): r is string => !!r),
     struck: l.reversedByDisplayId != null,
     correction: l.policyTransactionDisplayId != null && correctingTx.has(l.policyTransactionDisplayId),
   }));

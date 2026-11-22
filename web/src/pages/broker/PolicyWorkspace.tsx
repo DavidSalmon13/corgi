@@ -49,7 +49,7 @@ export function PolicyWorkspace() {
   }
 
   const p = policy.data;
-  const status = policyStatus(p.status, p.balanceCents);
+  const status = policyStatus(p.status, p.balanceCents, p.paymentWaiting);
   const cancelled = p.status === 'CANCELLED';
 
   return (
@@ -83,7 +83,7 @@ export function PolicyWorkspace() {
           <div className={`text-[28px] font-bold tabular-nums ${p.balanceCents > 0 ? 'text-accent-ink' : 'text-ink'}`}>
             {balanceText(p.balanceCents)}
           </div>
-          <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents)}</div>
+          <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting)}</div>
         </div>
       </section>
 

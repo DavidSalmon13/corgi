@@ -3,9 +3,14 @@ import type { PillTone } from '../components/StatusPill';
 import { formatShortDate, type IsoDate } from './dates';
 import { formatCents } from './money';
 
-/** The status pill for a policy: its state plus, while active, whether money is owed. */
-export function policyStatus(status: PolicyStatus, balanceCents: number): { label: string; tone: PillTone } {
+/** The status pill for a policy: its state plus, while active, whether money is owed or on its way. */
+export function policyStatus(
+  status: PolicyStatus,
+  balanceCents: number,
+  paymentWaiting = false,
+): { label: string; tone: PillTone } {
   if (status === 'CANCELLED') return { label: 'Cancelled', tone: 'neutral' };
+  if (paymentWaiting) return { label: 'Active · waiting for the bank', tone: 'wait' };
   return balanceCents > 0 ? { label: 'Active · balance due', tone: 'wait' } : { label: 'Active · paid up', tone: 'good' };
 }
 
@@ -42,7 +47,8 @@ export function listSummary(total: number, owing: number): string {
 }
 
 /** The small line under the balance on B3. */
-export function balanceNote(balanceCents: number): string {
+export function balanceNote(balanceCents: number, paymentWaiting = false): string {
+  if (paymentWaiting) return 'Waiting for the bank';
   if (balanceCents > 0) return 'Not paid yet';
   if (balanceCents < 0) return 'We owe the customer this';
   return 'Nothing owed';

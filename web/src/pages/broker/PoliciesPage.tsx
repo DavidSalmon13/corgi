@@ -37,7 +37,7 @@ function Balance({ row }: { row: PolicyListRow }) {
 }
 
 function Status({ row }: { row: PolicyListRow }) {
-  const s = policyStatus(row.status, row.balanceCents);
+  const s = policyStatus(row.status, row.balanceCents, row.paymentWaiting);
   return <StatusPill tone={s.tone}>{s.label}</StatusPill>;
 }
 

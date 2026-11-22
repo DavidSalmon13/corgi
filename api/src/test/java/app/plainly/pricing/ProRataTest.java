@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
+// covers AC3, AC6, T4
 class ProRataTest {
 
     static final LocalDate SEP_1_2026 = LocalDate.of(2026, 9, 1);

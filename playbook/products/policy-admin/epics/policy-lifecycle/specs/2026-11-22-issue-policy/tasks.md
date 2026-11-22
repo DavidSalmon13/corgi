@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-issue-policy
 > Branch: feat/policy-lifecycle/issue-policy
+> PR: https://github.com/DavidSalmon13/corgi/pull/22 (last of the stacked screen PRs #14–#22; backend in #3–#13)
 
 ## Scaffolding
 
@@ -39,5 +40,5 @@
 
 ## Verification
 
-- [ ] T20 Run and complete the test suite for pricing, ledger, issue and auth (testing skill)
-- [ ] T21 Run QA against acceptance criteria AC1–AC12 (qa skill)
+- [x] T20 Run and complete the test suite for pricing, ledger, issue and auth (testing skill)
+- [x] T21 Run QA against acceptance criteria AC1–AC12 (qa skill)

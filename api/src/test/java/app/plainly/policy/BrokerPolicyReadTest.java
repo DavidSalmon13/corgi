@@ -5,7 +5,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.AuthTestSupport;
+import app.plainly.CorrectionTestData;
+import app.plainly.CorrectionTestData.Paid;
 import app.plainly.IntegrationTest;
+import app.plainly.StripeTestSupport;
 import app.plainly.TestData;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
@@ -16,7 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
-// covers AC8, AC9, T9
+// covers AC8, AC9, T9; correct-effective-date AC7, AC11, AC12, T2
 @IntegrationTest
 @AutoConfigureMockMvc
 class BrokerPolicyReadTest {
@@ -25,6 +28,7 @@ class BrokerPolicyReadTest {
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
     @Autowired AddCoverageService addCover;
+    @Autowired CorrectCoverageService corrector;
 
     Cookie broker;
     IssuePolicyService.Issued juniper;
@@ -115,5 +119,79 @@ class BrokerPolicyReadTest {
                 .andExpect(jsonPath(row + ".lastAction.recordedOn").value("2026-11-22"))
                 .andExpect(jsonPath(row + ".balanceCents").value(120000 + 64200))
                 .andExpect(jsonPath(row + ".owesMoney").value(true));
+    }
+
+    // --- correct-effective-date AC7, AC11, AC12, T2: B3 after a correction ---
+
+    @Test
+    void afterACorrectionThePolicyShowsOneExtraCoverWithItsOldStartAndTheReason() throws Exception {
+        long brokerId = CorrectionTestData.brokerId(jdbc);
+        corrector.correct(juniper.policyId(), new CorrectCoverageCommand(LocalDate.of(2026, 10, 1),
+                CorrectionTestData.REASON), brokerId);
+
+        mvc.perform(get("/api/broker/policies/" + juniper.policyId()).cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverages.length()").value(2))
+                .andExpect(jsonPath("$.coverages[0].kind").value("BASE"))
+                .andExpect(jsonPath("$.coverages[0].previousStart").doesNotExist())
+                .andExpect(jsonPath("$.coverages[1].kind").value("PRODUCT_LIABILITY"))
+                .andExpect(jsonPath("$.coverages[1].from").value("2026-10-01"))
+                .andExpect(jsonPath("$.coverages[1].previousStart").value("2026-09-01"))
+                .andExpect(jsonPath("$.transactions[0].reason").doesNotExist())
+                .andExpect(jsonPath("$.transactions[1].type").value("CORRECT"))
+                .andExpect(jsonPath("$.transactions[1].effectiveDate").value("2026-10-01"))
+                .andExpect(jsonPath("$.transactions[1].reason").value(CorrectionTestData.REASON))
+                .andExpect(jsonPath("$.ledger[1].reversedByDisplayId").value(org.hamcrest.Matchers.startsWith("LE-")))
+                .andExpect(jsonPath("$.ledger[2].type").value("REVERSAL"))
+                .andExpect(jsonPath("$.ledger[2].reversesDisplayId").value(juniper.entries().get(1).displayId()))
+                .andExpect(jsonPath("$.ledger[2].coverageId").isNumber())
+                .andExpect(jsonPath("$.ledger[3].type").value("CHARGE"))
+                .andExpect(jsonPath("$.ledger[3].description").value("Extra cover from Oct 1"))
+                .andExpect(jsonPath("$.refunds.length()").value(0));
+
+        String row = "$[?(@.policyId == " + juniper.policyId() + ")]";
+        mvc.perform(get("/api/broker/policies").cookie(broker))
+                .andExpect(jsonPath(row + ".lastAction.type").value("CORRECT"));
+    }
+
+    @Test
+    void thePolicyListsItsRefundsAndTheRefundLineSaysWhichRefundItWas() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Refund Read Bakery LLC");
+        long policyId = paid.owner().policyId();
+        CorrectCoverageService.Corrected saved = corrector.correct(policyId,
+                new CorrectCoverageCommand(CorrectionTestData.OCT_22, CorrectionTestData.REASON),
+                CorrectionTestData.brokerId(jdbc));
+        String refund = saved.refunds().getFirst().displayId();
+        String url = "/api/broker/policies/" + policyId;
+
+        mvc.perform(get(url).cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.refunds.length()").value(1))
+                .andExpect(jsonPath("$.refunds[0].id").isNumber())
+                .andExpect(jsonPath("$.refunds[0].displayId").value(refund))
+                .andExpect(jsonPath("$.refunds[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.refunds[0].amountCents").value(1400))
+                .andExpect(jsonPath("$.refunds[0].cardLast4").value("4242"))
+                .andExpect(jsonPath("$.refunds[0].attempt").value(1))
+                .andExpect(jsonPath("$.refunds[0].policyTransactionDisplayId").value(saved.transactionDisplayId()))
+                .andExpect(jsonPath("$.refunds[0].stripeRefundId").isNotEmpty())
+                .andExpect(jsonPath("$.refunds[0].failureReason").doesNotExist());
+
+        long refundId = jdbc.sql("select id from refunds where display_id = ?").param(refund).query(Long.class).single();
+        String stripeRefundId = jdbc.sql("select stripe_refund_id from refunds where id = ?").param(refundId)
+                .query(String.class).single();
+        String eventId = StripeTestSupport.newEventId();
+        mvc.perform(StripeTestSupport.delivery(StripeTestSupport.refundSucceeded(eventId, stripeRefundId, refundId,
+                paid.extraIntentId(), 1400))).andExpect(status().isOk());
+
+        String refundLine = "$.ledger[?(@.type == 'REFUND')]";
+        mvc.perform(get(url).cookie(broker))
+                .andExpect(jsonPath("$.refunds[0].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.balanceCents").value(0))
+                .andExpect(jsonPath(refundLine + ".amountCents").value(1400))
+                .andExpect(jsonPath(refundLine + ".description").value("Refund to card ending 4242"))
+                .andExpect(jsonPath(refundLine + ".refundDisplayId").value(refund))
+                .andExpect(jsonPath(refundLine + ".stripeRefundId").value(stripeRefundId))
+                .andExpect(jsonPath(refundLine + ".stripeEventId").value(eventId));
     }
 }

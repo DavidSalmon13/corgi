@@ -7,7 +7,7 @@
 ## Failing tests first
 
 - [x] T1 Write failing `CorrectCoverageServiceTest` (api/src/test/java/app/plainly/policy/): Oct 15→Oct 8 −$642.00/+$656.00/+$14.00; Oct 15→Oct 22 refund $14.00 to latest payment; credit pays open balance first; refund split latest-first and capped; second correction reverses the rebill; every AC6 message; preview writes nothing; concurrent corrections → one; OPEN intents cancelled (AC3–AC6, AC8, AC9)
-- [ ] T2 Write failing `CorrectionEndpointsTest` (201 + body, 422 fields, 403 policyholder, 404 unknown) and `RefundWebhookTest` (refund succeeded posts one REFUND line traced to refund + event; replay posts nothing; failed → FAILED; retry sends attempt 2; broker-only) plus `MyCoverTest`/`BrokerPolicyReadTest` cases for refundWaiting, live coverages + previousStart, reason (AC7, AC10–AC13)
+- [x] T2 Write failing `CorrectionEndpointsTest` (201 + body, 422 fields, 403 policyholder, 404 unknown) and `RefundWebhookTest` (refund succeeded posts one REFUND line traced to refund + event; replay posts nothing; failed → FAILED; retry sends attempt 2; broker-only) plus `MyCoverTest`/`BrokerPolicyReadTest` cases for refundWaiting, live coverages + previousStart, reason (AC7, AC10–AC13)
 - [ ] T3 Write failing `web/src/lib/correctCopy.test.ts` (undo/corrected lines, net-why text, customer sentence owes-more/refund, settle line, save labels, confirm summary, banner) and refund/correction cases in `myCoverCopy.test.ts` and `ledgerRows.test.ts` (AC3, AC4, AC7, AC12, AC13)
 
 ## API

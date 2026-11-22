@@ -92,4 +92,29 @@ public class FakeStripeGateway implements StripeGateway {
     public List<ConfirmCall> confirmsFor(String intentId) {
         return confirms.stream().filter(c -> c.intentId().equals(intentId)).toList();
     }
+
+    // --- refunds: T6 wires createRefund into StripeGateway; until then nothing records calls here ---
+
+    public record RefundCall(String refundId, String intentId, long amountCents, String idempotencyKey,
+            Map<String, String> metadata) {}
+
+    private final List<RefundCall> refunds = new CopyOnWriteArrayList<>();
+    private volatile String refundFailure;
+
+    /** Makes every refund call fail with this message, as when Stripe refuses it. Pass null to stop. */
+    public void failRefunds(String message) {
+        this.refundFailure = message;
+    }
+
+    String refundFailure() {
+        return refundFailure;
+    }
+
+    void recordRefund(RefundCall call) {
+        refunds.add(call);
+    }
+
+    public List<RefundCall> refundsFor(String intentId) {
+        return refunds.stream().filter(c -> c.intentId().equals(intentId)).toList();
+    }
 }

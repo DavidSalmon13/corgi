@@ -60,4 +60,35 @@ describe('toLedgerRows', () => {
     ]);
     expect(row).toMatchObject({ calc: 'Paid', calcTone: 'good', amount: '−$1,200.00', balance: '$0.00', refs: ['LE-0001'] });
   });
+
+  // covers AC11, T4 — payments trace to Stripe, and a declined attempt stays visible at $0.00
+  it('shows a payment with its Stripe PaymentIntent as a reference', () => {
+    const [row] = toLedgerRows([
+      line({
+        type: 'PAYMENT', description: 'Payment, card ending 4242', amountCents: -1400, balanceAfterCents: 0,
+        calcAnnualCents: null, calcDays: null, calcTermDays: null, coverageId: null, coverFrom: null, coverTo: null,
+        policyTransactionDisplayId: null, stripePaymentIntentId: 'pi_3Qabc', stripeEventId: 'evt_1Qabc',
+      }),
+    ]);
+    expect(row).toMatchObject({ calc: 'Paid', calcTone: 'good', amount: '−$14.00', note: '', refs: ['LE-0001', 'pi_3Qabc'] });
+  });
+
+  it("shows a declined attempt as didn't go through, with no money moved", () => {
+    const [row] = toLedgerRows([
+      line({
+        displayId: 'LE-0004', type: 'PAYMENT', description: 'Payment attempt, card ending 0002', amountCents: 0,
+        balanceAfterCents: 64_200, calcAnnualCents: null, calcDays: null, calcTermDays: null, coverageId: null,
+        coverFrom: null, coverTo: null, policyTransactionDisplayId: null, stripePaymentIntentId: 'pi_3Qdecl',
+      }),
+    ]);
+    expect(row).toMatchObject({
+      title: 'Payment attempt, card ending 0002',
+      note: 'No money moved',
+      calc: "Didn't go through",
+      calcTone: 'bad',
+      amount: '$0.00',
+      balance: '$642.00',
+      refs: ['LE-0004', 'pi_3Qdecl'],
+    });
+  });
 });

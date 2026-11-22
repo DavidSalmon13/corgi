@@ -20,7 +20,7 @@ public class RefundRepository {
 
     /** A refund held for a send or a webhook, with what's needed to act on it. */
     public record Locked(long id, String displayId, long policyId, long paymentId, String intentId, String cardLast4,
-            long amountCents, String status, int attempt) {}
+            long amountCents, String status, int attempt, String stripeRefundId) {}
 
     /** A refund as B3 lists it, with the card it goes back to and the correction that owed it. */
     public record Listed(long id, String displayId, String status, long amountCents, String cardLast4, int attempt,
@@ -41,16 +41,32 @@ public class RefundRepository {
 
     public record Inserted(long id, String displayId) {}
 
+    /** Our refund that Stripe knows as {@code stripeRefundId}, if one of our sends created it. */
+    public Optional<Long> idByStripeRefundId(String stripeRefundId) {
+        return jdbc.sql("select id from refunds where stripe_refund_id = ?")
+                .param(stripeRefundId).query(Long.class).optional();
+    }
+
+    /** The refund as it stands now, without holding it. */
+    public Optional<Locked> find(long id) {
+        return select(id, "");
+    }
+
     /** Holds the refund row until the caller's transaction ends. */
     public Optional<Locked> lockById(long id) {
+        return select(id, " for update of r");
+    }
+
+    private Optional<Locked> select(long id, String lock) {
         return jdbc.sql("""
                 select r.id, r.display_id, r.policy_id, r.payment_id, p.stripe_payment_intent_id, p.card_last4,
-                       r.amount_cents, r.status, r.attempt
+                       r.amount_cents, r.status, r.attempt, r.stripe_refund_id
                 from refunds r join payments p on p.id = r.payment_id
-                where r.id = ? for update of r""")
+                where r.id = ?""" + lock)
                 .param(id)
                 .query((rs, n) -> new Locked(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getLong(4),
-                        rs.getString(5), rs.getString(6), rs.getLong(7), rs.getString(8), rs.getInt(9)))
+                        rs.getString(5), rs.getString(6), rs.getLong(7), rs.getString(8), rs.getInt(9),
+                        rs.getString(10)))
                 .optional();
     }
 

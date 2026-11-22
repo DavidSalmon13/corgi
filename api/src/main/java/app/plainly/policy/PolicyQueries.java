@@ -2,7 +2,7 @@ package app.plainly.policy;
 
 import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
-import app.plainly.ledger.LedgerQueries;
+import app.plainly.ledger.LedgerQueryService;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,10 +16,10 @@ import org.springframework.stereotype.Component;
 public class PolicyQueries {
 
     private final JdbcClient jdbc;
-    private final LedgerQueries ledger;
+    private final LedgerQueryService ledger;
     private final Today today;
 
-    public PolicyQueries(JdbcClient jdbc, LedgerQueries ledger, Today today) {
+    public PolicyQueries(JdbcClient jdbc, LedgerQueryService ledger, Today today) {
         this.jdbc = jdbc;
         this.ledger = ledger;
         this.today = today;

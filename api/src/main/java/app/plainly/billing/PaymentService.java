@@ -2,7 +2,7 @@ package app.plainly.billing;
 
 import app.plainly.auth.SignedInUser;
 import app.plainly.common.NotFoundException;
-import app.plainly.ledger.LedgerQueries;
+import app.plainly.ledger.LedgerQueryService;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -20,9 +20,9 @@ public class PaymentService {
 
     private final JdbcClient jdbc;
     private final StripeGateway stripe;
-    private final LedgerQueries ledger;
+    private final LedgerQueryService ledger;
 
-    public PaymentService(JdbcClient jdbc, StripeGateway stripe, LedgerQueries ledger) {
+    public PaymentService(JdbcClient jdbc, StripeGateway stripe, LedgerQueryService ledger) {
         this.jdbc = jdbc;
         this.stripe = stripe;
         this.ledger = ledger;

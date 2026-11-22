@@ -7,7 +7,7 @@ import app.plainly.IntegrationTest;
 import app.plainly.TestData;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerLine;
-import app.plainly.ledger.LedgerQueries;
+import app.plainly.ledger.LedgerQueryService;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class IssuePolicyServiceTest {
     static final LocalDate TODAY = LocalDate.of(2026, 11, 22); // plainly.today in IntegrationTest
 
     @Autowired IssuePolicyService service;
-    @Autowired LedgerQueries ledger;
+    @Autowired LedgerQueryService ledger;
     @Autowired JdbcClient jdbc;
 
     long brokerId() {

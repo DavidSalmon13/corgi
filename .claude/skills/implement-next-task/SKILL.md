@@ -96,7 +96,7 @@ End with a short summary:
 ```
 Done this run: T3 Scaffold web/ · T3.1 Design tokens   (2 commits)
 Stopped because: context 81% used (19% left)  |  spec complete  |  T8 blocked: <reason>
-In progress: T7, tests written, LedgerQueries left to do (uncommitted)
+In progress: T7, tests written, LedgerQueryService left to do (uncommitted)
 Next up: T8 policy.IssuePolicyService
 Open: 15 of 23 tasks
 ```

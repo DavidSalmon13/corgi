@@ -78,7 +78,7 @@ A payment's status is the one mutable value in the money path, and only the webh
 
 - `StripeGateway` interface: `ensureCustomer`, `createPaymentIntent(customerId, amount, idempotencyKey, metadata)`, `confirmWithSavedCard(piId, pmId)` and `verify(payload, sigHeader) → event`. `StripeJavaGateway` implements it with `com.stripe:stripe-java`.
 - `PaymentService.start(me)`:
-  - Locks the policy row and computes the amount due from `LedgerQueries.balance`.
+  - Locks the policy row and computes the amount due from `LedgerQueryService.balance`.
   - Refuses if nothing is due, and returns 409 if a payment is PROCESSING.
   - Reuses the latest OPEN payment when its amount still matches.
   - Otherwise creates a PaymentIntent with `setup_future_usage=on_session` (so the card can be reused), metadata `payment_id` and `policy_id`, and the idempotency key `pay-<id>`.
@@ -90,7 +90,7 @@ A payment's status is the one mutable value in the money path, and only the webh
 - `WebhookHandler.handle(event)` runs in one transaction:
   1. `insert into processed_stripe_events … on conflict do nothing`. Zero rows means a duplicate, so it returns.
   2. `payment_intent.processing` → PROCESSING.
-  3. `charge.succeeded` → SUCCEEDED, saves the card details, and posts a PAYMENT −amount line through `NewEntry.payment(...)` and `LedgerPoster`.
+  3. `charge.succeeded` → SUCCEEDED, saves the card details, and posts a PAYMENT −amount line through `NewEntry.payment(...)` and `LedgerPostingService`.
   4. `charge.failed` → FAILED, saves the failure reason, and posts a $0 PAYMENT line.
 - `AuthFilter` exempts exactly `/api/stripe/webhook`.
 

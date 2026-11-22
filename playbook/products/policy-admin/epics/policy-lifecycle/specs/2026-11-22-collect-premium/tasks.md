@@ -24,7 +24,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 ## Backend
 
 - [x] T5 Add migration `V6__payments.sql`: the payments and processed_stripe_events tables, `customers.stripe_customer_id`, and `ledger_entries.payment_id` and `stripe_event_id` with the PAYMENT check.
-- [x] T6 Add a `NewEntry.payment(...)` factory, and make `LedgerPoster.check` require `payment_id` and `stripe_event_id` on PAYMENT lines.
+- [x] T6 Add a `NewEntry.payment(...)` factory, and make `LedgerPostingService.check` require `payment_id` and `stripe_event_id` on PAYMENT lines.
 - [x] T7 Add `StripeGateway`, `StripeJavaGateway`, the `plainly.stripe.*` config and the disabled mode, and add the Stripe keys to `.env.example`.
 - [x] T8 Add `WebhookHandler` and `StripeWebhookController`, and exempt `/api/stripe/webhook` in `AuthFilter`.
 - [x] T9 Add `PaymentService` and `MyPaymentsController`: start a payment, confirm with the saved card, and GET a payment for polling.

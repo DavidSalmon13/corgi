@@ -1,7 +1,7 @@
 package app.plainly.billing;
 
 import app.plainly.common.Today;
-import app.plainly.ledger.LedgerPoster;
+import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.model.Charge;
@@ -33,10 +33,10 @@ class WebhookHandler {
     private static final Logger log = LoggerFactory.getLogger(WebhookHandler.class);
 
     private final JdbcClient jdbc;
-    private final LedgerPoster ledger;
+    private final LedgerPostingService ledger;
     private final Today today;
 
-    WebhookHandler(JdbcClient jdbc, LedgerPoster ledger, Today today) {
+    WebhookHandler(JdbcClient jdbc, LedgerPostingService ledger, Today today) {
         this.jdbc = jdbc;
         this.ledger = ledger;
         this.today = today;

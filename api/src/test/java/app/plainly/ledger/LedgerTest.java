@@ -23,8 +23,8 @@ class LedgerTest {
     static final LocalDate OCT_15 = LocalDate.of(2026, 10, 15);
 
     @Autowired JdbcClient jdbc;
-    @Autowired LedgerPoster poster;
-    @Autowired LedgerQueries queries;
+    @Autowired LedgerPostingService poster;
+    @Autowired LedgerQueryService queries;
 
     long policyId;
     long issueTx;

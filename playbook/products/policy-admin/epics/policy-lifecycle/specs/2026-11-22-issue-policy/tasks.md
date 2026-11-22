@@ -40,4 +40,4 @@
 ## Verification
 
 - [x] T20 Run and complete the test suite for pricing, ledger, issue and auth (testing skill)
-- [ ] T21 Run QA against acceptance criteria AC1–AC12 (qa skill)
+- [x] T21 Run QA against acceptance criteria AC1–AC12 (qa skill)

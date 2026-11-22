@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-real-sign-in
 > Branch: feat/policy-lifecycle/real-sign-in
+> PR: https://github.com/DavidSalmon13/corgi/pull/34 (stack #23–#34, base #23 → dev)
 
 ## Tests first (TDD)
 

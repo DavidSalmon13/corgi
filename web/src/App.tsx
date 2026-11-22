@@ -6,6 +6,7 @@ import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
 import { HomePage } from './pages/me/HomePage';
+import { PayPage } from './pages/me/PayPage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 
@@ -43,6 +44,14 @@ export function App() {
         element={
           <RequireRole role="POLICYHOLDER">
             <HomePage />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/me/pay"
+        element={
+          <RequireRole role="POLICYHOLDER">
+            <PayPage />
           </RequireRole>
         }
       />

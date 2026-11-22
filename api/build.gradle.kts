@@ -25,6 +25,8 @@ dependencies {
     // BCrypt password hashing only; not full Spring Security (real-sign-in spec)
     implementation("org.springframework.security:spring-security-crypto")
     implementation("org.flywaydb:flyway-database-postgresql")
+    // Stripe test-mode payments and webhook signature checks (collect-premium spec)
+    implementation("com.stripe:stripe-java:34.2.0")
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

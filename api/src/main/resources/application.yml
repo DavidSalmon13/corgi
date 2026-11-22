@@ -24,3 +24,8 @@ plainly:
   demo:
     # Seed Maya Okafor's demo policy and account at startup (real-sign-in AC12). Off in tests.
     seed: ${PLAINLY_DEMO_SEED:true}
+  stripe:
+    # Test-mode keys only, from env (.env locally). Empty = payments are switched off.
+    secret-key: ${STRIPE_SECRET_KEY:}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}

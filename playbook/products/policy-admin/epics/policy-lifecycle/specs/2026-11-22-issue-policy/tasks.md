@@ -25,7 +25,7 @@
 - [ ] T9 `GET /api/broker/policies` (balance, status, last action, owes-money flag) and `GET /api/broker/policies/{id}` (header, coverages, ledger lines)
 - [ ] T10 Demo auth: `GET /api/demo/users`, `POST /api/demo/session`, cookie filter, BROKER/POLICYHOLDER guards, owner user created on issue; tests for 403s (AC1)
 - [ ] T11 `GET /api/me/cover`: policy, covers, amount due, plain-language reason, scoped to the session's customer
-- [ ] T12 Injectable America/New_York `Clock`, overridable by config
+- [x] T12 Injectable America/New_York `Clock`, overridable by config
 
 ## Screens (rebuild from design/plainly/)
 

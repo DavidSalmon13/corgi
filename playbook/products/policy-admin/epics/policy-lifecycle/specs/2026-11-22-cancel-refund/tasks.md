@@ -13,7 +13,7 @@
 ## Cancel API
 
 - [x] T4 PolicyRepository.markCancelled + cancelledOn on findTerm/detail; CoverageRepository live-cover read for cancel (repository)
-- [ ] T5 CancelPolicyPlan (pure) + CancelPolicyService.preview/cancel: lock, validate (AC6), per-cover credits, kept-back/refund plan, save in one transaction, cancel open intents, refunds after commit; CancelPolicyServiceTest covering AC3–AC8 (service)
+- [x] T5 CancelPolicyPlan (pure) + CancelPolicyService.preview/cancel: lock, validate (AC6), per-cover credits, kept-back/refund plan, save in one transaction, cancel open intents, refunds after commit; CancelPolicyServiceTest covering AC3–AC8 (service)
 - [ ] T6 CancellationController POST /cancellation and /preview with 422 field maps and 201; CancellationEndpointsTest incl. 403 for a policyholder (controller)
 - [ ] T7 Reads: PolicyService detail cancelledOn + CREDIT lines; MyCoverService DueReason.CANCELLATION + cancellation block + refund-waiting alongside cancelled; pay-after-cancel works; BrokerPolicyReadTest + MyCoverTest cases (service)
 

@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.IntegrationTest;
-import app.plainly.auth.DemoAuthFilter;
+import app.plainly.AuthTestSupport;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,9 +29,8 @@ class BrokerIssueEndpointsTest {
     Cookie broker;
 
     @BeforeEach
-    void signInAsBroker() {
-        long id = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
-        broker = new Cookie(DemoAuthFilter.COOKIE, Long.toString(id));
+    void signInAsBroker() throws Exception {
+        broker = AuthTestSupport.signInAsBroker(mvc);
     }
 
     MockHttpServletRequestBuilder json(String url, String body) {

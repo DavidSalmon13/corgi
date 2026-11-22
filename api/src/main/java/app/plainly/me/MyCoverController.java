@@ -1,7 +1,7 @@
 package app.plainly.me;
 
-import app.plainly.auth.DemoAuthFilter;
-import app.plainly.auth.DemoUser;
+import app.plainly.auth.AuthFilter;
+import app.plainly.auth.SignedInUser;
 import app.plainly.common.NotFoundException;
 import app.plainly.policy.PolicyQueries;
 import app.plainly.policy.PolicyViews;
@@ -44,7 +44,7 @@ class MyCoverController {
             DueReason dueReason, Broker broker, LocalDate today) {}
 
     @GetMapping("/api/me/cover")
-    MyCover cover(@RequestAttribute(DemoAuthFilter.CURRENT_USER) DemoUser me) {
+    MyCover cover(@RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser me) {
         PolicyViews.Detail p = policies.latestForCustomer(me.customerId())
                 .orElseThrow(() -> new NotFoundException("You don't have a policy yet."));
         long due = Math.max(0, p.balanceCents());

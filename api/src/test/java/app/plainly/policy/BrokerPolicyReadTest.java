@@ -5,7 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.IntegrationTest;
-import app.plainly.auth.DemoAuthFilter;
+import app.plainly.AuthTestSupport;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,9 +28,9 @@ class BrokerPolicyReadTest {
     IssuePolicyService.Issued juniper;
 
     @BeforeEach
-    void issueOne() {
+    void issueOne() throws Exception {
         long brokerId = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
-        broker = new Cookie(DemoAuthFilter.COOKIE, Long.toString(brokerId));
+        broker = AuthTestSupport.signInAsBroker(mvc);
         juniper = issue.issue(new IssuePolicyCommand("Read Test Bakery LLC", "a neighborhood bakery", "Maya Okafor",
                 app.plainly.TestData.uniqueEmail("maya"), LocalDate.of(2026, 9, 1), true), brokerId);
     }

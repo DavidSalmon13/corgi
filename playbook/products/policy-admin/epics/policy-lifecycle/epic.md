@@ -22,4 +22,4 @@ A broker can run a General Liability policy from start to finish: issue it, add 
 | 2026-11-22-collect-premium | done | feat/policy-lifecycle/collect-premium · [#35](https://github.com/DavidSalmon13/corgi/pull/35)–[#41](https://github.com/DavidSalmon13/corgi/pull/41) |
 | 2026-11-22-add-coverage | done | feat/policy-lifecycle/add-coverage · [#42](https://github.com/DavidSalmon13/corgi/pull/42)–[#46](https://github.com/DavidSalmon13/corgi/pull/46) |
 | 2026-11-22-correct-effective-date | in-progress | feat/policy-lifecycle/correct-effective-date · [#48](https://github.com/DavidSalmon13/corgi/pull/48) |
-| 2026-11-22-cancel-refund | shaped | feat/policy-lifecycle/cancel-refund |
+| 2026-11-22-cancel-refund | in-progress | feat/policy-lifecycle/cancel-refund · [#50](https://github.com/DavidSalmon13/corgi/pull/50) |

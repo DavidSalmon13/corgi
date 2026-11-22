@@ -49,6 +49,26 @@ function Header({ name }: { name?: string }) {
 const LINK_BUTTON =
   'flex min-h-12 items-center justify-center rounded-xl border-[1.5px] border-line text-base font-semibold text-ink no-underline hover:bg-track';
 
+const NAV_ROW =
+  'flex min-h-14 items-center justify-between gap-3 px-[18px] py-2.5 font-semibold text-ink no-underline hover:bg-track hover:text-ink';
+
+function Chevron() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-none">
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
+/** "See why": into the statement, where the change behind the amount is laid out line by line. */
+function SeeWhy({ label = 'See why' }: { label?: string }) {
+  return (
+    <Link to="/me/statement" className="font-semibold">
+      {label}
+    </Link>
+  );
+}
+
 const PAY_BUTTON =
   'flex min-h-[52px] items-center justify-center rounded-xl bg-accent text-[17px] font-bold text-on-accent no-underline';
 
@@ -126,7 +146,7 @@ function AmountCard({ c }: { c: MyCover }) {
         <p className="m-0 text-[19px] font-medium leading-snug">{refundOnItsWay(c.refundWaiting)}</p>
         <p className="m-0 text-[15px] leading-snug text-ink-2">
           We fixed when your extra cover started, so you'd paid for days you weren't covered. Banks take 5–10 days
-          to show a refund.
+          to show a refund. <SeeWhy />
         </p>
         <BrokerNote c={c} />
       </section>
@@ -153,7 +173,9 @@ function AmountCard({ c }: { c: MyCover }) {
           </StatusPill>
         </span>
         <p className="m-0 text-[19px] font-semibold leading-snug">{copy.headline}</p>
-        <p className="m-0 text-[15px] leading-snug text-ink-2">{copy.body}</p>
+        <p className="m-0 text-[15px] leading-snug text-ink-2">
+          {copy.body} <SeeWhy label="See statement" />
+        </p>
       </section>
     );
   }
@@ -177,7 +199,9 @@ function AmountCard({ c }: { c: MyCover }) {
       <div className="text-[40px] font-bold leading-none tracking-[-0.02em] text-accent-ink">
         <Money cents={c.amountDueCents} /> <span className="text-xl font-semibold">due</span>
       </div>
-      <p className="m-0 text-[17px] leading-snug">{dueReasonText(c.dueReason, c.latestChangeFrom)}</p>
+      <p className="m-0 text-[17px] leading-snug">
+        {dueReasonText(c.dueReason, c.latestChangeFrom)} <SeeWhy />
+      </p>
       {c.dueReason === 'CORRECTION' && <BrokerNote c={c} />}
       <PayAction c={c} label={payLabel(c.amountDueCents)} />
     </section>
@@ -271,10 +295,19 @@ export function HomePage() {
         </ul>
       </section>
 
-      <section aria-label="Your broker" className={`${CARD} flex flex-col px-[18px] py-3.5`}>
-        <span className="font-semibold">Your broker, {c.broker.name}</span>
-        <span className="text-sm text-ink-2">Questions about your cover? Your broker set up this policy and can help.</span>
-      </section>
+      <nav aria-label="More" className={`${CARD} overflow-hidden`}>
+        <Link to="/me/statement" className={NAV_ROW}>
+          <span className="flex flex-col">
+            <span>Statement</span>
+            <span className="text-sm font-normal text-ink-2">Every charge and payment, and how we got each one</span>
+          </span>
+          <Chevron />
+        </Link>
+        <div className="flex flex-col border-t border-line px-[18px] py-3.5">
+          <span className="font-semibold">Your broker, {c.broker.name}</span>
+          <span className="text-sm text-ink-2">Questions about your cover? Your broker set up this policy and can help.</span>
+        </div>
+      </nav>
 
       <div className="flex items-center justify-between gap-3 pt-2 text-[13px] text-ink-2">
         <span className="tabular-nums">Policy {c.policy.policyNumber}</span>

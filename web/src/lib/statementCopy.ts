@@ -29,7 +29,10 @@ export function bannerCopy(banner: Statement['banner']): { title: string; detail
   }
 }
 
+/** The title the line was posted with; a payment still with the bank also names its card, as the settled ones do. */
 export function rowTitle(row: StatementRow): string {
+  const card = row.trace.money?.cardLast4;
+  if (row.pending && row.kind === 'PAYMENT' && row.title === 'Payment' && card) return `Payment, card ending ${card}`;
   return row.title;
 }
 

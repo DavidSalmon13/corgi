@@ -172,6 +172,17 @@ describe('statement rows', () => {
     expect(rowTitle(rebill)).toBe('Extra cover from Oct 8');
   });
 
+  it('names the card on a payment still with the bank', () => {
+    const waiting = row({
+      kind: 'PAYMENT',
+      title: 'Payment',
+      pending: true,
+      status: 'WAITING',
+      trace: { money: { cardLast4: '4242', date: '2026-11-22', status: 'WAITING' } },
+    });
+    expect(rowTitle(waiting)).toBe('Payment, card ending 4242');
+  });
+
   it('shows the arithmetic under a charge, and when it was undone', () => {
     expect(rowNote(rebill)).toBe('$730.00 × 328 ÷ 365');
     expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).toBe('$730.00 × 328 ÷ 365 · undone Nov 5');

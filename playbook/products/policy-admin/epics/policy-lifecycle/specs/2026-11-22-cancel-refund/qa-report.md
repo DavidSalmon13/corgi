@@ -19,7 +19,7 @@
 | AC9 | B3 cancelled: pill, period "(cancelled)", "Refund of … on its way", striped timeline, "unused days refunded" lines | pass | `BrokerPolicyReadTest.aCancelledPolicyShowsItsCancelDayAndACreditLinePerCoverAfterTheCharges`; `policyCopy.ts:12`, `:49-59`; `ledgerRows.ts:52-53` + `ledgerRows.test.ts`; `PolicyWorkspace.tsx:177`, `:219` |
 | AC10 | P1 Cancelled card: refund on its way / sent / still owing with Pay; protection line and period end on cancel day; striped timeline; link to P6 | pass | `MyCoverTest` (3 cancelled cases incl. `anUnpaidCancelledPolicyStillOwesForTheDaysCoveredAndCanPayIt`); `cancelCopy.test.ts` "P1: …"; `myCoverCopy.test.ts` cancelled protection sentence and cover dates; `HomePage.tsx:79-104`, `:233`, `:238`, `:246` |
 | AC11 | P6 at /me/cancellation: title, used/unused bar, credit lines, kept back, money back, refund pill + Stripe sentence; redirect when not cancelled | pass | `cancelCopy.test.ts` "P6: …" (4 tests); `MyCoverTest.onceEveryCancellationRefundSettlesItReadsAsRefundedWithTheDay`; `App.tsx:62`; `CancellationPage.tsx:75`, `:80`, `:149` (redirect), `:152`, `:158`, `:200` |
-| AC12 | Plain language; jargon.test passes | pass | `web/src/jargon.test.ts` scans every `.tsx` and `lib/*Copy.ts`: green |
+| AC12 | Plain language; jargon.test passes | pass | `web/src/jargon.test.ts` scans every `.tsx` and `lib/*Copy.ts`: green; screens checked by eye at 1280 px light and 390 px dark |
 
 ## Checks Run
 
@@ -35,7 +35,8 @@
 
 ## Notes
 
-- **Visual check at 1280 px light and 390 px dark not run.** No browser automation is installed in this repo, and CLAUDE.md rules out global browser skills. The screens use only theme tokens (`bg-card`, `text-ink-2`, `--pl-line`, `--pl-bg`), and the P1/P6 layouts are single-column with `max-w-[480px]`. Someone should still look at B4 Cancel, B3 cancelled, P1 cancelled and P6 in both themes before merging.
+- **App check at 1280 px light and 390 px dark (Playwright, headless Chromium, against the running app):** B3 cancelled (GL-2026-0005), B4 blocked tab, B4 Cancel preview on a paid policy (GL-2026-0003: −$1,101.37, refund $1,101.37, "Cancel policy and refund $1,101.37", Keep the policy) and on an unpaid one (GL-2026-0006: "What Wren still owes", $29.59, "Cancel policy"), P1 cancelled and P6 refund on its way (Robin Vale). Every screen rendered in both themes with no horizontal scroll (scrollWidth = clientWidth) and no page errors. P6 for Maya's active policy redirected to `/me`. A 404 logged once on B3's first load didn't happen again on rerun. Nothing was saved: the previews write nothing, and policy 5 was already cancelled.
+- Cosmetic, not from this spec: B3's month ticks "Nov" and "Dec" crowd together when a policy starts late in a month, and P1's compact timeline labels both ends "Nov 22" when the term runs Nov 22 → Nov 22 (`CoverTimeline` short dates).
 - The screens (`HomePage`, `CancellationPage`, `CancelPolicyForm`, `PolicyWorkspace`, `CoverTimeline`) have no component tests, because the repo has no jsdom/Testing Library setup. All their words come from tested `lib/*Copy.ts` functions.
 - The demo data doesn't contain the worked example's two-cover, $14-kept-back policy. That case is proven by `CancelPolicyServiceTest` and `CancellationEndpointsTest`. The live previews used the single-cover demo policies.
-- Hygiene: T15 (this run) is the only open task. No PR exists yet. `spec.md` still says `> Status: shaped`. `playbook/config.yml` names `default_branch: main`, while the repo works against `dev`.
+- Hygiene: all 15 tasks are done. No PR exists yet. `spec.md` still says `> Status: shaped`. `playbook/config.yml` names `default_branch: main`, while the repo works against `dev`.

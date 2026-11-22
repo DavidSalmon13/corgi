@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import type { MoneyStatus, StatementRow } from '../api/types';
-import { drawerCopy } from '../lib/statementCopy';
+import { drawerCopy, type Audience } from '../lib/statementCopy';
 import { StatusPill, type PillTone } from './StatusPill';
 
 const STATUS_TONE: Record<MoneyStatus, PillTone> = {
@@ -20,6 +20,8 @@ type Props = {
   onClose: () => void;
   /** The amount that opened the drawer, where focus goes back to (AC8). */
   returnTo: HTMLElement | null;
+  /** Whose voice: the policyholder's statement (default) or the broker's history, same numbers either way. */
+  audience?: Audience;
 };
 
 /**
@@ -28,11 +30,11 @@ type Props = {
  * focus inside and makes the page behind it inert; Esc, the close button and a tap outside all close it, and focus
  * goes back to the amount that opened it.
  */
-export function HowWeGotThis({ row, onClose, returnTo }: Props) {
+export function HowWeGotThis({ row, onClose, returnTo, audience = 'policyholder' }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
-  const d = drawerCopy(row);
+  const d = drawerCopy(row, audience);
   const status = row.trace.money?.status ?? null;
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export function HowWeGotThis({ row, onClose, returnTo }: Props) {
                 </div>
               ))}
             </dl>
-            <span className="text-[13px] text-ink-2">Quote these if you ever need to ask us or your bank about this line.</span>
+            <span className="text-[13px] text-ink-2">{d.refsNote}</span>
           </section>
         )}
       </div>

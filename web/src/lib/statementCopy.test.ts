@@ -326,3 +326,74 @@ describe('drawer: when no money moved for the line itself', () => {
     expect(drawerCopy(refund).noMoney).toBeNull();
   });
 });
+
+// covers broker-history AC7, T6 — the same drawer in the broker's voice: same maths and refs, no "you"/"your"
+describe('how we got this, for the broker', () => {
+  const all = [rebill, reversal, payment, refund, row({ kind: 'CREDIT', amountCents: -1_400 })];
+
+  it('keeps the policyholder voice by default', () => {
+    expect(drawerCopy(rebill, 'policyholder')).toEqual(drawerCopy(rebill));
+    expect(drawerCopy(payment).refsNote).toBe('Quote these if you ever need to ask us or your bank about this line.');
+  });
+
+  it('never says "you" or "your"', () => {
+    for (const r of all) {
+      const text = JSON.stringify(drawerCopy(r, 'broker'));
+      expect(text, r.id).not.toMatch(/\byou(r|'re|'ll)?\b/i);
+    }
+  });
+
+  it('shows the same maths, amount and references as the policyholder sees', () => {
+    for (const r of all) {
+      const b = drawerCopy(r, 'broker');
+      const p = drawerCopy(r);
+      expect(b.amount).toBe(p.amount);
+      expect(b.formula).toBe(p.formula);
+      expect(b.refs).toEqual(p.refs);
+      expect(b.reason).toBe(p.reason);
+      expect(b.line).toBe(p.line);
+    }
+  });
+
+  it('explains a change and names the broker who made it', () => {
+    const d = drawerCopy(rebill, 'broker');
+    expect(d.plain).toBe('The right price for the extra cover, now that it starts on Oct 8.');
+    expect(d.actionWhat).toBe('Start date corrected: Oct 15 → Oct 8');
+    expect(d.actionWho).toBe('Sam Reyes · Nov 5, 2026');
+    expect(d.noMoney).toBe('No money moved for this line on its own. It adds to the balance, which the customer pays by card.');
+    expect(drawerCopy(reversal, 'broker').plain).toBe(
+      "An undo of the Oct 15 line, in full. Lines are never edited, so the original stays on the statement.",
+    );
+  });
+
+  it('explains a payment and a refund from the customer side', () => {
+    const p = drawerCopy(payment, 'broker');
+    expect(p.plain).toBe('The customer paid by card.');
+    expect(p.actionWhat).toBe('The customer paid by card');
+    expect(p.actionWho).toBe('Maya Okafor · Oct 15, 2026');
+    expect(p.payment?.what).toBe('Card ending 4242 · Oct 15, 2026');
+    const r = drawerCopy(refund, 'broker');
+    expect(r.plain).toBe('Money owed to the customer, going back to their card.');
+    expect(r.refsNote).toBe('Use these to find this line in Stripe or to quote it to support.');
+  });
+
+  it('words a payment still with the bank for the broker', () => {
+    const waiting = row({
+      id: 'PAY-0004',
+      kind: 'PAYMENT',
+      amountCents: -1_400,
+      pending: true,
+      status: 'WAITING',
+      trace: {
+        maths: { ...noMaths, resultCents: -1_400, balanceBeforeCents: 1_400, balanceAfterCents: 0 },
+        cause: { ...noCause, recordedOn: '2026-11-22', actorName: 'Maya Okafor' },
+        money: { cardLast4: '4242', date: '2026-11-22', status: 'WAITING' },
+      },
+    });
+    const d = drawerCopy(waiting, 'broker');
+    expect(d.plain).toBe("The payment is with the customer's bank.");
+    expect(d.formulaNote).toBe("Not counted in the balance until it's confirmed.");
+    expect(d.payment?.status).toBe('Waiting for the bank');
+    expect(d.payment?.note).toBe('Shown as paid once the bank confirms.');
+  });
+});

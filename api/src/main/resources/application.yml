@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: plainly-api
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/plainly}
+    username: ${DATABASE_USER:plainly}
+    password: ${DATABASE_PASSWORD:plainly}
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: ${PORT:8080}
+
+plainly:
+  # Policy dates are America/New_York calendar days (DECISIONS.md, 2026-11-22).
+  zone: America/New_York
+  # Optional fixed "today" (yyyy-MM-dd) for demos and tests. Empty = the real date.
+  today: ${PLAINLY_TODAY:}

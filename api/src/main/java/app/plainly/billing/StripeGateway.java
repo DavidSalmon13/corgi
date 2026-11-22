@@ -24,13 +24,30 @@ public interface StripeGateway {
     CreatedIntent createPaymentIntent(String stripeCustomerId, long amountCents, String idempotencyKey,
             Map<String, String> metadata);
 
-    /** The client secret of an intent created earlier, so a reopened pay page can carry on with the same intent. */
-    String clientSecret(String paymentIntentId);
+    /**
+     * What Stripe says about an intent created earlier, read fresh. Used to reuse its client secret and to spot money
+     * Stripe already took before its webhook arrives. It never settles a payment: only webhooks do.
+     */
+    IntentState intentState(String paymentIntentId);
+
+    /**
+     * Cancels an intent at Stripe unless money is already moving on it, so an old pay page can't be paid any more.
+     * Returns the intent's state afterwards: "canceled", or the state that stopped the cancel.
+     */
+    IntentState cancelIfUnpaid(String paymentIntentId);
 
     /** Confirms an intent with a card this customer used before. Stripe answers with the intent's new status. */
     ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId);
 
     record CreatedIntent(String id, String clientSecret) {}
+
+    /** An intent as Stripe sees it now. */
+    record IntentState(String status, String clientSecret) {
+        /** The bank has the payment, or already paid it: asking for the money again would charge twice. */
+        public boolean moneyMoving() {
+            return status.equals("processing") || status.equals("succeeded") || status.equals("requires_capture");
+        }
+    }
 
     /** {@code status} is Stripe's (processing, succeeded, requires_action…); never trusted to settle a payment. */
     record ConfirmedIntent(String status, String clientSecret) {}

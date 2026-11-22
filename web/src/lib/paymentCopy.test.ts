@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentSummary } from '../api/types';
 import {
+  SEND_UNKNOWN,
   STRIPE_NOTE,
   firstName,
   homePaymentState,
@@ -135,5 +136,13 @@ describe('P1 payment copy', () => {
       headline: "Your $14.00 payment didn't go through. No money moved.",
       body: 'Your bank declined it. You can try again, or use a different card.',
     });
+  });
+});
+
+// hotfix payment-review-fixes — after the card was sent, an unknown failure may still have moved money
+describe('when sending the card fails for an unknown reason', () => {
+  it("doesn't claim nothing was charged, and says to check before paying again", () => {
+    expect(SEND_UNKNOWN).not.toMatch(/nothing was charged/i);
+    expect(SEND_UNKNOWN).toMatch(/check your cover/i);
   });
 });

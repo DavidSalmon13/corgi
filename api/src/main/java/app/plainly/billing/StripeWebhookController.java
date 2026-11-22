@@ -41,7 +41,13 @@ class StripeWebhookController {
         } catch (SignatureVerificationException e) {
             return badSignature();
         }
-        handler.handle(event);
+        try {
+            handler.handle(event);
+        } catch (WebhookHandler.UnreadableEvent e) {
+            // Nothing was recorded, so Stripe's retry will be handled as new.
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "unreadable_event", "message", "We couldn't read this event yet."));
+        }
         // 200 for every verified event, including repeats and ones we ignore, so Stripe stops retrying.
         return ResponseEntity.ok(Map.of("received", event.getId()));
     }

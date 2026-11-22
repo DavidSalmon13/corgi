@@ -1,11 +1,13 @@
 package app.plainly.billing;
 
 import com.stripe.StripeClient;
+import com.stripe.exception.InvalidRequestException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.PaymentIntentCancelParams;
 import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import java.util.Map;
@@ -15,8 +17,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * The real Stripe, through stripe-java (API version 2026-11-18.endive). Test-mode keys only. With no secret or
- * publishable key configured, payments are switched off rather than failing at startup.
+ * The real Stripe, through stripe-java (API version 2026-11-18.endive). Payments are switched on only when the
+ * secret key, the publishable key and the webhook signing secret are all set and the keys are test-mode keys.
+ * Otherwise the app still starts and says payments are off: without the webhook secret no payment could ever be
+ * recorded, and this demo must never take real money.
  */
 @Component
 class StripeJavaGateway implements StripeGateway {
@@ -27,13 +31,19 @@ class StripeJavaGateway implements StripeGateway {
     private final String publishableKey;
 
     StripeJavaGateway(@Value("${plainly.stripe.secret-key}") String secretKey,
-            @Value("${plainly.stripe.publishable-key}") String publishableKey) {
-        this.client = secretKey.isBlank() || publishableKey.isBlank() ? null : new StripeClient(secretKey);
+            @Value("${plainly.stripe.publishable-key}") String publishableKey,
+            @Value("${plainly.stripe.webhook-secret}") String webhookSecret) {
         this.publishableKey = publishableKey;
-        if (client == null) {
-            log.warn("Stripe keys aren't set (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY): card payments are off");
-        } else if (!secretKey.startsWith("sk_test_")) {
-            log.warn("STRIPE_SECRET_KEY isn't a test-mode key; this app is only meant for Stripe test mode");
+        if (secretKey.isBlank() || publishableKey.isBlank() || webhookSecret.isBlank()) {
+            log.warn("Stripe isn't fully set up (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY and STRIPE_WEBHOOK_SECRET "
+                    + "are all needed): card payments are off");
+            this.client = null;
+        } else if (!secretKey.startsWith("sk_test_") || !publishableKey.startsWith("pk_test_")) {
+            log.error("The Stripe keys aren't test-mode keys (sk_test_…, pk_test_…). This demo only takes test "
+                    + "payments, so card payments are off");
+            this.client = null;
+        } else {
+            this.client = new StripeClient(secretKey);
         }
     }
 
@@ -87,11 +97,31 @@ class StripeJavaGateway implements StripeGateway {
     }
 
     @Override
-    public String clientSecret(String paymentIntentId) {
+    public IntentState intentState(String paymentIntentId) {
         try {
-            return stripe().v1().paymentIntents().retrieve(paymentIntentId).getClientSecret();
+            PaymentIntent intent = stripe().v1().paymentIntents().retrieve(paymentIntentId);
+            return new IntentState(intent.getStatus(), intent.getClientSecret());
         } catch (StripeException e) {
             throw unreachable("retrieve payment intent", e);
+        }
+    }
+
+    @Override
+    public IntentState cancelIfUnpaid(String paymentIntentId) {
+        IntentState now = intentState(paymentIntentId);
+        if (now.moneyMoving() || now.status().equals("canceled")) {
+            return now;
+        }
+        try {
+            PaymentIntent canceled = stripe().v1().paymentIntents().cancel(paymentIntentId,
+                    PaymentIntentCancelParams.builder()
+                            .setCancellationReason(PaymentIntentCancelParams.CancellationReason.ABANDONED).build(),
+                    RequestOptions.builder().setIdempotencyKey("cancel-" + paymentIntentId).build());
+            return new IntentState(canceled.getStatus(), canceled.getClientSecret());
+        } catch (StripeException e) {
+            // The bank may have taken it between our read and the cancel: read again rather than guess.
+            log.info("Couldn't cancel Stripe intent {}: {}", paymentIntentId, e.getMessage());
+            return intentState(paymentIntentId);
         }
     }
 
@@ -105,7 +135,7 @@ class StripeJavaGateway implements StripeGateway {
             // A decline is not an outage: Stripe also sends charge.failed, which settles the payment as FAILED.
             return new ConfirmedIntent("requires_payment_method", null);
         } catch (StripeException e) {
-            throw unreachable("confirm with saved card", e);
+            throw confirmProblem(e);
         }
     }
 
@@ -119,6 +149,20 @@ class StripeJavaGateway implements StripeGateway {
     static PaymentProblem paymentsOff() {
         return new PaymentProblem(503, "payments_off",
                 "Card payments aren't set up on this demo yet, so you can't pay here right now.");
+    }
+
+    /**
+     * Why a saved-card confirm didn't go through. Stripe refusing it because the intent was already paid means an
+     * earlier payment is on its way. Any other failure may have happened after the bank took the money, so it
+     * never claims that nothing was charged.
+     */
+    static PaymentProblem confirmProblem(StripeException e) {
+        if (e instanceof InvalidRequestException && "payment_intent_unexpected_state".equals(e.getCode())) {
+            return PaymentProblem.inFlight();
+        }
+        log.warn("Stripe confirm failed: {} [request {}]", e.getMessage(), e.getRequestId());
+        return new PaymentProblem(502, "confirm_unknown",
+                "We couldn't hear back from your bank. Check your cover in a minute before you try again.");
     }
 
     private static PaymentProblem unreachable(String what, StripeException e) {

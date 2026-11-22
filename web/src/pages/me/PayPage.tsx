@@ -7,7 +7,7 @@ import { api, ApiError } from '../../api/client';
 import type { MyCover, StartedPayment } from '../../api/types';
 import { Mark } from '../../components/Mark';
 import { dueReasonText } from '../../lib/myCoverCopy';
-import { PAYMENTS_OFF, STRIPE_NOTE, payLabel, savedCardLabel } from '../../lib/paymentCopy';
+import { PAYMENTS_OFF, SEND_UNKNOWN, STRIPE_NOTE, payLabel, savedCardLabel } from '../../lib/paymentCopy';
 import { STRIPE_FONTS, stripeAppearance } from '../../lib/stripeAppearance';
 import { PRIMARY, PaymentProgress, SECONDARY, type Submitted } from './PaymentProgress';
 
@@ -203,7 +203,7 @@ function CardForm({
     try {
       await (saved && !useNewCard ? payWithSavedCard() : payWithNewCard());
     } catch (err) {
-      setProblem(startProblem(err)?.message || "We couldn't reach your bank. Nothing was charged. Try again.");
+      setProblem(startProblem(err)?.message || SEND_UNKNOWN);
     } finally {
       setBusy(false);
     }

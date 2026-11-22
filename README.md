@@ -60,7 +60,7 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
    ```bash
    cd api && set -a && . ../.env && set +a && ./gradlew bootRun
    stripe listen --api-key "$STRIPE_SECRET_KEY" \
-     --events payment_intent.processing,charge.succeeded,charge.failed \
+     --events payment_intent.processing,payment_intent.payment_failed,payment_intent.canceled,charge.succeeded,charge.failed \
      --forward-to localhost:8080/api/stripe/webhook
    ```
 4. Sign in as Maya (her first year is due), choose **Pay**, and use a [Stripe test card](https://docs.stripe.com/testing) with any future expiry and any CVC:
@@ -70,4 +70,4 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
 | `4242 4242 4242 4242` | Paid. The next payment offers it as "Card ending 4242 · Used last time". |
 | `4000 0000 0000 0002` | Declined: "Didn't go through", and a $0.00 attempt on the ledger. |
 
-Without Stripe keys the app still runs; the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `charge.succeeded`, `charge.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.
+Payments switch on only when all three `STRIPE_*` values are set and the keys are test-mode keys (`sk_test_…`, `pk_test_…`). Without them the app still runs, and the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.succeeded`, `charge.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.

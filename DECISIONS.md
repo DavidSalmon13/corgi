@@ -121,3 +121,15 @@ Each visit to the pay page asks the API to start a payment. If the owner already
 ## 2026-11-22: The live payment check was run against the API, not by eye
 
 To finish collect-premium (T18), both test suites passed: 126 API tests and 89 web tests. A live pass then ran through `stripe listen` in Stripe test mode, signed in as Maya, with the card confirmed by the Stripe CLI instead of typed into the card form. Card 0002 was declined: the `charge.failed` webhook got a 200, the payment showed as failed, the ledger got a $0.00 attempt line (LE-0006) and $1,200.00 was still due. Card 4242 was paid: the `charge.succeeded` webhook got a 200, the ledger got a −$1,200.00 line (LE-0007) carrying its Stripe event id, nothing was due, the cover page reported the payment as paid with card 4242, and the broker's policy view showed the same lines and a $0 balance. What the P5, P1 and B3 screens show for these states is covered by the web tests. Nobody looked at them in a browser, and the user chose to check them later.
+
+## 2026-11-22: An old pay page can't charge twice, and payments need all three Stripe values
+
+The code and security reviews of the collect-premium PRs found ways money could move without the app keeping up. This hotfix closes them; only webhooks still change a payment's status.
+
+- Before opening a new payment, the API asks Stripe about every earlier intent nobody finished paying, whether open or declined. If the bank already has one (processing or succeeded) and its webhook simply hasn't arrived yet, the new payment is refused as "still on its way". Card payments usually skip `payment_intent.processing`, so the old PROCESSING-only check almost never caught this.
+- The others are cancelled at Stripe, and `payments.stripe_canceled_at` records that we did it, so a pay page left open in another tab can't charge the customer a second time. That is a fact about our request, not a status.
+- The saved card can't pay a replaced payment, or one whose amount no longer matches what's due.
+- Payments switch on only when the secret key, the publishable key and the webhook signing secret are all set, and only with test-mode keys. Without the webhook secret every payment would be charged and never recorded, and this demo must never take real money.
+- After a confirm fails, the app no longer says "Nothing was charged", because it can't know that.
+- `payment_intent.payment_failed` and `payment_intent.canceled` release a payment stuck at PROCESSING.
+- A signed event the API can't read gets 500 and isn't recorded, so Stripe's retry gets a fresh try instead of being ignored as a repeat.

@@ -85,6 +85,32 @@ public final class StripeTestSupport {
                 .formatted(intentId, amountCents));
     }
 
+    /** {@code payment_intent.payment_failed}: the bank said no, possibly with no {@code charge.failed} to follow. */
+    public static String intentPaymentFailed(String eventId, String intentId, long amountCents) {
+        return event(eventId, "payment_intent.payment_failed", """
+                {"id":"%s","object":"payment_intent","amount":%d,"currency":"usd","status":"requires_payment_method","livemode":false}"""
+                .formatted(intentId, amountCents));
+    }
+
+    /** {@code payment_intent.canceled}: the intent can no longer be paid. */
+    public static String intentCanceled(String eventId, String intentId, long amountCents) {
+        return event(eventId, "payment_intent.canceled", """
+                {"id":"%s","object":"payment_intent","amount":%d,"currency":"usd","status":"canceled","livemode":false}"""
+                .formatted(intentId, amountCents));
+    }
+
+    /**
+     * A signed {@code charge.succeeded} we can't read: another API version, so stripe-java won't map it for us,
+     * and an amount that isn't a number, so reading it anyway fails too.
+     */
+    public static String unreadableChargeSucceeded(String eventId, String intentId) {
+        return """
+                {"id":"%s","object":"event","api_version":"2020-08-27","created":%d,"livemode":false,"pending_webhooks":1,
+                 "type":"charge.succeeded","data":{"object":{"id":"ch_bad","object":"charge","amount":"lots",
+                 "payment_intent":"%s"}}}"""
+                .formatted(eventId, Instant.now().getEpochSecond(), intentId);
+    }
+
     /** Any event type Plainly doesn't act on, e.g. {@code customer.created}. */
     public static String otherEvent(String eventId, String type) {
         return event(eventId, type, """

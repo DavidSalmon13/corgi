@@ -5,6 +5,7 @@ import app.plainly.common.NotFoundException;
 import app.plainly.ledger.LedgerQueryService;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -41,7 +42,7 @@ public class PaymentService {
     /** A payment as P1 shows it. */
     public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
 
-    private record OpenPayment(long id, String intentId, long amountCents) {}
+    private record Unfinished(long id, String intentId, long amountCents, String status) {}
 
     private record OwnedPayment(long id, long policyId, String status, String intentId, long amountCents,
             String cardLast4, Instant createdAt) {}
@@ -51,6 +52,11 @@ public class PaymentService {
     /**
      * Opens (or reopens) a payment for the balance due. The policy row is locked so two tabs can't open two
      * intents at once. Reopening the pay page reuses the open intent while the amount is unchanged.
+     *
+     * <p>Before asking for money, every earlier intent nobody has finished paying (OPEN, or declined) is checked
+     * with Stripe. If the bank already has one, the payment is on its way even though its webhook hasn't arrived,
+     * so a second is refused. The rest are cancelled at Stripe, so a pay page left open in another tab can't
+     * charge the customer again. None of this changes a payment's status: only webhooks do.
      */
     @Transactional
     public Started start(SignedInUser me) {
@@ -63,7 +69,7 @@ public class PaymentService {
         boolean inFlight = jdbc.sql("select exists (select 1 from payments where policy_id = ? and status = 'PROCESSING')")
                 .param(policyId).query(Boolean.class).single();
         if (inFlight) {
-            throw new PaymentProblem(409, "payment_in_flight", "Your last payment is still on its way.");
+            throw PaymentProblem.inFlight();
         }
         long due = Math.max(0, ledger.balance(policyId));
         if (due == 0) {
@@ -71,15 +77,33 @@ public class PaymentService {
         }
         SavedCard saved = cardOnFile(me.customerId()).map(c -> new SavedCard(c.brand(), c.last4())).orElse(null);
 
-        Optional<OpenPayment> open = jdbc.sql("""
-                select id, stripe_payment_intent_id, amount_cents from payments
-                where policy_id = ? and status = 'OPEN' order by id desc limit 1""")
+        List<Unfinished> unfinished = jdbc.sql("""
+                select id, stripe_payment_intent_id, amount_cents, status from payments
+                where policy_id = ? and status in ('OPEN', 'FAILED') and stripe_canceled_at is null
+                order by id desc""")
                 .param(policyId)
-                .query((rs, n) -> new OpenPayment(rs.getLong(1), rs.getString(2), rs.getLong(3)))
-                .optional();
-        if (open.isPresent() && open.get().amountCents() == due) {
-            OpenPayment p = open.get();
-            return new Started(p.id(), due, stripe.clientSecret(p.intentId()), stripe.publishableKey(), saved);
+                .query((rs, n) -> new Unfinished(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getString(4)))
+                .list();
+        Started reuse = null;
+        for (Unfinished u : unfinished) {
+            if (reuse == null && u.status().equals("OPEN") && u.amountCents() == due) {
+                StripeGateway.IntentState state = stripe.intentState(u.intentId());
+                if (state.moneyMoving()) {
+                    throw PaymentProblem.inFlight();
+                }
+                if (!state.status().equals("canceled")) {
+                    reuse = new Started(u.id(), due, state.clientSecret(), stripe.publishableKey(), saved);
+                    continue;
+                }
+            }
+            StripeGateway.IntentState after = stripe.cancelIfUnpaid(u.intentId());
+            if (after.moneyMoving()) {
+                throw PaymentProblem.inFlight();
+            }
+            jdbc.sql("update payments set stripe_canceled_at = now() where id = ?").param(u.id()).update();
+        }
+        if (reuse != null) {
+            return reuse;
         }
 
         String customer = stripeCustomer(me.customerId());
@@ -99,6 +123,14 @@ public class PaymentService {
         OwnedPayment payment = owned(me, paymentId);
         if (!payment.status().equals("OPEN")) {
             throw new PaymentProblem(409, "payment_not_open", "This payment has already been sent to your bank.");
+        }
+        // Lock the policy as start() does, so a replacement can't open while this one is being paid.
+        jdbc.sql("select id from policies where id = ? for update").param(payment.policyId()).query(Long.class).single();
+        boolean replaced = jdbc.sql("select stripe_canceled_at is not null from payments where id = ?")
+                .param(payment.id()).query(Boolean.class).single();
+        if (replaced || payment.amountCents() != Math.max(0, ledger.balance(payment.policyId()))) {
+            throw new PaymentProblem(409, "payment_out_of_date",
+                    "What you owe has changed since this page opened. Go back and start again.");
         }
         CardOnFile card = cardOnFile(me.customerId()).orElseThrow(() -> new PaymentProblem(409, "no_saved_card",
                 "There's no card saved from a past payment. Enter your card details instead."));

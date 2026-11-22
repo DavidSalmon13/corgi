@@ -1,7 +1,7 @@
 # Issue a policy
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/policy-lifecycle/issue-policy
 > Covers: /signin, /broker/policies, /broker/policies/new, /broker/policies/:id, /me, api/src/main/java/**/policy/**, api/src/main/java/**/pricing/**, api/src/main/java/**/ledger/**, api/src/main/java/**/auth/**, api/src/main/resources/db/migration/**, web/**, docker-compose.yml
 
@@ -72,3 +72,4 @@ UI reference: `design/plainly/` (SignIn, B1-Policies, B2-NewPolicy, B3-Workspace
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
 | 2026-11-22 | david-schwartzman | change | AC1 (demo role switcher) superseded by 2026-11-22-real-sign-in | [real-sign-in](../2026-11-22-real-sign-in/spec.md) |
+| 2026-11-22 | david-schwartzman | change | Status set to done (merged to dev via #3–#22) | — |

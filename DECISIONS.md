@@ -54,3 +54,7 @@ The app has its own name and look so it doesn't copy Corgi's real branding. "Pla
 ## 2026-11-22: The database blocks edits to ledger rows
 
 Append-only is enforced by a Postgres trigger that rejects any UPDATE or DELETE on ledger entries, not by code convention alone. I picked a trigger over restricted grants (a separate app role allowed only INSERT and SELECT) because it works even when the app connects as the schema owner, which is the simple setup on Railway. Corrections therefore have to post a reversal and a rebill. They can't edit the original line, even by mistake.
+
+## 2026-11-22: Spring Boot 4 instead of Boot 3
+
+The plan said Spring Boot 3, but Spring Initializr no longer offers it, and Boot 3's open-source support has ended. The API uses Spring Boot 4.2 on Java 21 with Gradle 9.9. Nothing in the design changes: Flyway, JdbcClient and Testcontainers work the same way. The visible differences are the renamed starters (`spring-boot-starter-webmvc`, `spring-boot-starter-flyway`) and Jackson 3.

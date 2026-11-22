@@ -35,4 +35,4 @@
 
 - [x] T16 Run the test suites and coverage on changed files (testing skill)
 - [x] T17 Security review of the auth, session and password path (security-reviewer agent)
-- [ ] T18 Run QA against acceptance criteria (qa skill)
+- [x] T18 Run QA against acceptance criteria (qa skill)

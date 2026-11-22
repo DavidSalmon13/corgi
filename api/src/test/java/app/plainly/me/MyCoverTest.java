@@ -4,8 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import app.plainly.IntegrationTest;
 import app.plainly.AuthTestSupport;
+import app.plainly.IntegrationTest;
 import app.plainly.TestData;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;

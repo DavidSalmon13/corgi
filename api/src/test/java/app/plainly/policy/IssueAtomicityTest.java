@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import app.plainly.IntegrationTest;
+import app.plainly.TestData;
 import app.plainly.ledger.LedgerPoster;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ class IssueAtomicityTest {
         long before = rows();
 
         assertThatThrownBy(() -> service.issue(new IssuePolicyCommand("Atomic Bakery LLC", "a bakery", "Ann Owner",
-                app.plainly.TestData.uniqueEmail("ann"), LocalDate.of(2026, 9, 1), true), broker))
+                TestData.uniqueEmail("ann"), LocalDate.of(2026, 9, 1), true), broker))
                 .hasMessageContaining("ledger down");
         assertThat(rows()).isEqualTo(before);
     }

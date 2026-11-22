@@ -50,6 +50,6 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 
 ## Verification
 
-- [ ] T18 Get both test suites green (testing skill). Then do a manual `stripe listen` pass with the 4242 and 0002 cards, checking the P5, P1 and B3 states in the browser.
+- [x] T18 Get both test suites green (testing skill). Then do a manual `stripe listen` pass with the 4242 and 0002 cards, checking the P5, P1 and B3 states in the browser.
 - [ ] T19 Update `playbook/standards/global/tech-stack.md` to the real stack (Spring Boot / Java 21, JdbcClient, Flyway).
 - [ ] T20 Run QA against AC1鈥揂C13 (qa skill).

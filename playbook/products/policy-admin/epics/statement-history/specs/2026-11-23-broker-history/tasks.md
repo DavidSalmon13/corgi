@@ -11,7 +11,7 @@
 - [x] T4 BrokerHistoryController GET /api/broker/policies/{id}/history; BrokerHistoryEndpointTest incl. 403 for a policyholder and 404 for an unknown policy (controller)
 
 ## Web
-- [ ] T5 api/types.ts History types + lib/historyCopy.ts with historyCopy.test.ts first: card titles with IDs, detail lines (sums / Stripe status), status words (Refund failed, decline reason, pending), net wording
+- [x] T5 api/types.ts History types + lib/historyCopy.ts with historyCopy.test.ts first: card titles with IDs, detail lines (sums / Stripe status), status words (Refund failed, decline reason, pending), net wording
 - [ ] T6 drawerCopy(row, audience) broker voice + HowWeGotThis audience prop; statementCopy.test.ts keeps the policyholder output identical and adds broker cases
 - [ ] T7 HistoryPage at /broker/policies/:id/history (App.tsx route, "History" link in PolicyWorkspace Cover timeline header, back link): timeline rail and dots, cards, ledger chips, struck undone chips, retry link on failed refund, light/dark, 390 px stacked
 - [ ] T8 Every amount and ledger chip opens HowWeGotThis (audience="broker") with focus return

@@ -430,3 +430,41 @@ export type Statement = {
   corrections: StatementCorrection[];
   today: IsoDate;
 };
+
+// --- statement.BrokerHistoryController, from GET /api/broker/policies/{id}/history (B5) ---
+
+export type HistoryActionKind = 'CHANGE' | 'PAYMENT' | 'REFUND';
+
+/** Where a payment or refund stands, as the broker needs to know it: unlike MoneyStatus, a failed refund is named. */
+export type HistoryStatus = 'PAID' | 'DECLINED' | 'WAITING' | 'REFUND_SENT' | 'REFUND_ON_ITS_WAY' | 'REFUND_FAILED';
+
+/** One card on the B5 timeline: a policy change, a payment attempt or a refund, with the statement rows behind it. */
+export type HistoryAction = {
+  /** PTX-… for a change, PAY-… for a payment, RF-… for a refund. */
+  id: string;
+  kind: HistoryActionKind;
+  /** ISSUE, ADD_COVERAGE, CORRECT or CANCEL for a change; null otherwise. */
+  changeType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | string | null;
+  date: IsoDate;
+  actorName: string | null;
+  /** The sum of the rows (a correction's net). Positive means the customer owes more. */
+  amountCents: number;
+  /** Money on its way: shown, but not counted in the balance. */
+  pending: boolean;
+  status: HistoryStatus | null;
+  /** Stripe's words for a declined card or a failed refund. */
+  failureReason: string | null;
+  cardLast4: string | null;
+  /** The broker's reason for a correction or cancellation, as written. */
+  reason: string | null;
+  correction: StatementCorrection | null;
+  rows: StatementRow[];
+};
+
+export type History = {
+  businessName: string;
+  policyNumber: string;
+  balanceCents: number;
+  actions: HistoryAction[];
+  today: IsoDate;
+};

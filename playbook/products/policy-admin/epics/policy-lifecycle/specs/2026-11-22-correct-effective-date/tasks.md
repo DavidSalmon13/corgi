@@ -3,6 +3,8 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-correct-effective-date
 > Branch: feat/policy-lifecycle/correct-effective-date
+> Reviewed: 2026-11-22 · code-reviewer · REQUEST CHANGES → HIGH (unclear Stripe answer could refund twice) and both MEDIUMs (stuck PENDING refunds; settle vs correction ordering) fixed in T17–T18; retry audit (LOW) open
+> SecurityReviewed: 2026-11-22 · security-reviewer · FAIL → HIGH and MEDIUM fixed in T17–T18, amount/intent check (LOW) fixed; retried_by audit (LOW) and FAILED-in-cap (INFO) open
 
 ## Failing tests first
 
@@ -26,6 +28,11 @@
 - [x] T12 `ChangePolicyPage.tsx` tabs (Add cover · Correct, per-tab blocked states) + `CorrectCoverForm.tsx` with preview, reason, confirm dialog, 422 mapping (AC1–AC7)
 - [x] T13 `PolicyWorkspace.tsx`: Correct action, saved banner, failed-refund alert + Retry, timeline "was" label; `HomePage.tsx` refund-on-its-way state (AC1, AC7, AC11–AC13)
 - [x] T14 DECISIONS.md: coverage replaced (not edited) on correction; refund sent after commit with per-attempt idempotency key; corrections blocked while a payment is with the bank; REFUND line posted only on webhook success
+
+## Review fixes
+
+- [x] T17 Refund sends never double: `StripeJavaGateway.refundProblem` fails a refund only on a definite 4xx refusal, and a timeout, 5xx, 409 or 429 throws `RefundOutcomeUnknown` and keeps it PENDING. New `StripeGateway.findRefund` lets `RefundService.sendLocked` adopt a Stripe refund already carrying our `refund_id` before creating one (fake gateway honours idempotency keys and can time out)
+- [x] T18 Nothing gets stuck or settles out of order: `RefundSweep` (scheduled, off in tests) calls `RefundService.resendUnsent` over `RefundRepository.findUnsent`, and `send` never throws. `StripeWebhookService` takes `PolicyService.lock` before `RefundService.settle|fail`, which now ignore events whose amount or payment intent isn't ours. `PaymentService` Javadoc put back on the right declarations
 
 ## Verification
 

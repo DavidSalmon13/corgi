@@ -42,3 +42,11 @@
 - **Behaviour beyond the spec text:** P1 keeps showing "We owe you $14.00" while a refund is FAILED and waiting for a retry, as the B3 design says (DECISIONS.md, "P1 shows every unsettled refund").
 - **Local data:** one correction was saved on the local dev database (fictional Fernwood Florist policy, PTX-0007) to check B3. The ledger is append-only, so it stays until `docker compose down -v`.
 - **Hygiene:** T16 is this run. No PR yet (the next step is the pr skill). spec.md `> Status:` still reads `shaped` and should move on when the PR opens. No lint tooling is configured.
+
+## Post-QA review fixes (2026-11-22)
+
+The code and security reviews ran after this QA. Their HIGH and MEDIUM findings were fixed in T17–T18, and AC10's wording was tightened to match (see spec Changelog). AC10 and AC11 were re-checked by tests rather than by a full QA rerun:
+
+- AC10: `RefundServiceTest.aSendWhoseAnswerNeverCameBackStaysPendingInsteadOfFailed`, `.resendingARefundStripeMadeAdoptsItInsteadOfMakingAnother`, `.resendingARefundStripeNeverGotUsesTheSameKey`, `.whenStripeCantBeAskedTheRefundWaitsPendingForTheNextSweep`, `.anEventWhoseAmountOrPaymentDoesntMatchIsIgnored`, `.aRefundWebhookWaitsWhileACorrectionHoldsThePolicy`; `StripeJavaGatewayTest.aRefundStripeRejectsIsRefused`, `.aRefundWeNeverHeardBackAboutIsUnknownNotRefused`
+- AC11: `RefundServiceTest.aRetryAdoptsAnEarlierAttemptStripeStillHolds`; the existing retry tests still pass
+- Both suites green after the fixes (API `./gradlew build`; web build, typecheck and 133 tests)

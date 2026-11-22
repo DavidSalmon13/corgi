@@ -1,7 +1,7 @@
 # Correct a start date
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: in-progress
 > Branch: feat/policy-lifecycle/correct-effective-date
 > Covers: /api/broker/policies/{id}/corrections, /api/broker/policies/{id}/corrections/preview, /api/broker/refunds/{id}/retry, api/src/main/java/**/policy/Correct*.java, api/src/main/java/**/billing/Refund*.java, api/src/main/resources/db/migration/V8__corrections_and_refunds.sql, web/src/lib/correctCopy.ts, web/src/pages/broker/CorrectCoverForm.tsx
 
@@ -42,7 +42,7 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
    It returns 201, and B3 shows a once-only banner: "Saved. Maya now owes $14.00 and we've told her why. Correction PTX-… · undo LE-… · corrected line LE-…".
 8. AC8: No ledger row is ever updated or deleted. A second correction reverses the corrected line, not the original. Two concurrent corrections on the same policy result in one correction; the second gets a 422 or re-validates against the new start.
 9. AC9: Any open (unpaid, not processing) PaymentIntent for the old amount is cancelled when a correction saves, so an old pay page can't pay the wrong amount.
-10. AC10: A refund is recorded as pending in the same transaction as the correction. It is sent to Stripe only after commit, with an idempotency key per refund attempt. A REFUND ledger line (+amount) is posted only when a signed webhook says the refund succeeded, and it traces to the refund and to the Stripe event. Replaying the event posts nothing new. A failed send or a failed-refund event marks the refund as failed, with the reason.
+10. AC10: A refund is recorded as pending in the same transaction as the correction. It is sent to Stripe only after commit, with an idempotency key per refund attempt. A REFUND ledger line (+amount) is posted only when a signed webhook says the refund succeeded, and it traces to the refund and to the Stripe event. Replaying the event posts nothing new. A send Stripe refuses, or a failed-refund event, marks the refund as failed, with the reason. A send whose answer never came back (a timeout or a Stripe outage) stays pending and is sent again with the same key, adopting any refund Stripe already made, so the money never goes out twice.
 11. AC11: B3 lists any failed refund: "The $14.00 refund didn't go through. Stripe couldn't send the money to card ending 4242." It has a **Retry refund** button that sends a new attempt for the same refund. Only a broker can retry (403 for a policyholder).
 12. AC12: The B3 ledger shows the original charge struck through ("Undone by LE-…"), the reversal ("Undo of LE-…") and the corrected line, highlighted together as one correction, with refund lines referencing their refund or Stripe id. The cover timeline shows a single extra-cover bar: "from Oct 8 · was Oct 15".
 13. AC13: On P1, the policyholder sees:
@@ -123,3 +123,5 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 | 2026-11-22 | david-schwartzman | change | Technical Approach and tasks follow the new controller → service → repository standard; depends on chore/api-repository-layer merging first | backend/layers |
 | 2026-11-22 | david-schwartzman | change | Matched names to the layered policy/ledger code on chore/api-repository-layer (findTerm lock, hasPaymentProcessing, PolicyService); billing and me names provisional | backend/layers |
 | 2026-11-22 | david-schwartzman | change | Layering refactor merged to dev: billing and me names confirmed (StripeWebhookService, MyCoverService, PaymentService.cancelOpenIntents extracted from start) | backend/layers |
+| 2026-11-22 | david-schwartzman | change | Status set to in-progress: all 16 tasks done, QA PASS WITH NOTES, PR opened against dev | — |
+| 2026-11-22 | david-schwartzman | change | AC10: only a definite Stripe refusal fails a refund; an unclear send stays pending and is resent with the same key (code + security review HIGH) | T17, T18 |

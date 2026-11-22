@@ -1,4 +1,4 @@
-# Product Mission
+# Product Mission: Plainly
 
 > Customer: [../../customer/overview.md](../../customer/overview.md) · Ecosystem: n/a (single product) — product: policy-admin
 

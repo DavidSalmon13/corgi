@@ -10,7 +10,7 @@ Of the three tracks, policy administration has the fewest external moving parts 
 
 The recruiter said the reviewers care strongly about a clean, easy-to-understand interface that shows creativity, especially in insurance. UI work gets real time in the plan, not just whatever is left at the end.
 
-## 2026-11-22: Initial assumptions (to confirm during planning)
+## 2026-11-22: Initial assumptions (confirmed 2026-11-22, see "Pricing rules confirmed" below)
 
 - **Product:** one product, General Liability. Fictional pricing: base $1,200/year; one add-on at $730/year ($2.00/day).
 - **Pro-rata:** annual premium × days covered ÷ days in term. Dates are end-exclusive, and each ledger line is rounded half-up to the cent once.
@@ -38,3 +38,15 @@ The app never marks a payment as succeeded or failed because the browser said so
 ## 2026-11-22: Policyholder persona is a small-business owner
 
 The brief says "customer" and "policyholder" but doesn't say who they are. Because this is commercial insurance, the insured party is a business, not a person. The customer record is the business (legal name, address), and its owner is the contact person who signs in, pays and gets emails. All policyholder-facing copy is written for an owner with no insurance background. Multiple locations, users or policies per business are left out.
+
+## 2026-11-22: Pricing rules confirmed, and which are simplified
+
+I kept the initial assumptions. The rules that follow real practice: charging by the day for mid-term changes; counting days the way a 12:01 a.m. start-to-12:01 a.m. end policy does (Sep 1 → Sep 1 = 365 days); taking any unpaid amount off a refund; and correcting by undoing the original line and recharging. The simplifications: prices are made up and flat (a real price depends on business type, revenue and location; $730 for the extra cover was picked because it is exactly $2.00 a day, so a reviewer can check it by hand); and every cancellation refunds unused days in full with no fee. In real commercial insurance, a cancellation the customer asks for often keeps a penalty (short-rate) or a minimum premium. Rounding each line once is a billing convention I chose so that lines always add up to the total shown.
+
+## 2026-11-22: A correction that lowers the price is refunded automatically
+
+When a correction reduces what the customer owes (for example, the extra cover's start moves later), the difference first pays off any open balance, and the rest is refunded to the customer's card through Stripe straight away. Refunds start with the most recent payment, and no single refund exceeds what that payment collected. The broker's confirm screen previews the refund, so confirming the correction counts as approving it; there's no separate approval step. I chose this over keeping a credit balance because it matches how insurers usually return money they owe, the customer isn't left with money sitting idle, and the refund traces to a Stripe event like every other amount. Refunds that fail are shown to the broker to retry.
+
+## 2026-11-22: The app is called Plainly
+
+The app has its own name and look so it doesn't copy Corgi's real branding. "Plainly" says what the product promises: insurance explained in plain language. A warm amber accent is the only nod to a corgi. The internal product slug stays `policy-admin`.

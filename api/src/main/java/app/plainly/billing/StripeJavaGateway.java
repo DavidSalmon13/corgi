@@ -87,6 +87,15 @@ class StripeJavaGateway implements StripeGateway {
     }
 
     @Override
+    public String clientSecret(String paymentIntentId) {
+        try {
+            return stripe().v1().paymentIntents().retrieve(paymentIntentId).getClientSecret();
+        } catch (StripeException e) {
+            throw unreachable("retrieve payment intent", e);
+        }
+    }
+
+    @Override
     public ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId) {
         try {
             PaymentIntent intent = stripe().v1().paymentIntents().confirm(paymentIntentId,

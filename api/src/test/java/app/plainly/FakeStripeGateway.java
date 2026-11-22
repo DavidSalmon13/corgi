@@ -51,6 +51,11 @@ public class FakeStripeGateway implements StripeGateway {
     }
 
     @Override
+    public String clientSecret(String paymentIntentId) {
+        return paymentIntentId + "_secret_fake";
+    }
+
+    @Override
     public ConfirmedIntent confirmWithSavedCard(String paymentIntentId, String paymentMethodId) {
         confirms.add(new ConfirmCall(paymentIntentId, paymentMethodId));
         return new ConfirmedIntent("processing", paymentIntentId + "_secret_fake");

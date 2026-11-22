@@ -59,6 +59,7 @@ describe('add cover copy', () => {
   it('confirms the save with the new balance', () => {
     expect(savedBanner('Maya Okafor', 184_200)).toBe('Extra cover added. Maya now owes $1,842.00.');
     expect(savedBanner('Maya Okafor', 0)).toBe('Extra cover added. Maya has nothing to pay right now.');
+    expect(savedBanner('  ', 58_000)).toBe('Extra cover added. The customer now owes $580.00.');
   });
 
   it('says when the extra cover runs to', () => {

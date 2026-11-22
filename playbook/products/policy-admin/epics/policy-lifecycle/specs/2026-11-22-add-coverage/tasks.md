@@ -30,5 +30,5 @@
 
 ## Verification
 
-- [ ] T13 Run the test suites and coverage on changed files (testing skill)
+- [x] T13 Run the test suites and coverage on changed files (testing skill)
 - [ ] T14 Run QA against acceptance criteria (qa skill)

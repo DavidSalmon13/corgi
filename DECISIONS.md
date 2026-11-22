@@ -58,3 +58,7 @@ Append-only is enforced by a Postgres trigger that rejects any UPDATE or DELETE 
 ## 2026-11-22: Spring Boot 4 instead of Boot 3
 
 The plan said Spring Boot 3, but Spring Initializr no longer offers it, and Boot 3's open-source support has ended. The API uses Spring Boot 4.2 on Java 21 with Gradle 9.9. Nothing in the design changes: Flyway, JdbcClient and Testcontainers work the same way. The visible differences are the renamed starters (`spring-boot-starter-webmvc`, `spring-boot-starter-flyway`) and Jackson 3.
+
+## 2026-11-22: A policy must start within a year of today
+
+The brief doesn't limit start dates. A start date more than a year in the past or the future is almost always a typo (2062 for 2026), and it would issue a policy that has already ended or that bills a year early. So the form asks for a start within a year of today, either way. Backdating within that window is allowed, because brokers often record cover that began a few weeks earlier.

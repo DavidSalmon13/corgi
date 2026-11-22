@@ -20,7 +20,7 @@
 
 ## Issue a policy (API)
 
-- [ ] T8 `policy.IssuePolicyService`: shared `buildIssue`, `preview` (no writes) and `@Transactional issue`; tests: preview equals issued amounts, all rows written atomically, validation errors per field (AC2–AC6)
+- [x] T8 `policy.IssuePolicyService`: shared `buildIssue`, `preview` (no writes) and `@Transactional issue`; tests: preview equals issued amounts, all rows written atomically, validation errors per field (AC2–AC6)
 - [ ] T8.1 `POST /api/broker/policies/preview` and `POST /api/broker/policies` with a field-error response shape
 - [ ] T9 `GET /api/broker/policies` (balance, status, last action, owes-money flag) and `GET /api/broker/policies/{id}` (header, coverages, ledger lines)
 - [ ] T10 Demo auth: `GET /api/demo/users`, `POST /api/demo/session`, cookie filter, BROKER/POLICYHOLDER guards, owner user created on issue; tests for 403s (AC1)

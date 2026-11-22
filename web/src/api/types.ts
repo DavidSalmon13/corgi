@@ -84,10 +84,36 @@ export type IssueRequest = {
 
 export type Issued = { policyId: number; policyNumber: string; transactionDisplayId: string; totalCents: number };
 
+/** The arithmetic behind a charge: annualCents × days ÷ termDays, rounded once. */
+export type ChargeCalc = { annualCents: number; days: number; termDays: number; amountCents: number };
+
+/** POST /api/broker/policies/{id}/coverages(/preview) body. The date is yyyy-MM-dd. */
+export type AddCoverRequest = { kind: CoverKind; startDate: string };
+
+/** policy.AddCoveragePlan: what adding extra cover would charge. */
+export type AddCoverPlan = {
+  policyId: number;
+  kind: CoverKind;
+  label: string;
+  from: IsoDate;
+  to: IsoDate;
+  calc: ChargeCalc;
+  totalCents: number;
+};
+
+/** policy.AddCoverageService.Added: what adding saved, and the policy's new balance. */
+export type CoverAdded = {
+  policyId: number;
+  transactionDisplayId: string;
+  entries: { id: number; displayId: string }[];
+  totalCents: number;
+  balanceCents: number;
+};
+
 /** 422 body from ApiErrorHandler. */
 export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
 
-export type DueReason = 'FIRST_YEAR' | 'CHANGE' | 'NOTHING_DUE';
+export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CHANGE' | 'NOTHING_DUE';
 
 /** me.MyCoverController.MyCover, from GET /api/me/cover. */
 export type MyCover = {
@@ -96,6 +122,8 @@ export type MyCover = {
   covers: Coverage[];
   amountDueCents: number;
   dueReason: DueReason;
+  /** The day the newest change after issuing starts; null when nothing has changed. */
+  latestChangeFrom: IsoDate | null;
   broker: { name: string };
   today: IsoDate;
   /** The latest payment the owner submitted; null before their first one. */

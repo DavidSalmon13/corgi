@@ -9,6 +9,12 @@ describe('policyholder home copy', () => {
     expect(dueReasonText('NOTHING_DUE')).toBe('');
   });
 
+  // covers add-coverage AC9, T3
+  it('says new extra cover is why more is due, and from when', () => {
+    expect(dueReasonText('EXTRA_COVER', '2026-10-15')).toBe('Your new extra cover, charged by the day from Oct 15.');
+    expect(dueReasonText('EXTRA_COVER', null)).toBe('Your new extra cover, charged by the day.');
+  });
+
   it('builds the protection sentence from what the business does', () => {
     expect(protectionSentence('Bakery and café', false)).toBe(
       "You're covered if someone is hurt or their property is damaged because of your business (bakery and café).",

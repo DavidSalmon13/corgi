@@ -119,7 +119,7 @@ function AmountCard({ c }: { c: MyCover }) {
       <div className="text-[40px] font-bold leading-none tracking-[-0.02em] text-accent-ink">
         <Money cents={c.amountDueCents} /> <span className="text-xl font-semibold">due</span>
       </div>
-      <p className="m-0 text-[17px] leading-snug">{dueReasonText(c.dueReason)}</p>
+      <p className="m-0 text-[17px] leading-snug">{dueReasonText(c.dueReason, c.latestChangeFrom)}</p>
       <PayAction c={c} label={payLabel(c.amountDueCents)} />
     </section>
   );

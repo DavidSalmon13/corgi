@@ -1,0 +1,20 @@
+# Local Postgres for the Plainly API. Fictional data only.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-plainly}
+      POSTGRES_USER: ${DATABASE_USER:-plainly}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-plainly}
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  pgdata:

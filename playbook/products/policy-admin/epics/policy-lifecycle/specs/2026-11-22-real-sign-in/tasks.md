@@ -7,11 +7,11 @@
 ## Tests first (TDD)
 
 - [x] T1 Write failing `AuthTest` (api/src/test/java/app/plainly/auth/): sign-in ok, wrong password and unknown email both 401 with the same body, sign-up ok, unknown email, already signed up, broker email refused, short and mismatched passwords, session cookie flags, edited/expired/old demo cookie → 401, sign-out kills the token, role 403s (AC1–AC10)
-- [ ] T2 Write a failing duplicate-owner-email test in `IssuePolicyServiceTest` and `BrokerIssueEndpointsTest` (AC6), plus `TestData.uniqueEmail()` and an `AuthTestSupport.signIn` helper
+- [x] T2 Write a failing duplicate-owner-email test in `IssuePolicyServiceTest` and `BrokerIssueEndpointsTest` (AC6), plus `TestData.uniqueEmail()` and an `AuthTestSupport.signIn` helper
 
 ## Backend
 
-- [ ] T3 Add `spring-security-crypto` to api/build.gradle.kts
+- [x] T3 Add `spring-security-crypto` to api/build.gradle.kts
 - [ ] T4 Migration `V5__accounts_and_sessions.sql`: user email/password_hash/signed_up_at, lower(email) unique, sessions table, unique lower(owner_email), Sam's email and demo hash
 - [ ] T5 `Passwords` and `Sessions` (hashed random tokens, 7-day expiry, end on sign-out)
 - [ ] T6 `Accounts` (from DemoUsers) with `signUp` claiming the unclaimed owner row in one transaction

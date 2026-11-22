@@ -59,20 +59,21 @@ class AuthController {
     @DeleteMapping("/session")
     ResponseEntity<Void> signOut(HttpServletRequest request) {
         AuthFilter.token(request).ifPresent(sessions::end);
-        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie("", 0)).build();
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookie("", 0, request)).build();
     }
 
     /** Ends any session the browser already had (no session fixation), then starts a fresh one. */
     private ResponseEntity<SignedInUser> startSession(SignedInUser user, HttpServletRequest request) {
         AuthFilter.token(request).ifPresent(sessions::end);
         String token = sessions.create(user.id());
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(token, Sessions.LIFETIME.toSeconds())).body(user);
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie(token, Sessions.LIFETIME.toSeconds(), request)).body(user);
     }
 
-    private String cookie(String value, long maxAgeSeconds) {
+    /** Secure whenever the request came over HTTPS (Railway's proxy headers are trusted), or when configured. */
+    private String cookie(String value, long maxAgeSeconds, HttpServletRequest request) {
         return ResponseCookie.from(AuthFilter.COOKIE, value)
                 .httpOnly(true)
-                .secure(secureCookie)
+                .secure(secureCookie || request.isSecure())
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(maxAgeSeconds)

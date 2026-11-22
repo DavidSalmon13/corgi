@@ -87,5 +87,9 @@ Sign-up finds the policy by the email the broker entered, so two customers can't
 
 ## 2026-11-22: CSRF and brute force, for the trial
 
-The session cookie is SameSite=Lax, and every endpoint that changes something takes a JSON body, which a form on another site can't send with the cookie. That is the CSRF protection; there are no CSRF tokens. There's no lockout or rate limit on sign-in. BCrypt makes each guess slow, but production would need rate limiting by account and by IP before launch.
+The session cookie is SameSite=Lax, and every endpoint that changes something takes a JSON body, which a form on another site can't send with the cookie. That is the CSRF protection; there are no CSRF tokens. There's no lockout or rate limit on sign-in. BCrypt makes each guess slow, but that also makes sign-in an easy way to load the CPU, so production would need rate limiting by account and by IP before launch.
+
+## 2026-11-22: The demo broker login exists on every deploy
+
+The brief asks for demo credentials for both roles on the deployed app, so the V5 migration gives the broker Sam Reyes the public password `plainly-demo-2026` on every database, and the seed that signs Maya up is on by default (`PLAINLY_DEMO_SEED`). Anyone with the README can therefore sign in as a broker, read every policy and issue new ones, on fictional data. That is the point of this deploy, but it means this build must never hold real customers: a real launch would create brokers through an admin flow, drop Sam's known password, and turn the seed off. The security review (T17) flagged this; I kept it deliberately.
 

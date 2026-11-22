@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +35,16 @@ public class Accounts {
         this.passwords = passwords;
     }
 
+    private static final Pattern EDGE_SPACE = Pattern.compile("^[\\s\\p{Z}]+|[\\s\\p{Z}]+$");
+
+    /** Removes spaces of any kind (tabs, non-breaking spaces) from both ends, keeping the case. */
+    public static String trim(String email) {
+        return email == null ? "" : EDGE_SPACE.matcher(email).replaceAll("");
+    }
+
     /** Emails are compared trimmed and lower-case, the way they're stored. */
     public static String normalize(String email) {
-        return email == null ? "" : email.strip().toLowerCase(Locale.ROOT);
+        return trim(email).toLowerCase(Locale.ROOT);
     }
 
     public Optional<SignedInUser> find(long id) {

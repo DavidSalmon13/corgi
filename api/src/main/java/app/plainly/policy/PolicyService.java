@@ -73,7 +73,7 @@ public class PolicyService {
 
     private Optional<PolicyViews.Detail> find(long policyId) {
         return policies.findHead(policyId).map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(),
-                h.end(), today.date(), h.customer(), ledger.balance(policyId), policies.hasPaymentProcessing(policyId),
+                h.end(), h.cancelledOn(), today.date(), h.customer(), ledger.balance(policyId), policies.hasPaymentProcessing(policyId),
                 coverages.listForPolicy(policyId), ledger.lines(policyId), transactions.listForPolicy(policyId),
                 refunds.listForPolicy(policyId)));
     }

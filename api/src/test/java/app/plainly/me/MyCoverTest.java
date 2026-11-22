@@ -8,11 +8,14 @@ import app.plainly.AuthTestSupport;
 import app.plainly.CorrectionTestData;
 import app.plainly.CorrectionTestData.Paid;
 import app.plainly.FakeStripeGateway;
+import app.plainly.PaymentTestData;
 import app.plainly.IntegrationTest;
 import app.plainly.StripeTestSupport;
 import app.plainly.TestData;
 import app.plainly.policy.AddCoverageCommand;
 import app.plainly.policy.AddCoverageService;
+import app.plainly.policy.CancelPolicyCommand;
+import app.plainly.policy.CancelPolicyService;
 import app.plainly.policy.CorrectCoverageCommand;
 import app.plainly.policy.CorrectCoverageService;
 import app.plainly.policy.CoverKind;
@@ -26,7 +29,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
-// covers AC10, T11; correct-effective-date AC13, T2
+// covers AC10, T11; correct-effective-date AC13, T2; cancel-refund AC10, AC11, T7
 @IntegrationTest
 @AutoConfigureMockMvc
 class MyCoverTest {
@@ -37,6 +40,7 @@ class MyCoverTest {
     @Autowired AddCoverageService addCover;
     @Autowired CorrectCoverageService corrector;
     @Autowired FakeStripeGateway stripe;
+    @Autowired CancelPolicyService canceller;
 
     /** Issues a policy, then signs its owner up with the email the broker entered, as a real owner would. */
     Cookie ownerOf(String business, boolean extra) throws Exception {
@@ -157,5 +161,103 @@ class MyCoverTest {
                 .andExpect(jsonPath("$.amountDueCents").value(0))
                 .andExpect(jsonPath("$.refundWaiting.amountCents").value(1400))
                 .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"));
+    }
+
+    // --- cancel-refund AC10, AC11, T7: what P1 and P6 read once the policy is cancelled ---
+
+    static final LocalDate DEC_1 = LocalDate.of(2026, 12, 1);
+
+    /** The spec's worked example: all paid, extra cover corrected to Oct 8 ($14.00 owed), cancelled from Dec 1. */
+    CancelPolicyService.Cancelled cancelWorkedExample(Paid paid) {
+        long broker = CorrectionTestData.brokerId(jdbc);
+        corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_8,
+                CorrectionTestData.REASON), broker);
+        return canceller.cancel(paid.owner().policyId(), new CancelPolicyCommand(DEC_1, "Closing the bakery."), broker);
+    }
+
+    @Test
+    void aCancelledPolicyShowsHowTheRefundWasWorkedOutWhileItIsOnItsWay() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Cancelled Home LLC");
+        cancelWorkedExample(paid);
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.policy.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.policy.cancelledOn").value("2026-12-01"))
+                .andExpect(jsonPath("$.policy.end").value("2027-09-01"))
+                .andExpect(jsonPath("$.amountDueCents").value(0))
+                .andExpect(jsonPath("$.dueReason").value("NOTHING_DUE"))
+                .andExpect(jsonPath("$.cancellation.endsOn").value("2026-12-01"))
+                .andExpect(jsonPath("$.cancellation.reason").value("Closing the bakery."))
+                .andExpect(jsonPath("$.cancellation.usedDays").value(91))
+                .andExpect(jsonPath("$.cancellation.unusedDays").value(274))
+                .andExpect(jsonPath("$.cancellation.termDays").value(365))
+                .andExpect(jsonPath("$.cancellation.credits.length()").value(2))
+                .andExpect(jsonPath("$.cancellation.credits[0].kind").value("BASE"))
+                .andExpect(jsonPath("$.cancellation.credits[0].annualCents").value(120000))
+                .andExpect(jsonPath("$.cancellation.credits[0].days").value(274))
+                .andExpect(jsonPath("$.cancellation.credits[0].amountCents").value(-90082))
+                .andExpect(jsonPath("$.cancellation.credits[1].kind").value("PRODUCT_LIABILITY"))
+                .andExpect(jsonPath("$.cancellation.credits[1].amountCents").value(-54800))
+                .andExpect(jsonPath("$.cancellation.keptBackCents").value(1400))
+                .andExpect(jsonPath("$.cancellation.keptBackFor").value("CORRECT"))
+                .andExpect(jsonPath("$.cancellation.refundCents").value(143482))
+                .andExpect(jsonPath("$.cancellation.refundStatus").value("PENDING"))
+                .andExpect(jsonPath("$.cancellation.cardLast4").value("4242"))
+                .andExpect(jsonPath("$.cancellation.settledOn").doesNotExist())
+                // the refund still reads as money on its way, next to the cancelled state
+                .andExpect(jsonPath("$.refundWaiting.amountCents").value(143482))
+                .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"));
+    }
+
+    @Test
+    void onceEveryCancellationRefundSettlesItReadsAsRefundedWithTheDay() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Refunded Home LLC");
+        CancelPolicyService.Cancelled saved = cancelWorkedExample(paid);
+
+        for (var r : saved.refunds()) {
+            var row = jdbc.sql("""
+                    select r.id, r.stripe_refund_id, p.stripe_payment_intent_id from refunds r
+                    join payments p on p.id = r.payment_id where r.display_id = ?""")
+                    .param(r.displayId())
+                    .query((rs, n) -> new Object[] {rs.getLong(1), rs.getString(2), rs.getString(3)}).single();
+            mvc.perform(StripeTestSupport.delivery(StripeTestSupport.refundSucceeded(StripeTestSupport.newEventId(),
+                    (String) row[1], (Long) row[0], (String) row[2], r.amountCents()))).andExpect(status().isOk());
+        }
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(jsonPath("$.cancellation.refundCents").value(143482))
+                .andExpect(jsonPath("$.cancellation.refundStatus").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.cancellation.settledOn").value("2026-11-22"))
+                .andExpect(jsonPath("$.refundWaiting").doesNotExist())
+                .andExpect(jsonPath("$.amountDueCents").value(0));
+    }
+
+    @Test
+    void anUnpaidCancelledPolicyStillOwesForTheDaysCoveredAndCanPayIt() throws Exception {
+        PaymentTestData.Owner owner = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issue, "Still Owes Home LLC");
+        canceller.cancel(owner.policyId(), new CancelPolicyCommand(DEC_1, "Closing the bakery."),
+                CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+                .andExpect(jsonPath("$.amountDueCents").value(29918))
+                .andExpect(jsonPath("$.dueReason").value("CANCELLATION"))
+                .andExpect(jsonPath("$.cancellation.usedDays").value(91))
+                .andExpect(jsonPath("$.cancellation.keptBackCents").value(90082))
+                .andExpect(jsonPath("$.cancellation.keptBackFor").value("ISSUE"))
+                .andExpect(jsonPath("$.cancellation.refundCents").value(0))
+                .andExpect(jsonPath("$.cancellation.refundStatus").doesNotExist())
+                .andExpect(jsonPath("$.refundWaiting").doesNotExist());
+
+        // Paying what's left still works on a cancelled policy.
+        PaymentTestData.Started started = PaymentTestData.startPayment(mvc, jdbc, owner);
+        org.assertj.core.api.Assertions.assertThat(started.amountCents()).isEqualTo(29918);
+    }
+
+    @Test
+    void anActivePolicyHasNoCancellation() throws Exception {
+        mvc.perform(get("/api/me/cover").cookie(ownerOf("Still Active Home LLC", false)))
+                .andExpect(jsonPath("$.policy.cancelledOn").doesNotExist())
+                .andExpect(jsonPath("$.cancellation").doesNotExist());
     }
 }

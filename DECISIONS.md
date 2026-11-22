@@ -199,3 +199,7 @@ This replaces part of "A refund already promised isn't planned again": Stripe be
 ## 2026-11-22: Cancelling: open payments are cancelled before anything is written, and "kept back" names the latest change
 
 The cancel save calls `cancelOpenIntents` before inserting the CANCEL transaction, the same order as a correction, so a payment found with the bank stops the save before any write (the spec listed it after the writes; the outcome is the same because the transaction rolls back either way). The preview's "Unpaid balance kept back" line needs to say what that balance is for, so the plan carries `keptBackFor`: the type of the newest policy change (ISSUE, ADD_COVERAGE, CORRECT), the same rule P1 already uses for "why you owe". It is null when nothing is kept back.
+
+## 2026-11-22: P1 and P6 read a cancellation back from what it posted
+
+`MyCoverService` builds the `cancellation` block from the CANCEL transaction, its CREDIT lines and the refunds recorded against it, rather than storing a summary, so P6 can never disagree with the statement. A failed cancellation refund still reads as PENDING ("Refund on its way") to the customer, because the broker retries it and the money is still owed, the same rule as `refundWaiting`. `settledOn` is the day of the last REFUND line, posted only by a signed webhook.

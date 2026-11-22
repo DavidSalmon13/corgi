@@ -19,7 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
-// covers AC8, AC9, T9; correct-effective-date AC7, AC11, AC12, T2
+// covers AC8, AC9, T9; correct-effective-date AC7, AC11, AC12, T2; cancel-refund AC9, T7
 @IntegrationTest
 @AutoConfigureMockMvc
 class BrokerPolicyReadTest {
@@ -29,6 +29,7 @@ class BrokerPolicyReadTest {
     @Autowired IssuePolicyService issue;
     @Autowired AddCoverageService addCover;
     @Autowired CorrectCoverageService corrector;
+    @Autowired CancelPolicyService canceller;
 
     Cookie broker;
     IssuePolicyService.Issued juniper;
@@ -193,5 +194,46 @@ class BrokerPolicyReadTest {
                 .andExpect(jsonPath(refundLine + ".refundDisplayId").value(refund))
                 .andExpect(jsonPath(refundLine + ".stripeRefundId").value(stripeRefundId))
                 .andExpect(jsonPath(refundLine + ".stripeEventId").value(eventId));
+    }
+
+    // --- cancel-refund AC9, T7: a cancelled policy keeps its term, says its cancel day, and lists its credits ---
+
+    @Test
+    void aCancelledPolicyShowsItsCancelDayAndACreditLinePerCoverAfterTheCharges() throws Exception {
+        long brokerId = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
+        CancelPolicyService.Cancelled saved = canceller.cancel(juniper.policyId(),
+                new CancelPolicyCommand(LocalDate.of(2026, 12, 1), "Closing the bakery."), brokerId);
+        String base = "$.ledger[?(@.displayId == '" + saved.creditDisplayIds().get(0) + "')]";
+        String extra = "$.ledger[?(@.displayId == '" + saved.creditDisplayIds().get(1) + "')]";
+
+        mvc.perform(get("/api/broker/policies/" + juniper.policyId()).cookie(broker))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.start").value("2026-09-01"))
+                .andExpect(jsonPath("$.end").value("2027-09-01"))
+                .andExpect(jsonPath("$.cancelledOn").value("2026-12-01"))
+                .andExpect(jsonPath("$.balanceCents").value(193000 - 90082 - 54800))
+                .andExpect(jsonPath("$.ledger.length()").value(4))
+                .andExpect(jsonPath("$.ledger[0].type").value("CHARGE"))
+                .andExpect(jsonPath("$.ledger[0].reversedByDisplayId").doesNotExist())
+                .andExpect(jsonPath("$.ledger[2].displayId").value(saved.creditDisplayIds().get(0)))
+                .andExpect(jsonPath(base + ".type").value("CREDIT"))
+                .andExpect(jsonPath(base + ".description").value("Base cover, unused days"))
+                .andExpect(jsonPath(base + ".amountCents").value(-90082))
+                .andExpect(jsonPath(base + ".calcAnnualCents").value(120000))
+                .andExpect(jsonPath(base + ".calcDays").value(274))
+                .andExpect(jsonPath(base + ".calcTermDays").value(365))
+                .andExpect(jsonPath(base + ".coverFrom").value("2026-12-01"))
+                .andExpect(jsonPath(base + ".policyTransactionDisplayId").value(saved.transactionDisplayId()))
+                .andExpect(jsonPath(extra + ".description").value("Extra cover, unused days"))
+                .andExpect(jsonPath(extra + ".amountCents").value(-54800))
+                .andExpect(jsonPath("$.transactions[?(@.type == 'CANCEL')].effectiveDate").value("2026-12-01"))
+                .andExpect(jsonPath("$.transactions[?(@.type == 'CANCEL')].reason").value("Closing the bakery."));
+    }
+
+    @Test
+    void anActivePolicyHasNoCancelDay() throws Exception {
+        mvc.perform(get("/api/broker/policies/" + juniper.policyId()).cookie(broker))
+                .andExpect(jsonPath("$.cancelledOn").doesNotExist());
     }
 }

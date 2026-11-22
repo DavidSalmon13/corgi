@@ -32,7 +32,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 
 ## Web
 
-- [ ] T11 Add `@stripe/stripe-js` and `@stripe/react-stripe-js`, and write `web/src/lib/paymentCopy.ts` with the P5 and P1 copy.
+- [x] T11 Add `@stripe/stripe-js` and `@stripe/react-stripe-js`, and write `web/src/lib/paymentCopy.ts` with the P5 and P1 copy.
 - [ ] T12 Add `web/src/pages/me/PayPage.tsx` (P5) with the card form, the saved card and the Payment Element, plus the `/me/pay` route.
 - [ ] T13 Add the waiting, paid and didn't-go-through states to PayPage, with polling.
 - [ ] T14 Add the pay button and the waiting and failed states (P1) to the HomePage `AmountCard`.

@@ -40,6 +40,8 @@ chore: bump CI node version
 
 ## Pull requests
 
+- **At most 10 changed files per PR.** Ship a spec in several small PRs (one or a few tasks each) rather than one large one. If a slice would go over 10 files, split it before opening the PR.
+- **Start the PR body with one paragraph explaining what the PR does**, in plain words: what changes for the user or the system, and why. Put it above the spec, tasks and acceptance-criteria sections.
 - Open PRs with the **pr** skill — it runs verification, builds the title (`feat(<epic-slug>): <spec title>` / `fix(<epic-slug>): <bug title>`) and body from the spec, and writes the PR URL back to `tasks.md`.
 - Tasks incomplete → open as draft.
 

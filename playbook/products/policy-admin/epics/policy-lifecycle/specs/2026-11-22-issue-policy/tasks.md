@@ -6,16 +6,16 @@
 
 ## Scaffolding
 
-- [ ] T1 Scaffold `api/`: Spring Boot 3 / Java 21, Gradle Kotlin DSL, Flyway, JdbcClient, Testcontainers; `GET /api/health`
+- [~] T1 Scaffold `api/`: Spring Boot 3 / Java 21, Gradle Kotlin DSL, Flyway, JdbcClient, Testcontainers; `GET /api/health`
 - [ ] T2 Add `docker-compose.yml` (Postgres 16) and `.env.example`; README "Run locally" section
 - [ ] T3 Scaffold `web/`: Vite + React 18 + TS + Tailwind v4 + React Router + TanStack Query; dev proxy to the API
 - [ ] T3.1 Port Plainly design tokens to `web/src/theme.css` (`@theme`, `.dark` variant, Source Sans 3, tabular nums) and a dark-mode toggle
 
 ## Money core
 
-- [ ] T4 `pricing.ProRata`: end-exclusive days, one HALF_UP step, `long` cents; tests first (full year, leap term, 1 day, 321 and 328 days for $730)
-- [ ] T5 Flyway `V1__init.sql`: app_users, customers, policies, coverages, policy_transactions, ledger_entries, display-id sequences; seed broker Sam Reyes
-- [ ] T6 Flyway `V2__ledger_append_only.sql`: trigger rejecting UPDATE/DELETE on ledger_entries; Testcontainers test proving both are refused (AC7)
+- [x] T4 `pricing.ProRata`: end-exclusive days, one HALF_UP step, `long` cents; tests first (full year, leap term, 1 day, 321 and 328 days for $730)
+- [x] T5 Flyway `V1__init.sql`: app_users, customers, policies, coverages, policy_transactions, ledger_entries, display-id sequences; seed broker Sam Reyes
+- [x] T6 Flyway `V2__ledger_append_only.sql`: trigger rejecting UPDATE/DELETE on ledger_entries; Testcontainers test proving both are refused (AC7)
 - [ ] T7 `ledger.LedgerPoster` (insert only) and `LedgerQueries` (lines with running balance, balance per policy); tests first
 
 ## Issue a policy (API)

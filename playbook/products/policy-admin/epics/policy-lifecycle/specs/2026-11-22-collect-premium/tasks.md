@@ -8,7 +8,7 @@ PR slices (at most 10 files each): T1 路 T2鈥揟4 路 T5鈥揟7 路 T8鈥揟10 路 T11鈥
 
 ## Spike
 
-- [ ] T1 Webhook spike: add `com.stripe:stripe-java` to api/build.gradle.kts and a throwaway endpoint that verifies the signature on the raw body. Run one test-mode PaymentIntent through `stripe listen` and record the result in DECISIONS. The spike code is replaced in T7 and T8.
+- [x] T1 Webhook spike: add `com.stripe:stripe-java` to api/build.gradle.kts and a throwaway endpoint that verifies the signature on the raw body. Run one test-mode PaymentIntent through `stripe listen` and record the result in DECISIONS. The spike code is replaced in T7 and T8.
 
 ## Tests first (TDD)
 

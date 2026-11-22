@@ -13,6 +13,8 @@ export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | nul
         : 'Your new extra cover, charged by the day.';
     case 'CORRECTION':
       return 'We fixed when your extra cover started.';
+    case 'CANCELLATION':
+      return 'For the days you were covered before your policy was cancelled.';
     case 'CHANGE':
       return 'A change to your cover left a balance to pay.';
     case 'NOTHING_DUE':

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-// covers AC11, T19, add-coverage AC12, T11 — insurance words may appear only inside a Term's plain-language explanation.
+// covers AC11, T19, add-coverage AC12, T11, cancel-refund AC12, T8 — insurance words may appear only inside a Term's plain-language explanation.
 // A source scan, so a new screen that slips "premium" into its copy fails here, not in review.
 
 const JARGON = [
@@ -8,6 +8,7 @@ const JARGON = [
   /\bpro[- ]?rata\b/i,
   /\bprorat/i,
   /\bendorsements?\b/i,
+  /\bunearned\b/i,
   /\beffective date\b/i,
   /\bunderwrit/i,
   /\bdeductible\b/i,
@@ -44,6 +45,7 @@ describe('plain language on screen', () => {
     expect(names).toContain('./lib/addCoverCopy.ts');
     expect(names).toContain('./lib/myCoverCopy.ts');
     expect(names).toContain('./lib/ledgerRows.ts');
+    expect(names).toContain('./lib/cancelCopy.ts');
   });
 
   it.each(files)('%s has no unexplained insurance jargon', (_, source) => {

@@ -118,12 +118,13 @@ export type CoverAdded = {
 /** 422 body from ApiErrorHandler. */
 export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
 
-export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CORRECTION' | 'CHANGE' | 'NOTHING_DUE';
+export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CORRECTION' | 'CANCELLATION' | 'CHANGE' | 'NOTHING_DUE';
 
 /** me.MyCoverController.MyCover, from GET /api/me/cover. */
 export type MyCover = {
   business: { legalName: string; description: string; ownerName: string };
-  policy: { policyNumber: string; status: PolicyStatus; start: IsoDate; end: IsoDate };
+  /** {@code end} is the original term end; {@code cancelledOn} is the day all cover stopped, or null. */
+  policy: { policyNumber: string; status: PolicyStatus; start: IsoDate; end: IsoDate; cancelledOn?: IsoDate | null };
   covers: Coverage[];
   amountDueCents: number;
   dueReason: DueReason;
@@ -133,6 +134,8 @@ export type MyCover = {
   latestChangeReason?: string | null;
   /** Money we owe them that is on its way back to their card; null when no refund is pending. */
   refundWaiting?: RefundWaiting | null;
+  /** How the cancellation was worked out; null unless the policy is cancelled. */
+  cancellation?: Cancellation | null;
   broker: { name: string };
   today: IsoDate;
   /** The latest payment the owner submitted; null before their first one. */
@@ -194,6 +197,8 @@ export type PolicyDetail = {
   status: PolicyStatus;
   start: IsoDate;
   end: IsoDate;
+  /** The day all cover stopped; null unless cancelled. {@code end} stays the original term end. */
+  cancelledOn?: IsoDate | null;
   today: IsoDate;
   customer: {
     legalName: string;
@@ -274,3 +279,74 @@ export type RefundView = {
 
 /** billing.RefundService.Attempted: where a refund stands after POST /api/broker/refunds/{id}/retry. */
 export type RefundRetried = { id: number; displayId: string; status: RefundStatus; attempt: number };
+
+/** POST /api/broker/policies/{id}/cancellation(/preview) body. The date is yyyy-MM-dd; preview ignores the reason. */
+export type CancelRequest = { cancelDate: string; reason: string };
+
+/** policy.CancelPolicyPlan.Credit: one cover's unused days, given back. {@code amountCents} is negative. */
+export type CancelCredit = {
+  coverageId: number;
+  kind: CoverKind;
+  label: string;
+  from: IsoDate;
+  to: IsoDate;
+  calc: ChargeCalc;
+  amountCents: number;
+};
+
+/** The policy change that left money owing before the cancellation. */
+export type KeptBackFor = 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT';
+
+/** policy.CancelPolicyPlan: the credits, what they pay off, and any refund, before anything is saved. */
+export type CancelPlan = {
+  policyId: number;
+  cancelDate: IsoDate;
+  policyStart: IsoDate;
+  policyEnd: IsoDate;
+  usedDays: number;
+  unusedDays: number;
+  termDays: number;
+  credits: CancelCredit[];
+  /** Negative: we already owed the customer. */
+  balanceBeforeCents: number;
+  /** The part of the credit that pays off what was still owed. */
+  keptBackCents: number;
+  keptBackFor: KeptBackFor | null;
+  balanceAfterCents: number;
+  /** Still owed for the days covered, when the credit is smaller than the balance. */
+  stillOwedCents: number;
+  /** Latest payment first. */
+  refunds: PlannedRefund[];
+  /** All credits together, negative. */
+  creditTotalCents: number;
+  refundTotalCents: number;
+};
+
+/** policy.CancelPolicyService.Cancelled, the 201 body. */
+export type Cancelled = {
+  policyId: number;
+  cancelDate: IsoDate;
+  transactionDisplayId: string;
+  creditDisplayIds: string[];
+  balanceCents: number;
+  refundTotalCents: number;
+  refunds: { displayId: string; paymentId: number; amountCents: number }[];
+};
+
+/** me.MyCoverService.Cancellation: how a cancellation was worked out, for P1's cancelled card and P6. */
+export type Cancellation = {
+  endsOn: IsoDate;
+  reason: string | null;
+  usedDays: number;
+  unusedDays: number;
+  termDays: number;
+  /** Negative amounts. */
+  credits: { kind: CoverKind; annualCents: number; days: number; amountCents: number }[];
+  keptBackCents: number;
+  keptBackFor: KeptBackFor | null;
+  refundCents: number;
+  /** Null when nothing goes back to the card; PENDING until Stripe confirms every refund. */
+  refundStatus: 'PENDING' | 'SUCCEEDED' | null;
+  cardLast4: string | null;
+  settledOn: IsoDate | null;
+};

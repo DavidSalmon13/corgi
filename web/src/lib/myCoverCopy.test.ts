@@ -38,6 +38,7 @@ describe('policyholder home copy', () => {
   // covers correct-effective-date AC13, T3 — after a correction, P1 says why, or that money is coming back
   it('says a corrected start date is why more is due', () => {
     expect(dueReasonText('CORRECTION', '2026-10-08')).toBe('We fixed when your extra cover started.');
+    expect(dueReasonText('CANCELLATION')).toBe('For the days you were covered before your policy was cancelled.');
   });
 
   it('says a refund is on its way, and to which card', () => {

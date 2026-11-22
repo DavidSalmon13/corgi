@@ -46,7 +46,7 @@ UI reference: `design/plainly/` (SignIn, B1-Policies, B2-NewPolicy, B3-Workspace
 **Modules:**
 - `pricing`: a pure `ProRata.charge(annualCents, from, to, termStart, termEnd)` that returns `{days, termDays, amountCents}`. It uses `BigDecimal` with a single `HALF_UP` step and returns `long` cents. It is exhaustively unit-tested, including the leap term and 1-day and full-term spans.
 - `policy`: `IssuePolicyService.preview(cmd)` and `issue(cmd)` share one `buildIssue(cmd)` that returns the planned transaction and entries. `issue` persists them in one `@Transactional` block. Endpoints: `POST /api/broker/policies/preview`, `POST /api/broker/policies`, `GET /api/broker/policies` (list with balance and last action), `GET /api/broker/policies/{id}` (header + coverages + ledger with running balance).
-- `ledger`: `LedgerPoster.post(entries)` (insert only) and `LedgerQueries.balance(policyId)` / `.lines(policyId)`. There is no update or delete method.
+- `ledger`: `LedgerPostingService.post(entries)` (insert only) and `LedgerQueryService.balance(policyId)` / `.lines(policyId)`. There is no update or delete method.
 - `auth` (demo, simulated): `GET /api/demo/users`, `POST /api/demo/session {userId}` sets an HTTP-only cookie with the user id, and a filter resolves the role. `/api/broker/**` needs BROKER; `/api/me/**` needs POLICYHOLDER and is scoped to that user's customer. A Flyway seed adds Sam Reyes (broker). Issuing a policy creates the owner's POLICYHOLDER user.
 - `me`: `GET /api/me/cover` returns policy, coverages, amount due and a plain-language reason.
 - Clock: an injectable `Clock` fixed to America/New_York drives "today" (the timeline marker, validation). It can be overridden by config for demos and tests.

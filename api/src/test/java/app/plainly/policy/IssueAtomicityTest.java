@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import app.plainly.IntegrationTest;
 import app.plainly.TestData;
-import app.plainly.ledger.LedgerPoster;
+import app.plainly.ledger.LedgerPostingService;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @IntegrationTest
 class IssueAtomicityTest {
 
-    @MockitoBean LedgerPoster poster;
+    @MockitoBean LedgerPostingService poster;
     @Autowired IssuePolicyService service;
     @Autowired JdbcClient jdbc;
 

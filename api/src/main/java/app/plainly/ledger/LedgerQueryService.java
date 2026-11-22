@@ -7,15 +7,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 /** Read side of the ledger: lines oldest first with a running balance, and balances per policy. */
-@Component
-public class LedgerQueries {
+@Service
+public class LedgerQueryService {
 
     private final JdbcClient jdbc;
 
-    public LedgerQueries(JdbcClient jdbc) {
+    public LedgerQueryService(JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
 

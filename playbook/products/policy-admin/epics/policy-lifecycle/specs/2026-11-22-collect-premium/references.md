@@ -19,7 +19,7 @@ _None._ The sources are `ASSIGNMENT.md` (requirement 2), `DECISIONS.md` ("Only S
 
 ### Ledger posting
 
-- **Location:** `api/src/main/java/app/plainly/ledger/` (`LedgerPoster`, `NewEntry`, `LedgerQueries`, `LedgerLine`).
+- **Location:** `api/src/main/java/app/plainly/ledger/` (`LedgerPostingService`, `NewEntry`, `LedgerQueryService`, `LedgerLine`).
 - **Relevance:** PAYMENT lines go through the same poster.
 - **Key patterns:**
   - `post(policyId, txId, entries)` joins the caller's transaction.

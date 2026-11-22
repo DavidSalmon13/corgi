@@ -46,3 +46,28 @@ Settings for a deployment (Railway):
 - `PLAINLY_DEMO_SEED`: on by default. At startup it adds Maya's demo policy and account if they're missing; set it to `false` to skip.
 
 To start over with an empty database: `docker compose down -v`. The ledger is append-only even locally, so this is the only way to remove ledger rows.
+
+## Paying with Stripe (test mode)
+
+Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid or declined only when a signed Stripe webhook says so ([why](DECISIONS.md)), so locally you need the Stripe CLI to forward those webhooks.
+
+1. In a Stripe account in **test mode**, copy the keys from Developers → API keys into `.env`: `STRIPE_SECRET_KEY` (`sk_test_…`) and `STRIPE_PUBLISHABLE_KEY` (`pk_test_…`). Never use live keys.
+2. Install the [Stripe CLI](https://docs.stripe.com/stripe-cli) and get the webhook signing secret into `.env`:
+   ```bash
+   stripe listen --api-key "$STRIPE_SECRET_KEY" --print-secret   # prints whsec_… → STRIPE_WEBHOOK_SECRET
+   ```
+3. Start the API with `.env` loaded, then forward the payment events to it (keep this running while you test):
+   ```bash
+   cd api && set -a && . ../.env && set +a && ./gradlew bootRun
+   stripe listen --api-key "$STRIPE_SECRET_KEY" \
+     --events payment_intent.processing,charge.succeeded,charge.failed \
+     --forward-to localhost:8080/api/stripe/webhook
+   ```
+4. Sign in as Maya (her first year is due), choose **Pay**, and use a [Stripe test card](https://docs.stripe.com/testing) with any future expiry and any CVC:
+
+| Card number | What happens |
+|---|---|
+| `4242 4242 4242 4242` | Paid. The next payment offers it as "Card ending 4242 · Used last time". |
+| `4000 0000 0000 0002` | Declined: "Didn't go through", and a $0.00 attempt on the ledger. |
+
+Without Stripe keys the app still runs; the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `charge.succeeded`, `charge.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.

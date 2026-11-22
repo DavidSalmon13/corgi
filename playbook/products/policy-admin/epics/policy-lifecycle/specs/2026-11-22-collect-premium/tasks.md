@@ -3,6 +3,9 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-collect-premium
 > Branch: feat/policy-lifecycle/collect-premium
+> PR: https://github.com/DavidSalmon13/corgi/pull/41 (stack #35–#41, base #35 → dev)
+> Reviewed: 2026-11-22 · APPROVE WITH NOTES (code-reviewer) · 0 high, 4 medium, 2 low; fixes follow in a separate change
+> SecurityReviewed: 2026-11-22 · PASS (security-reviewer) · 0 high, 2 medium, 3 low; fixes follow in a separate change
 
 PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11–T13 · T14–T15 · T16–T20.
 
@@ -24,7 +27,7 @@ PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11�
 ## Backend
 
 - [x] T5 Add migration `V6__payments.sql`: the payments and processed_stripe_events tables, `customers.stripe_customer_id`, and `ledger_entries.payment_id` and `stripe_event_id` with the PAYMENT check.
-- [x] T6 Add a `NewEntry.payment(...)` factory, and make `LedgerPoster.check` require `payment_id` and `stripe_event_id` on PAYMENT lines.
+- [x] T6 Add a `NewEntry.payment(...)` factory, and make `LedgerPostingService.check` require `payment_id` and `stripe_event_id` on PAYMENT lines.
 - [x] T7 Add `StripeGateway`, `StripeJavaGateway`, the `plainly.stripe.*` config and the disabled mode, and add the Stripe keys to `.env.example`.
 - [x] T8 Add `WebhookHandler` and `StripeWebhookController`, and exempt `/api/stripe/webhook` in `AuthFilter`.
 - [x] T9 Add `PaymentService` and `MyPaymentsController`: start a payment, confirm with the saved card, and GET a payment for polling.
@@ -40,8 +43,8 @@ PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11�
 
 ## Docs
 
-- [ ] T16 README: Stripe setup, `stripe listen` and the test cards.
-- [ ] T17 Add DECISIONS entries:
+- [x] T16 README: Stripe setup, `stripe listen` and the test cards.
+- [x] T17 Add DECISIONS entries:
   - failed attempts are $0 ledger lines;
   - only webhooks change a payment's status;
   - card details come from charge events;
@@ -50,6 +53,6 @@ PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11�
 
 ## Verification
 
-- [ ] T18 Get both test suites green (testing skill). Then do a manual `stripe listen` pass with the 4242 and 0002 cards, checking the P5, P1 and B3 states in the browser.
-- [ ] T19 Update `playbook/standards/global/tech-stack.md` to the real stack (Spring Boot / Java 21, JdbcClient, Flyway).
-- [ ] T20 Run QA against AC1–AC13 (qa skill).
+- [x] T18 Get both test suites green (testing skill). Then do a manual `stripe listen` pass with the 4242 and 0002 cards, checking the P5, P1 and B3 states in the browser.
+- [x] T19 Update `playbook/standards/global/tech-stack.md` to the real stack (Spring Boot / Java 21, JdbcClient, Flyway).
+- [x] T20 Run QA against AC1–AC13 (qa skill).

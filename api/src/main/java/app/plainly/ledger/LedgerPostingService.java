@@ -3,19 +3,19 @@ package app.plainly.ledger;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The only way lines enter the ledger. Insert-only by design: there is no update or delete here,
  * and the database trigger (V2) refuses them anyway. Mistakes are fixed with a reversal.
  */
-@Component
-public class LedgerPoster {
+@Service
+public class LedgerPostingService {
 
     private final JdbcClient jdbc;
 
-    public LedgerPoster(JdbcClient jdbc) {
+    public LedgerPostingService(JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
 

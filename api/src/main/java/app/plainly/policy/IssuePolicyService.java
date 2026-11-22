@@ -3,7 +3,7 @@ package app.plainly.policy;
 import app.plainly.auth.Accounts;
 import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
-import app.plainly.ledger.LedgerPoster;
+import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
 import app.plainly.ledger.PostedEntry;
 import app.plainly.pricing.ProRata;
@@ -30,10 +30,10 @@ public class IssuePolicyService {
     static final String EMAIL_TAKEN = "Another customer already uses this email.";
 
     private final JdbcClient jdbc;
-    private final LedgerPoster ledger;
+    private final LedgerPostingService ledger;
     private final Today today;
 
-    public IssuePolicyService(JdbcClient jdbc, LedgerPoster ledger, Today today) {
+    public IssuePolicyService(JdbcClient jdbc, LedgerPostingService ledger, Today today) {
         this.jdbc = jdbc;
         this.ledger = ledger;
         this.today = today;

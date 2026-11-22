@@ -305,4 +305,33 @@ class AuthTest {
         assertThat(users).isEqualTo(404);
         assertThat(session).isEqualTo(401);
     }
+
+    // covers real-sign-in AC7, T17 — security review: personal answers are never cached
+    @Test
+    void apiAnswersAreNeverCached() throws Exception {
+        Cookie broker = brokerSession();
+        assertThat(mvc.perform(get("/api/broker/policies").cookie(broker)).andReturn().getResponse().getHeader("Cache-Control"))
+                .isEqualTo("no-store");
+        assertThat(mvc.perform(get("/api/auth/session").cookie(broker)).andReturn().getResponse().getHeader("Cache-Control"))
+                .isEqualTo("no-store");
+        assertThat(mvc.perform(get("/api/me/cover")).andReturn().getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
+    }
+
+    // covers real-sign-in AC7, T17 — security review: the cookie is Secure on any HTTPS request
+    @Test
+    void theSessionCookieIsSecureOverHttps() throws Exception {
+        MvcResult r = mvc.perform(json(post("/api/auth/signin").secure(true),
+                "{\"email\":\"" + SAM + "\",\"password\":\"" + DEMO_PASSWORD + "\"}")).andReturn();
+        assertThat(sessionOf(r).getSecure()).isTrue();
+        assertThat(sessionOf(signIn(SAM, DEMO_PASSWORD)).getSecure()).as("plain http in dev").isFalse();
+    }
+
+    // covers real-sign-in AC1, AC4, T17 — security review: an email with odd whitespace is stored the way sign-up looks it up
+    @Test
+    void anOwnerEmailWithATabOrNonBreakingSpaceCanStillSignUp() throws Exception {
+        String email = "tab-" + UUID.randomUUID() + "@example.com";
+        issue.issue(new IssuePolicyCommand("Tab Shop LLC", "a shop", "Tia Owner", "\t\u00a0" + email.toUpperCase() + " ",
+                LocalDate.of(2026, 9, 1), false), brokerId);
+        assertThat(signUp(email, OWNER_PASSWORD, OWNER_PASSWORD).getResponse().getStatus()).isEqualTo(200);
+    }
 }

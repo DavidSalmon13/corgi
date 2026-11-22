@@ -47,6 +47,10 @@ public class AuthFilter extends OncePerRequestFilter {
         String path = PATHS.getPathWithinApplication(request);
         Optional<SignedInUser> user = token(request).flatMap(sessions::userFor).flatMap(accounts::find);
         user.ifPresent(u -> request.setAttribute(CURRENT_USER, u));
+        if (under(path, "/api")) {
+            // Answers carry personal and money details: never let a browser or proxy keep a copy.
+            response.setHeader("Cache-Control", "no-store");
+        }
         if (under(path, "/api") && !under(path, "/api/health") && !under(path, "/api/auth")) {
             if (user.isEmpty()) {
                 reject(response, 401, "signed_out", "Sign in to see this page.");

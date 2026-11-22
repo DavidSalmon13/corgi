@@ -1,5 +1,6 @@
 package app.plainly.policy;
 
+import app.plainly.auth.Accounts;
 import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPoster;
@@ -61,22 +62,24 @@ public class IssuePolicyService {
         String legalName = cmd.legalName().strip();
         String ownerName = cmd.ownerName().strip();
 
+        // Normalised once, in Java, so sign-up (Accounts.normalize) finds exactly what was stored.
+        String ownerEmail = Accounts.trim(cmd.ownerEmail());
         long customerId;
         try {
             customerId = jdbc.sql("""
-                insert into customers (legal_name, business_description, owner_name, owner_email)
-                values (?, ?, ?, ?) returning id""")
-                .params(legalName, cmd.businessDescription().strip(), ownerName, cmd.ownerEmail().strip())
-                .query(Long.class).single();
+                    insert into customers (legal_name, business_description, owner_name, owner_email)
+                    values (?, ?, ?, ?) returning id""")
+                    .params(legalName, cmd.businessDescription().strip(), ownerName, ownerEmail)
+                    .query(Long.class).single();
+            // The owner's account waits with their email and no password until they sign up (real-sign-in AC4).
+            jdbc.sql("""
+                    insert into app_users (role, display_name, subtitle, customer_id, email)
+                    values ('POLICYHOLDER', ?, ?, ?, ?)""")
+                    .params(ownerName, "Owner, " + legalName, customerId, Accounts.normalize(ownerEmail)).update();
         } catch (DuplicateKeyException e) {
+            // A concurrent issue, or an account (a broker's) that took this email after validation.
             throw new ValidationException(Map.of("ownerEmail", EMAIL_TAKEN));
         }
-
-        // The owner's account waits with their email and no password until they sign up (real-sign-in AC4).
-        jdbc.sql("""
-                insert into app_users (role, display_name, subtitle, customer_id, email)
-                values ('POLICYHOLDER', ?, ?, ?, lower(trim(?)))""")
-                .params(ownerName, "Owner, " + legalName, customerId, cmd.ownerEmail()).update();
 
         var policy = jdbc.sql("""
                 insert into policies (policy_number, customer_id, start_date, end_date)
@@ -126,7 +129,7 @@ public class IssuePolicyService {
         text(cmd.legalName(), "legalName", "Enter the business's legal name.", errors);
         text(cmd.businessDescription(), "businessDescription", "Say in a few words what the business does.", errors);
         text(cmd.ownerName(), "ownerName", "Enter the owner's name.", errors);
-        String email = cmd.ownerEmail() == null ? "" : cmd.ownerEmail().strip();
+        String email = Accounts.trim(cmd.ownerEmail());
         if (!EMAIL.matcher(email).matches() || email.length() > MAX_TEXT) {
             errors.put("ownerEmail", "Enter an email like name@business.com.");
         } else if (emailTaken(email)) {
@@ -142,8 +145,8 @@ public class IssuePolicyService {
     private boolean emailTaken(String email) {
         return jdbc.sql("""
                 select exists (select 1 from customers where lower(owner_email) = lower(?))
-                    or exists (select 1 from app_users where email = lower(?))""")
-                .params(email, email).query(Boolean.class).single();
+                    or exists (select 1 from app_users where email = ?)""")
+                .params(email, Accounts.normalize(email)).query(Boolean.class).single();
     }
 
     private static void text(String value, String field, String message, Map<String, String> errors) {

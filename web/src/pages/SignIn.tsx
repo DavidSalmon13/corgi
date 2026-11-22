@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { api } from '../api/client';
-import type { DemoUser } from '../api/types';
+import type { SignedInUser } from '../api/types';
 import { homeFor } from '../components/RouteGuards';
 import { Mark } from '../components/Mark';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -19,7 +19,7 @@ function firstName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
 }
 
-function RoleButton({ user, busy, onChoose }: { user: DemoUser; busy: boolean; onChoose: () => void }) {
+function RoleButton({ user, busy, onChoose }: { user: SignedInUser; busy: boolean; onChoose: () => void }) {
   const broker = user.role === 'BROKER';
   return (
     <button
@@ -48,9 +48,9 @@ function RoleButton({ user, busy, onChoose }: { user: DemoUser; busy: boolean; o
 export function SignIn() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const users = useQuery({ queryKey: ['demo-users'], queryFn: () => api<DemoUser[]>('/api/demo/users') });
+  const users = useQuery({ queryKey: ['demo-users'], queryFn: () => api<SignedInUser[]>('/api/demo/users') });
   const signIn = useMutation({
-    mutationFn: (userId: number) => api<DemoUser>('/api/demo/session', { method: 'POST', body: JSON.stringify({ userId }) }),
+    mutationFn: (userId: number) => api<SignedInUser>('/api/demo/session', { method: 'POST', body: JSON.stringify({ userId }) }),
     onSuccess: (user) => {
       // A different person now: drop anything cached for the previous one.
       queryClient.clear();

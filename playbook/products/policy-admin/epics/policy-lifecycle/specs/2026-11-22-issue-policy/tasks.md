@@ -29,7 +29,7 @@
 
 ## Screens (rebuild from design/plainly/)
 
-- [ ] T13 Shared components: `Money`, `Term`, `StatusPill`, `CoverTimeline`, `LedgerTable`, app shell with broker nav
+- [x] T13 Shared components: `Money`, `Term`, `StatusPill`, `CoverTimeline`, `LedgerTable`, app shell with broker nav
 - [ ] T14 SignIn (`SignIn.dc.html`): role switcher, demo notice, role-based redirect and route guards
 - [ ] T15 B2 New customer and policy (`B2-NewPolicy.dc.html`): form, error summary and per-field errors, debounced live price panel, "Customer will see" sentence, Create policy
 - [ ] T16 B1 Policies (`B1-Policies.dc.html`): table, summary line, All / Owes money chips, empty state

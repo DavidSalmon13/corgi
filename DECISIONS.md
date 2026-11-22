@@ -203,3 +203,15 @@ The cancel save calls `cancelOpenIntents` before inserting the CANCEL transactio
 ## 2026-11-22: P1 and P6 read a cancellation back from what it posted
 
 `MyCoverService` builds the `cancellation` block from the CANCEL transaction, its CREDIT lines and the refunds recorded against it, rather than storing a summary, so P6 can never disagree with the statement. A failed cancellation refund still reads as PENDING ("Refund on its way") to the customer, because the broker retries it and the money is still owed, the same rule as `refundWaiting`. `settledOn` is the day of the last REFUND line, posted only by a signed webhook.
+
+## 2026-11-22: Cancelling posts one CREDIT line per cover instead of reversing and rebilling
+
+Corrections reverse the original charge and rebill it, but a cancellation doesn't: it posts one negative CREDIT line per live cover for its unused days (annual price × unused days ÷ days in term, rounded half-up once per line), tied to the CANCEL transaction, the cover and its calculation. Reversing and rebilling would strike through charges the customer really did owe for the days they were covered, and would give four lines where the designs show two ("Base cover, unused days refunded"). The original charges stay live and unstruck above the credits, so the statement reads top to bottom as what was charged, then what came back. The database check `ledger_credit_traced` keeps every CREDIT negative and traced, and no row is ever edited.
+
+## 2026-11-22: A cancelled policy's status flips at save, and the words take their tense from the date
+
+The policy becomes CANCELLED when the broker saves, even when the cancel day is in the future, and `cancelled_on` records the day cover stops. There is no scheduled job to flip it on the day itself (out of scope). Instead, the copy compares the cancel day with today: "Your cover ends on Dec 1, 2026" before it, "ended" from that day on, because cover stops at the start of the cancel day. `end_date` keeps the original term end, since it sets the days in the term that every credit divides by.
+
+## 2026-11-22: When the credit is smaller than what's owed, the rest stays owed and payable
+
+If the unused days are worth less than the unpaid balance, nothing is refunded and the difference stays on the ledger as what the customer owes for the days they were covered ("$299.18 due · for the 91 days you were covered"). We don't write it off, which would need its own approval and is out of scope. P1 and P6 keep a Pay button for it, and `PaymentService.start` already accepts a payment on a cancelled policy. A payment still with the bank on a cancelled policy shows P1's "on its way" card, ahead of the cancelled card, so the customer doesn't pay twice.

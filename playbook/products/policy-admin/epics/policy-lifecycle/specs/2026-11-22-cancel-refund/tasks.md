@@ -27,7 +27,7 @@
 
 ## Docs
 
-- [ ] T13 DECISIONS.md: CREDIT line instead of reverse+rebill; status flips at save with tense from the date; shortfall stays owed and payable
+- [x] T13 DECISIONS.md: CREDIT line instead of reverse+rebill; status flips at save with tense from the date; shortfall stays owed and payable
 
 ## Verification
 

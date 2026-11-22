@@ -1,3 +1,2 @@
 @import 'tailwindcss';
-
-/* Plainly design tokens (palette, type, dark mode) arrive in T3.1. */
+@import './theme.css';

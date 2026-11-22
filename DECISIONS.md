@@ -133,3 +133,6 @@ The code and security reviews of the collect-premium PRs found ways money could 
 - After a confirm fails, the app no longer says "Nothing was charged", because it can't know that.
 - `payment_intent.payment_failed` and `payment_intent.canceled` release a payment stuck at PROCESSING.
 - A signed event the API can't read gets 500 and isn't recorded, so Stripe's retry gets a fresh try instead of being ignored as a repeat.
+## 2026-11-22: Add coverage: where the "can't add" errors go, and test-first skeletons
+
+A 422 from adding cover puts each message under the field it belongs to: date problems under `startDate`, and both "Pick a cover to add." and "This policy already has product liability cover." under `kind`, because the Cover select is where the broker would fix them. A cancelled policy has no field to fix, so its message goes under `policy`, and B4 shows it with a link back instead of the form. Dates in messages read like the design ("Sep 1, 2027"), and the ledger line uses the short form ("Extra cover from Oct 15"). The failing-first service tests call `AddCoverageService` directly, so T1 adds the two plain records and a service whose methods throw "not built yet". That way the API suite still compiles and every new test fails for the right reason until T4 and T5 fill it in.

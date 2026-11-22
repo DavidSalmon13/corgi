@@ -2,6 +2,7 @@ package app.plainly.policy;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -21,6 +22,21 @@ public class CoverageRepository {
                 values (?, ?, ?, ?, ?) returning id""")
                 .params(policyId, kind.name(), annualPremiumCents, from, to)
                 .query(Long.class).single();
+    }
+
+    /** The cover of this kind nobody has replaced. */
+    public record Live(long id, long annualPremiumCents, LocalDate from, LocalDate to) {}
+
+    /** The cover of this kind that a correction hasn't replaced, if the policy has one. */
+    public Optional<Live> findLive(long policyId, CoverKind kind) {
+        return jdbc.sql("""
+                select id, annual_premium_cents, effective_from, effective_to from coverages
+                where policy_id = ? and kind = ? and replaced_by_coverage_id is null
+                order by id desc limit 1""")
+                .params(policyId, kind.name())
+                .query((rs, n) -> new Live(rs.getLong(1), rs.getLong(2), rs.getObject(3, LocalDate.class),
+                        rs.getObject(4, LocalDate.class)))
+                .optional();
     }
 
     public boolean exists(long policyId, CoverKind kind) {

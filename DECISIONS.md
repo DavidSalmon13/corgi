@@ -62,3 +62,7 @@ The plan said Spring Boot 3, but Spring Initializr no longer offers it, and Boot
 ## 2026-11-22: A policy must start within a year of today
 
 The brief doesn't limit start dates. A start date more than a year in the past or the future is almost always a typo (2062 for 2026), and it would issue a policy that has already ended or that bills a year early. So the form asks for a start within a year of today, either way. Backdating within that window is allowed, because brokers often record cover that began a few weeks earlier.
+
+## 2026-11-22: Web unit tests with Vitest; ledger and jargon work on phones
+
+The web package had no test runner, and money formatting and timeline geometry are logic that must be tested first. I added Vitest, which reads the existing `vite.config.ts`, so no new config file was needed. Amounts are formatted from integer cents without floating point, and credits use a true minus sign (U+2212). The ledger is a table on wide screens and a stacked list below 768 px, so it never scrolls sideways at 390 px. `Term` keeps the design's dotted-underline `abbr` with a hover title, and also opens a small bubble on tap or keyboard focus, because a title attribute alone does nothing on a phone.

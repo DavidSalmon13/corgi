@@ -70,6 +70,17 @@ public class PaymentRepository {
                 .params(id, policyId, createdBy, intentId, amountCents).update();
     }
 
+    /** Payments that took money on this policy, newest first: the order refunds go back in. */
+    public List<PaymentService.Collected> succeededNewestFirst(long policyId) {
+        return jdbc.sql("""
+                select id, display_id, card_last4, amount_cents from payments
+                where policy_id = ? and status = 'SUCCEEDED' order by settled_at desc nulls last, id desc""")
+                .param(policyId)
+                .query((rs, n) -> new PaymentService.Collected(rs.getLong(1), rs.getString(2), rs.getString(3),
+                        rs.getLong(4)))
+                .list();
+    }
+
     /** The latest payment sent to the bank (not OPEN). */
     public Optional<PaymentService.PaymentSummary> latestSubmitted(long policyId) {
         return jdbc.sql("""

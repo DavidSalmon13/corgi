@@ -45,6 +45,9 @@ public class PaymentService {
 
     public record SavedCardConfirm(String status, String clientSecret) {}
 
+    /** A payment that took money: what a refund can go back against. */
+    public record Collected(long paymentId, String displayId, String cardLast4, long amountCents) {}
+
     /** A payment as P1 shows it. */
     public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
 
@@ -85,11 +88,9 @@ public class PaymentService {
                     continue;
                 }
             }
-            StripeGateway.IntentState after = stripe.cancelIfUnpaid(u.intentId());
-            if (after.moneyMoving()) {
+            if (!cancelAtStripe(u)) {
                 throw PaymentProblem.inFlight();
             }
-            payments.markStripeCanceled(u.id());
         }
         if (reuse != null) {
             return reuse;
@@ -101,6 +102,29 @@ public class PaymentService {
                 Map.of("payment_id", String.valueOf(paymentId), "policy_id", String.valueOf(policyId)));
         payments.insert(paymentId, policyId, me.id(), intent.id(), due);
         return new Started(paymentId, due, intent.clientSecret(), stripe.publishableKey(), saved);
+    }
+
+    /**
+     * Cancels at Stripe every intent on the policy that nobody finished paying, so an old pay page can't pay an
+     * amount that is no longer due. Call it with the policy row locked. Returns false, having stopped, if the bank
+     * turns out to have one of them already: that payment is on its way and its webhook hasn't arrived yet.
+     */
+    public boolean cancelOpenIntents(long policyId) {
+        for (PaymentRepository.Unfinished u : payments.unfinished(policyId)) {
+            if (!cancelAtStripe(u)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Cancels one unfinished intent at Stripe and notes it; false if the bank already has the money. */
+    private boolean cancelAtStripe(PaymentRepository.Unfinished u) {
+        if (stripe.cancelIfUnpaid(u.intentId()).moneyMoving()) {
+            return false;
+        }
+        payments.markStripeCanceled(u.id());
+        return true;
     }
 
     /** Pays an open payment with the card that paid last time. Stripe's answer is passed on, not acted on. */
@@ -127,6 +151,11 @@ public class PaymentService {
         PaymentRepository.Owned p = owned(me, paymentId);
         long due = Math.max(0, ledger.balance(p.policyId()));
         return new PaymentView(p.id(), p.status(), p.amountCents(), p.cardLast4(), p.createdAt(), due);
+    }
+
+    /** Payments that took money on this policy, newest first. */
+    public List<Collected> collected(long policyId) {
+        return payments.succeededNewestFirst(policyId);
     }
 
     /**

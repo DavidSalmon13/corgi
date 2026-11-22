@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /** Read side of the ledger: lines oldest first with a running balance, and balances per policy. */
@@ -18,6 +19,11 @@ public class LedgerQueryService {
 
     public List<LedgerLine> lines(long policyId) {
         return ledger.lines(policyId);
+    }
+
+    /** The charge for a cover that no line has undone yet: the one a correction must reverse. */
+    public Optional<LiveCharge> liveChargeFor(long coverageId) {
+        return ledger.liveChargeFor(coverageId);
     }
 
     /** What the customer owes on a policy now (negative = we owe them). */

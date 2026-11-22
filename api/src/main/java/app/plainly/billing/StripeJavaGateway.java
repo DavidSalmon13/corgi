@@ -1,16 +1,24 @@
 package app.plainly.billing;
 
 import com.stripe.StripeClient;
+import com.stripe.exception.ApiConnectionException;
+import com.stripe.exception.ApiException;
+import com.stripe.exception.IdempotencyException;
 import com.stripe.exception.InvalidRequestException;
+import com.stripe.exception.RateLimitException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.PaymentIntentCancelParams;
 import com.stripe.param.PaymentIntentConfirmParams;
 import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.param.RefundCreateParams;
+import com.stripe.param.RefundListParams;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -137,6 +145,68 @@ class StripeJavaGateway implements StripeGateway {
         } catch (StripeException e) {
             throw confirmProblem(e);
         }
+    }
+
+    @Override
+    public CreatedRefund createRefund(String paymentIntentId, long amountCents, String idempotencyKey,
+            Map<String, String> metadata) {
+        if (client == null) {
+            throw new RefundRefused("Card payments aren't set up on this demo, so Stripe couldn't be asked to send it.");
+        }
+        try {
+            Refund refund = client.v1().refunds().create(
+                    RefundCreateParams.builder()
+                            .setPaymentIntent(paymentIntentId)
+                            .setAmount(amountCents)
+                            .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER)
+                            .putAllMetadata(metadata)
+                            .build(),
+                    RequestOptions.builder().setIdempotencyKey(idempotencyKey).build());
+            return new CreatedRefund(refund.getId(), refund.getStatus());
+        } catch (StripeException e) {
+            throw refundProblem(e);
+        }
+    }
+
+    @Override
+    public Optional<CreatedRefund> findRefund(String paymentIntentId, long refundId) {
+        if (client == null) {
+            return Optional.empty();
+        }
+        try {
+            // A refund has a handful of attempts at most, so one page of 100 holds them all.
+            return client.v1().refunds()
+                    .list(RefundListParams.builder().setPaymentIntent(paymentIntentId).setLimit(100L).build())
+                    .getData().stream()
+                    .filter(r -> r.getMetadata() != null
+                            && String.valueOf(refundId).equals(r.getMetadata().get("refund_id")))
+                    .filter(r -> !"failed".equals(r.getStatus()) && !"canceled".equals(r.getStatus()))
+                    .map(r -> new CreatedRefund(r.getId(), r.getStatus()))
+                    .findFirst();
+        } catch (StripeException e) {
+            log.warn("Stripe refund lookup failed: {} [request {}]", e.getMessage(), e.getRequestId());
+            throw new RefundOutcomeUnknown("We couldn't reach Stripe.");
+        }
+    }
+
+    /**
+     * What a failed refund call means. Stripe answering with a 4xx (other than 429) is a definite no: nothing was
+     * made, and the broker sees why. A timeout, a 5xx, a rate limit or an idempotency clash may have happened after
+     * Stripe made the refund, so the outcome is unknown and the same attempt has to be asked again.
+     */
+    static RuntimeException refundProblem(StripeException e) {
+        log.warn("Stripe refund failed: {} [request {}]", e.getMessage(), e.getRequestId());
+        Integer code = e.getStatusCode();
+        boolean unknown = e instanceof ApiConnectionException || e instanceof ApiException
+                || e instanceof RateLimitException || e instanceof IdempotencyException
+                || code == null || code >= 500 || code == 409 || code == 429;
+        if (unknown) {
+            return new RefundOutcomeUnknown("We couldn't hear back from Stripe.");
+        }
+        String reason = e.getStripeError() != null && e.getStripeError().getMessage() != null
+                ? e.getStripeError().getMessage()
+                : "Stripe couldn't send the money back to the card.";
+        return new RefundRefused(reason);
     }
 
     private StripeClient stripe() {

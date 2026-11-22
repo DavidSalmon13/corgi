@@ -111,6 +111,33 @@ public final class StripeTestSupport {
                 .formatted(eventId, Instant.now().getEpochSecond(), intentId);
     }
 
+    /**
+     * A {@code refund.*} event about one of our refunds. Stripe sends {@code refund.created} and
+     * {@code refund.updated} with the refund's current status (pending, succeeded, failed), and {@code refund.failed}
+     * when the money couldn't be sent. {@code refundId} is our row id, echoed back in the metadata we sent.
+     */
+    public static String refundEvent(String eventId, String type, String stripeRefundId, long refundId,
+            String intentId, long amountCents, String status, String failureReason) {
+        String failure = failureReason == null ? "null" : "\"" + failureReason + "\"";
+        return event(eventId, type, """
+                {"id":"%s","object":"refund","amount":%d,"currency":"usd","status":"%s","payment_intent":"%s",
+                 "failure_reason":%s,"metadata":{"refund_id":"%d"}}"""
+                .formatted(stripeRefundId, amountCents, status, intentId, failure, refundId));
+    }
+
+    /** {@code refund.updated} with status succeeded: the money is on its way back to the card. */
+    public static String refundSucceeded(String eventId, String stripeRefundId, long refundId, String intentId,
+            long amountCents) {
+        return refundEvent(eventId, "refund.updated", stripeRefundId, refundId, intentId, amountCents, "succeeded", null);
+    }
+
+    /** {@code refund.failed}: Stripe couldn't send the money back. */
+    public static String refundFailed(String eventId, String stripeRefundId, long refundId, String intentId,
+            long amountCents, String failureReason) {
+        return refundEvent(eventId, "refund.failed", stripeRefundId, refundId, intentId, amountCents, "failed",
+                failureReason);
+    }
+
     /** Any event type Plainly doesn't act on, e.g. {@code customer.created}. */
     public static String otherEvent(String eventId, String type) {
         return event(eventId, type, """

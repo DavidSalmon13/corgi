@@ -7,6 +7,7 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Charge;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.net.Webhook;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -60,5 +61,26 @@ class StripeTestSupportTest {
                 .isInstanceOf(SignatureVerificationException.class);
         assertThatThrownBy(() -> Webhook.constructEvent(body.replace("1400", "1"), header, SECRET))
                 .isInstanceOf(SignatureVerificationException.class);
+    }
+
+    // covers T6
+    @Test
+    void refundEventsVerifyAndCarryOurRefundIdAndStripesReason() throws Exception {
+        String ok = StripeTestSupport.refundSucceeded("evt_t6_ok", "re_t6", 42, "pi_t6", 1400);
+        Event okEvent = Webhook.constructEvent(ok, StripeTestSupport.signature(ok, SECRET, Instant.now().getEpochSecond()), SECRET);
+        Refund refund = (Refund) okEvent.getDataObjectDeserializer().getObject().orElseThrow();
+        assertThat(okEvent.getType()).isEqualTo("refund.updated");
+        assertThat(refund.getId()).isEqualTo("re_t6");
+        assertThat(refund.getStatus()).isEqualTo("succeeded");
+        assertThat(refund.getAmount()).isEqualTo(1400L);
+        assertThat(refund.getPaymentIntent()).isEqualTo("pi_t6");
+        assertThat(refund.getMetadata()).containsEntry("refund_id", "42");
+
+        String failed = StripeTestSupport.refundFailed("evt_t6_fail", "re_t6f", 43, "pi_t6", 1400, "expired_or_canceled_card");
+        Event failedEvent = Webhook.constructEvent(failed, StripeTestSupport.signature(failed, SECRET, Instant.now().getEpochSecond()), SECRET);
+        Refund declined = (Refund) failedEvent.getDataObjectDeserializer().getObject().orElseThrow();
+        assertThat(failedEvent.getType()).isEqualTo("refund.failed");
+        assertThat(declined.getStatus()).isEqualTo("failed");
+        assertThat(declined.getFailureReason()).isEqualTo("expired_or_canceled_card");
     }
 }

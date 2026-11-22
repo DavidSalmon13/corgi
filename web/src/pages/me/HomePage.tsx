@@ -11,7 +11,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { formatDate } from '../../lib/dates';
-import { coverDates, dueReasonText, periodLine, protectionSentence } from '../../lib/myCoverCopy';
+import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from '../../lib/myCoverCopy';
 import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
 
 const CARD = 'rounded-2xl border border-line bg-card';
@@ -58,6 +58,16 @@ function PayAction({ c, label }: { c: MyCover; label: string }) {
   );
 }
 
+/** The broker's own words for the latest change, shown as written (correct-effective-date AC13). */
+function BrokerNote({ c }: { c: MyCover }) {
+  if (!c.latestChangeReason) return null;
+  return (
+    <p className="m-0 text-[15px] leading-snug text-ink-2">
+      {c.broker.name}'s note: “{c.latestChangeReason}”
+    </p>
+  );
+}
+
 function AmountCard({ c }: { c: MyCover }) {
   const state = homePaymentState({
     cancelled: c.policy.status === 'CANCELLED',
@@ -71,6 +81,23 @@ function AmountCard({ c }: { c: MyCover }) {
           <StatusPill tone="neutral">Cancelled</StatusPill>
         </span>
         <p className="m-0 text-[19px] font-medium leading-snug">This cover has ended.</p>
+      </section>
+    );
+  }
+  if (c.refundWaiting && c.amountDueCents === 0) {
+    return (
+      <section aria-label="Refund on its way" className={`${CARD} flex flex-col gap-3 p-5`}>
+        <span className="self-start">
+          <StatusPill tone="wait" dot>
+            Refund on its way
+          </StatusPill>
+        </span>
+        <p className="m-0 text-[19px] font-medium leading-snug">{refundOnItsWay(c.refundWaiting)}</p>
+        <p className="m-0 text-[15px] leading-snug text-ink-2">
+          We fixed when your extra cover started, so you'd paid for days you weren't covered. Banks take 5–10 days
+          to show a refund.
+        </p>
+        <BrokerNote c={c} />
       </section>
     );
   }
@@ -120,6 +147,7 @@ function AmountCard({ c }: { c: MyCover }) {
         <Money cents={c.amountDueCents} /> <span className="text-xl font-semibold">due</span>
       </div>
       <p className="m-0 text-[17px] leading-snug">{dueReasonText(c.dueReason, c.latestChangeFrom)}</p>
+      {c.dueReason === 'CORRECTION' && <BrokerNote c={c} />}
       <PayAction c={c} label={payLabel(c.amountDueCents)} />
     </section>
   );

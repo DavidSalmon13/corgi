@@ -168,4 +168,97 @@ class LedgerTest {
                 List.of(NewEntry.payment(SEP_1, "Payment", -1, othersPayment, "evt_other_" + other))))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    // --- correct-effective-date: undo keeps its cover, the live charge, refund lines (covers AC8, AC10, AC12, T5) ---
+
+    private long coverage(LocalDate from) {
+        return jdbc.sql("""
+                insert into coverages (policy_id, kind, annual_premium_cents, effective_from, effective_to)
+                values (?, 'PRODUCT_LIABILITY', 73000, ?, ?) returning id""")
+                .params(policyId, from, SEP_1_NEXT).query(Long.class).single();
+    }
+
+    private long refund(long policy, long paymentId, long cents) {
+        long ptx = TestData.transaction(jdbc, policy, "CORRECT", OCT_15);
+        jdbc.sql("update payments set status = 'SUCCEEDED', card_last4 = '4242' where id = ?").param(paymentId).update();
+        return jdbc.sql("""
+                insert into refunds (policy_id, payment_id, policy_transaction_id, amount_cents, stripe_refund_id)
+                values (?, ?, ?, ?, 're_ledger_' || nextval('refund_seq')) returning id""")
+                .params(policy, paymentId, ptx, cents).query(Long.class).single();
+    }
+
+    @Test
+    void anUndoKeepsTheCoverOfTheLineItUndoes() {
+        long cover = coverage(OCT_15);
+        var extra = ProRata.charge(73_000, OCT_15, SEP_1_NEXT, SEP_1, SEP_1_NEXT);
+        PostedEntry original = poster.post(policyId, issueTx, List.of(
+                NewEntry.charge(SEP_1, "Extra cover from Oct 15", cover, extra, OCT_15, SEP_1_NEXT))).getFirst();
+        long correctTx = TestData.transaction(jdbc, policyId, "CORRECT", OCT_15);
+        poster.post(policyId, correctTx, List.of(
+                NewEntry.reversal(LocalDate.of(2026, 11, 5), "Undo", original.id(), -64_200)));
+
+        assertThat(queries.lines(policyId).get(1).coverageId()).isEqualTo(cover);
+    }
+
+    @Test
+    void theLiveChargeIsTheOneNobodyHasUndone() {
+        long oldCover = coverage(OCT_15);
+        var extra = ProRata.charge(73_000, OCT_15, SEP_1_NEXT, SEP_1, SEP_1_NEXT);
+        PostedEntry original = poster.post(policyId, issueTx, List.of(
+                NewEntry.charge(SEP_1, "Extra cover from Oct 15", oldCover, extra, OCT_15, SEP_1_NEXT))).getFirst();
+
+        assertThat(queries.liveChargeFor(oldCover)).get().satisfies(c -> {
+            assertThat(c.entryId()).isEqualTo(original.id());
+            assertThat(c.displayId()).isEqualTo(original.displayId());
+            assertThat(c.amountCents()).isEqualTo(64_200);
+            assertThat(c.calc()).isEqualTo(extra);
+            assertThat(c.coverFrom()).isEqualTo(OCT_15);
+        });
+
+        long correctTx = TestData.transaction(jdbc, policyId, "CORRECT", OCT_15);
+        long newCover = coverage(LocalDate.of(2026, 10, 8));
+        var rebill = ProRata.charge(73_000, LocalDate.of(2026, 10, 8), SEP_1_NEXT, SEP_1, SEP_1_NEXT);
+        poster.post(policyId, correctTx, List.of(
+                NewEntry.reversal(LocalDate.of(2026, 11, 5), "Undo", original.id(), -64_200),
+                NewEntry.charge(LocalDate.of(2026, 11, 5), "Extra cover from Oct 8", newCover, rebill,
+                        LocalDate.of(2026, 10, 8), SEP_1_NEXT)));
+
+        assertThat(queries.liveChargeFor(oldCover)).isEmpty();
+        assertThat(queries.liveChargeFor(newCover)).get().satisfies(c -> assertThat(c.amountCents()).isEqualTo(65_600));
+    }
+
+    @Test
+    void aRefundLineSendsMoneyBackAndTracesToItsRefundAndEvent() {
+        long paymentId = payment(policyId, "pi_ledger_refund_" + policyId);
+        long refundId = refund(policyId, paymentId, 1_400);
+        poster.post(policyId, null, List.of(
+                NewEntry.refund(SEP_1, "Refund to card ending 4242", 1_400, refundId, "evt_refund_" + policyId)));
+
+        LedgerLine line = queries.lines(policyId).getFirst();
+        assertThat(line.type()).isEqualTo(EntryType.REFUND);
+        assertThat(line.amountCents()).isEqualTo(1_400);
+        assertThat(line.stripeEventId()).isEqualTo("evt_refund_" + policyId);
+        assertThat(line.refundDisplayId()).matches("RF-\\d{4,}");
+        assertThat(line.stripeRefundId()).startsWith("re_ledger_");
+    }
+
+    @Test
+    void aRefundLineMustMatchItsRefund() {
+        long paymentId = payment(policyId, "pi_ledger_refund_bad_" + policyId);
+        long refundId = refund(policyId, paymentId, 1_400);
+        long other = TestData.policy(jdbc, SEP_1, SEP_1_NEXT);
+
+        assertThatThrownBy(() -> NewEntry.refund(SEP_1, "Refund", -1_400, refundId, "evt_neg_" + policyId))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(policyId, null,
+                List.of(NewEntry.refund(SEP_1, "Refund", 1_400, refundId, null))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(policyId, null,
+                List.of(NewEntry.refund(SEP_1, "Refund", 1_300, refundId, "evt_amt_" + policyId))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> poster.post(other, null,
+                List.of(NewEntry.refund(SEP_1, "Refund", 1_400, refundId, "evt_other_r_" + policyId))))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(queries.lines(policyId)).isEmpty();
+    }
 }

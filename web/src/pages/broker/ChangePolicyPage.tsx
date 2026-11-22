@@ -1,8 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
-import type { AddCoverPlan, AddCoverRequest, CoverAdded, PolicyDetail, ValidationBody } from '../../api/types';
+import type { AddCoverPlan, AddCoverRequest, CoverAdded, PolicyDetail } from '../../api/types';
 import { Money } from '../../components/Money';
 import { Term } from '../../components/Term';
 import {
@@ -17,23 +17,32 @@ import {
 } from '../../lib/addCoverCopy';
 import { daysBetween } from '../../lib/dates';
 import { useDebounced } from '../../lib/useDebounced';
+import {
+  BlockedCard,
+  BTN,
+  BTN2,
+  ErrorSummary,
+  FieldError,
+  HINT,
+  INPUT,
+  validationOf,
+  type ChangeSavedState,
+  type FormErrors,
+} from './changeForm';
+import { CorrectCoverForm } from './CorrectCoverForm';
+
+export type { ChangeSavedState } from './changeForm';
 
 type Field = 'kind' | 'startDate' | 'policy';
+type Tab = 'add' | 'correct';
 
 const EXTRA_CENTS = 73_000;
-const INPUT = 'min-h-11 w-full rounded-control border-[1.5px] bg-card px-3 py-2.5 text-base text-ink';
-const HINT = 'text-[13px] leading-snug text-ink-2';
-const BTN2 =
-  'inline-flex min-h-11 items-center justify-center rounded-control border-[1.5px] border-line px-[18px] text-base font-semibold text-ink no-underline';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'add', label: 'Add cover' },
+  { id: 'correct', label: 'Correct' },
+];
 
-function validationOf(e: unknown): ValidationBody | null {
-  return e instanceof ApiError && e.status === 422 ? (e.body as ValidationBody) : null;
-}
-
-/** What B3 shows after a save; PolicyWorkspace reads it from router state. */
-export type ChangeSavedState = { banner: string };
-
-/** B4 "Change this policy". Only the Add cover tab for now; Correct and Cancel come with their own specs. */
+/** B4 "Change this policy": Add cover · Correct. {@code ?tab=correct} opens the Correct tab (B3's Correct action). */
 export function ChangePolicyPage() {
   const { id } = useParams();
   const policy = useQuery({
@@ -59,14 +68,24 @@ export function ChangePolicyPage() {
   return <ChangePolicy p={policy.data} />;
 }
 
+/** Why a tab can't be used on this policy right now, or null when it can. Each tab has its own reasons. */
+function blockedReason(tab: Tab, p: PolicyDetail): string | null {
+  const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
+  if (tab === 'add') {
+    if (p.status === 'CANCELLED') return "This policy is cancelled, so cover can't be added.";
+    return hasExtra ? 'This policy already has product liability cover.' : null;
+  }
+  if (p.status === 'CANCELLED') return "This policy is cancelled, so its cover can't be corrected.";
+  if (!hasExtra) return 'This policy has no extra cover to correct.';
+  return p.paymentWaiting ? 'A payment is waiting for the bank. Correct this once it settles.' : null;
+}
+
 function ChangePolicy({ p }: { p: PolicyDetail }) {
   const back = `/broker/policies/${p.policyId}`;
-  const blocked =
-    p.status === 'CANCELLED'
-      ? "This policy is cancelled, so cover can't be added."
-      : p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY')
-        ? 'This policy already has product liability cover.'
-        : null;
+  const [search, setSearch] = useSearchParams();
+  const tab: Tab = search.get('tab') === 'correct' ? 'correct' : 'add';
+  const blocked = blockedReason(tab, p);
+  const choose = (t: Tab) => setSearch(t === 'add' ? {} : { tab: t }, { replace: true });
 
   return (
     <>
@@ -79,24 +98,27 @@ function ChangePolicy({ p }: { p: PolicyDetail }) {
       </div>
 
       <div role="group" aria-label="Action" className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          aria-pressed="true"
-          className="min-h-11 rounded-full border-[1.5px] border-ink bg-ink px-[18px] text-[15px] font-semibold text-bg"
-        >
-          Add cover
-        </button>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={tab === t.id}
+            onClick={() => choose(t.id)}
+            className={`min-h-11 rounded-full border-[1.5px] px-[18px] text-[15px] font-semibold ${
+              tab === t.id ? 'border-ink bg-ink text-bg' : 'border-line bg-transparent text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {blocked ? (
-        <div className="flex flex-col items-start gap-3 rounded-2xl border border-line bg-card p-5 md:p-6">
-          <p className="m-0 text-[17px]">{blocked}</p>
-          <Link to={back} className={BTN2}>
-            Back to policy
-          </Link>
-        </div>
+        <BlockedCard reason={blocked} back={back} />
+      ) : tab === 'correct' ? (
+        <CorrectCoverForm key="correct" p={p} back={back} />
       ) : (
-        <AddCoverForm p={p} back={back} />
+        <AddCoverForm key="add" p={p} back={back} />
       )}
     </>
   );
@@ -109,7 +131,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
   const termDays = daysBetween(p.start, p.end);
 
   const [startDate, setStartDate] = useState(() => defaultStart(p.today, p.start, p.end));
-  const [errors, setErrors] = useState<{ message: string; fields: Partial<Record<Field, string>> } | null>(null);
+  const [errors, setErrors] = useState<FormErrors<Field> | null>(null);
   // Bumped once per failed save, so focus moves to the summary then — not again while fields are being fixed.
   const [failedSaves, setFailedSaves] = useState(0);
 
@@ -164,37 +186,12 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
     setErrors((e) => (e && e.fields.startDate ? { ...e, fields: { ...e.fields, startDate: undefined } } : e));
   };
 
-  const open = errors ? Object.values(errors.fields).filter(Boolean).length : 0;
-  const hadFieldErrors = errors ? Object.keys(errors.fields).length > 0 : false;
-  // The summary goes once every field it listed is fixed.
-  const summary = errors && (!hadFieldErrors || open > 0) ? errors.message : null;
   const startError = errors?.fields.startDate ?? previewFields?.startDate;
   const kindError = errors?.fields.kind ?? previewFields?.kind;
 
   return (
     <>
-      {summary && errors && (
-        <div ref={summaryRef} tabIndex={-1} role="alert" className="rounded-card bg-bad-soft px-4 py-3.5 font-semibold text-bad">
-          {summary}
-          {open > 0 && (
-            <ul className="mt-1.5 list-disc pl-5 font-normal">
-              {Object.entries(errors.fields).map(([f, m]) =>
-                m ? (
-                  <li key={f}>
-                    {f === 'policy' ? (
-                      m
-                    ) : (
-                      <a href={`#${f}`} className="text-bad underline">
-                        {m}
-                      </a>
-                    )}
-                  </li>
-                ) : null,
-              )}
-            </ul>
-          )}
-        </div>
-      )}
+      <ErrorSummary ref={summaryRef} errors={errors} />
 
       <div className="flex flex-wrap items-start gap-6">
         <form
@@ -225,11 +222,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
             <span id="kind-hint" className={HINT}>
               Pays if something the business sells hurts someone or damages their property.
             </span>
-            {kindError && (
-              <span id="kind-error" className="text-sm font-semibold text-bad">
-                {kindError}
-              </span>
-            )}
+            <FieldError id="kind-error" message={kindError} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="startDate" className="text-sm font-semibold">
@@ -248,11 +241,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
             <span id="startDate-hint" className={HINT}>
               {startsOnHint(p.end)}
             </span>
-            {startError && (
-              <span id="startDate-error" className="text-sm font-semibold text-bad">
-                {startError}
-              </span>
-            )}
+            <FieldError id="startDate-error" message={startError} />
           </div>
         </form>
 
@@ -308,7 +297,7 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
               type="submit"
               form="add-cover"
               disabled={save.isPending || cantSave}
-              className="inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 text-base font-bold text-on-accent disabled:opacity-60"
+              className={BTN}
             >
               {save.isPending ? 'Adding…' : saveLabel(p.customer.ownerName)}
             </button>

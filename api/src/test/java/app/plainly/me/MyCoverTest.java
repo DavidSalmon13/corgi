@@ -5,10 +5,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.AuthTestSupport;
+import app.plainly.CorrectionTestData;
+import app.plainly.CorrectionTestData.Paid;
+import app.plainly.FakeStripeGateway;
 import app.plainly.IntegrationTest;
+import app.plainly.StripeTestSupport;
 import app.plainly.TestData;
 import app.plainly.policy.AddCoverageCommand;
 import app.plainly.policy.AddCoverageService;
+import app.plainly.policy.CorrectCoverageCommand;
+import app.plainly.policy.CorrectCoverageService;
 import app.plainly.policy.CoverKind;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;
@@ -20,7 +26,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
-// covers AC10, T11
+// covers AC10, T11; correct-effective-date AC13, T2
 @IntegrationTest
 @AutoConfigureMockMvc
 class MyCoverTest {
@@ -29,6 +35,8 @@ class MyCoverTest {
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
     @Autowired AddCoverageService addCover;
+    @Autowired CorrectCoverageService corrector;
+    @Autowired FakeStripeGateway stripe;
 
     /** Issues a policy, then signs its owner up with the email the broker entered, as a real owner would. */
     Cookie ownerOf(String business, boolean extra) throws Exception {
@@ -82,5 +90,72 @@ class MyCoverTest {
                 .andExpect(jsonPath("$.covers.length()").value(2))
                 .andExpect(jsonPath("$.covers[1].kind").value("PRODUCT_LIABILITY"))
                 .andExpect(jsonPath("$.covers[1].from").value("2026-10-15"));
+    }
+
+    // --- correct-effective-date AC13, T2: after a correction P1 says why, and shows one extra cover ---
+
+    @Test
+    void aCorrectionThatOwesMoreIsWhyMoneyIsDueAndShowsTheCorrectedStart() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Owes More Bakery LLC");
+        corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_8,
+                CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amountDueCents").value(1400))
+                .andExpect(jsonPath("$.dueReason").value("CORRECTION"))
+                .andExpect(jsonPath("$.latestChangeFrom").value("2026-10-08"))
+                .andExpect(jsonPath("$.latestChangeReason").value(CorrectionTestData.REASON))
+                .andExpect(jsonPath("$.refundWaiting").doesNotExist())
+                .andExpect(jsonPath("$.covers.length()").value(2))
+                .andExpect(jsonPath("$.covers[1].kind").value("PRODUCT_LIABILITY"))
+                .andExpect(jsonPath("$.covers[1].from").value("2026-10-08"));
+    }
+
+    @Test
+    void aRefundOnItsWayShowsHowMuchAndToWhichCardUntilItSettles() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Refund Due Bakery LLC");
+        CorrectCoverageService.Corrected saved = corrector.correct(paid.owner().policyId(),
+                new CorrectCoverageCommand(CorrectionTestData.OCT_22, CorrectionTestData.REASON),
+                CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.amountDueCents").value(0))
+                .andExpect(jsonPath("$.dueReason").value("NOTHING_DUE"))
+                .andExpect(jsonPath("$.refundWaiting.amountCents").value(1400))
+                .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"))
+                .andExpect(jsonPath("$.covers.length()").value(2))
+                .andExpect(jsonPath("$.covers[1].from").value("2026-10-22"));
+
+        long refundId = jdbc.sql("select id from refunds where display_id = ?")
+                .param(saved.refunds().getFirst().displayId()).query(Long.class).single();
+        String stripeRefundId = jdbc.sql("select stripe_refund_id from refunds where id = ?").param(refundId)
+                .query(String.class).single();
+        mvc.perform(StripeTestSupport.delivery(StripeTestSupport.refundSucceeded(StripeTestSupport.newEventId(),
+                stripeRefundId, refundId, paid.extraIntentId(), 1400))).andExpect(status().isOk());
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(jsonPath("$.amountDueCents").value(0))
+                .andExpect(jsonPath("$.refundWaiting").doesNotExist());
+    }
+
+    // covers correct-effective-date AC11, AC13, T13 — a refund that failed is still owed, so P1 still says so
+    @Test
+    void aFailedRefundIsStillShownAsOwedWhileTheBrokerRetries() throws Exception {
+        stripe.failRefunds("The card can't take refunds.");
+        Paid paid;
+        try {
+            paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Refund Failed Home LLC");
+            corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_22,
+                    CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
+        } finally {
+            stripe.failRefunds(null);
+        }
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(jsonPath("$.amountDueCents").value(0))
+                .andExpect(jsonPath("$.refundWaiting.amountCents").value(1400))
+                .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"));
     }
 }

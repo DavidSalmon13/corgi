@@ -91,4 +91,26 @@ describe('toLedgerRows', () => {
       refs: ['LE-0004', 'pi_3Qdecl'],
     });
   });
+
+  // covers correct-effective-date AC12, T3 — a refund line names its refund and Stripe's id for it
+  it('shows a refund with its refund id and Stripe refund as references', () => {
+    const [row] = toLedgerRows([
+      line({
+        displayId: 'LE-0009', type: 'REFUND', description: 'Refund to card ending 4242', amountCents: 1_400,
+        balanceAfterCents: 0, calcAnnualCents: null, calcDays: null, calcTermDays: null, coverageId: null,
+        coverFrom: null, coverTo: null, policyTransactionDisplayId: null, stripeEventId: 'evt_1Qref',
+        refundDisplayId: 'RF-0001', stripeRefundId: 're_3Qabc',
+      }),
+    ]);
+    expect(row).toMatchObject({
+      title: 'Refund to card ending 4242',
+      calc: 'Refunded',
+      calcTone: 'good',
+      amount: '+$14.00',
+      balance: '$0.00',
+      refs: ['LE-0009', 'RF-0001', 're_3Qabc'],
+      struck: false,
+      correction: false,
+    });
+  });
 });

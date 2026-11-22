@@ -1,7 +1,7 @@
 # Add coverage
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/policy-lifecycle/add-coverage
 > Covers: /broker/policies/:id/change, /api/broker/policies/{id}/coverages, /api/broker/policies/{id}/coverages/preview, api/src/main/java/**/policy/AddCoverage*.java, web/src/pages/broker/ChangePolicyPage.tsx, web/src/lib/addCoverCopy.ts
 

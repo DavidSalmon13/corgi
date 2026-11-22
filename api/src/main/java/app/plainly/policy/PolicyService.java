@@ -1,5 +1,6 @@
 package app.plainly.policy;
 
+import app.plainly.billing.RefundService;
 import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerQueryService;
@@ -19,14 +20,16 @@ public class PolicyService {
     private final CoverageRepository coverages;
     private final PolicyTransactionRepository transactions;
     private final LedgerQueryService ledger;
+    private final RefundService refunds;
     private final Today today;
 
     public PolicyService(PolicyRepository policies, CoverageRepository coverages, PolicyTransactionRepository transactions,
-            LedgerQueryService ledger, Today today) {
+            LedgerQueryService ledger, RefundService refunds, Today today) {
         this.policies = policies;
         this.coverages = coverages;
         this.transactions = transactions;
         this.ledger = ledger;
+        this.refunds = refunds;
         this.today = today;
     }
 
@@ -71,6 +74,7 @@ public class PolicyService {
     private Optional<PolicyViews.Detail> find(long policyId) {
         return policies.findHead(policyId).map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(),
                 h.end(), today.date(), h.customer(), ledger.balance(policyId), policies.hasPaymentProcessing(policyId),
-                coverages.listForPolicy(policyId), ledger.lines(policyId), transactions.listForPolicy(policyId)));
+                coverages.listForPolicy(policyId), ledger.lines(policyId), transactions.listForPolicy(policyId),
+                refunds.listForPolicy(policyId)));
     }
 }

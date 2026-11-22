@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.stripe.exception.ApiConnectionException;
+import com.stripe.exception.ApiException;
+import com.stripe.exception.RateLimitException;
 import com.stripe.exception.InvalidRequestException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -12,7 +14,7 @@ import org.junit.jupiter.api.Test;
  * Payments are on only when every Stripe value is set and they are test-mode keys; otherwise the app still
  * starts and says payments are off, instead of taking money it can't record.
  */
-// covers AC13, T7; hotfix payment-review-fixes
+// covers AC13, T7; hotfix payment-review-fixes; correct-effective-date T17
 class StripeJavaGatewayTest {
 
     @Test
@@ -73,5 +75,24 @@ class StripeJavaGatewayTest {
         assertThat(p.status()).isEqualTo(502);
         assertThat(p.error()).isEqualTo("confirm_unknown");
         assertThat(p.getMessage()).doesNotContainIgnoringCase("nothing was charged");
+    }
+
+    // --- review fix: only a definite refusal fails a refund (T17) ---
+
+    @Test
+    void aRefundStripeRejectsIsRefused() {
+        assertThat(StripeJavaGateway.refundProblem(new InvalidRequestException(
+                "Charge has already been refunded.", null, "req_2", "charge_already_refunded", 400, null)))
+                .isInstanceOf(StripeGateway.RefundRefused.class);
+    }
+
+    @Test
+    void aRefundWeNeverHeardBackAboutIsUnknownNotRefused() {
+        assertThat(StripeJavaGateway.refundProblem(new ApiConnectionException("read timed out")))
+                .isInstanceOf(StripeGateway.RefundOutcomeUnknown.class);
+        assertThat(StripeJavaGateway.refundProblem(new ApiException("server error", "req_3", null, 500, null)))
+                .isInstanceOf(StripeGateway.RefundOutcomeUnknown.class);
+        assertThat(StripeJavaGateway.refundProblem(new RateLimitException("slow down", null, "req_4", null, 429, null)))
+                .isInstanceOf(StripeGateway.RefundOutcomeUnknown.class);
     }
 }

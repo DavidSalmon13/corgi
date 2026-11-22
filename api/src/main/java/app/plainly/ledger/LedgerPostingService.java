@@ -23,13 +23,13 @@ public class LedgerPostingService {
     public List<PostedEntry> post(long policyId, Long policyTransactionId, List<NewEntry> entries) {
         List<PostedEntry> posted = new ArrayList<>(entries.size());
         for (NewEntry e : entries) {
-            check(policyId, policyTransactionId, e);
-            posted.add(ledger.insert(policyId, policyTransactionId, e));
+            posted.add(ledger.insert(policyId, policyTransactionId, check(policyId, policyTransactionId, e)));
         }
         return posted;
     }
 
-    private void check(long policyId, Long policyTransactionId, NewEntry e) {
+    /** Refuses a line that breaks the ledger's rules; returns it as it should be stored. */
+    private NewEntry check(long policyId, Long policyTransactionId, NewEntry e) {
         boolean fromPolicyAction = e.type() == EntryType.CHARGE || e.type() == EntryType.REVERSAL;
         if (fromPolicyAction && policyTransactionId == null) {
             throw new IllegalArgumentException(e.type() + " lines must come from a policy transaction");
@@ -56,6 +56,18 @@ public class LedgerPostingService {
             if (original.policyId() != policyId || e.amountCents() != -original.amountCents()) {
                 throw new IllegalArgumentException("a reversal must exactly undo a line on the same policy");
             }
+            return e.withCoverage(original.coverageId());
         }
+        if (e.type() == EntryType.REFUND) {
+            if (e.refundId() == null || e.stripeEventId() == null || e.stripeEventId().isBlank()) {
+                throw new IllegalArgumentException("a refund line must name its refund and the Stripe event that settled it");
+            }
+            LedgerRepository.RefundOf refund = ledger.refundOf(e.refundId())
+                    .orElseThrow(() -> new IllegalArgumentException("no refund " + e.refundId()));
+            if (refund.policyId() != policyId || e.amountCents() != refund.amountCents()) {
+                throw new IllegalArgumentException("a refund line must match its refund, on the refund's own policy");
+            }
+        }
+        return e;
     }
 }

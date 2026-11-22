@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { api, ApiError, useSession } from '../../api/client';
 import type { MyCover } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
@@ -11,6 +12,7 @@ import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { formatDate } from '../../lib/dates';
 import { coverDates, dueReasonText, periodLine, protectionSentence } from '../../lib/myCoverCopy';
+import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
 
 const CARD = 'rounded-2xl border border-line bg-card';
 
@@ -43,8 +45,26 @@ function Header({ name }: { name?: string }) {
   );
 }
 
+const PAY_BUTTON =
+  'flex min-h-[52px] items-center justify-center rounded-xl bg-accent text-[17px] font-bold text-on-accent no-underline';
+
+/** The P1 pay button, or why there isn't one on a demo without Stripe keys. */
+function PayAction({ c, label }: { c: MyCover; label: string }) {
+  if (!c.paymentsEnabled) return <p className="m-0 text-sm leading-snug text-ink-2">{PAYMENTS_OFF}</p>;
+  return (
+    <Link to="/me/pay" className={PAY_BUTTON}>
+      {label}
+    </Link>
+  );
+}
+
 function AmountCard({ c }: { c: MyCover }) {
-  if (c.policy.status === 'CANCELLED') {
+  const state = homePaymentState({
+    cancelled: c.policy.status === 'CANCELLED',
+    amountDueCents: c.amountDueCents,
+    payment: c.payment,
+  });
+  if (state === 'cancelled') {
     return (
       <section aria-label="Cover ended" className={`${CARD} flex flex-col gap-3 p-5`}>
         <span className="self-start">
@@ -54,7 +74,7 @@ function AmountCard({ c }: { c: MyCover }) {
       </section>
     );
   }
-  if (c.amountDueCents === 0) {
+  if (state === 'nothing') {
     return (
       <section aria-label="Nothing due" className={`${CARD} flex items-center gap-4 p-5`}>
         <Mark size={56} />
@@ -65,12 +85,42 @@ function AmountCard({ c }: { c: MyCover }) {
       </section>
     );
   }
+  if (state === 'waiting' && c.payment) {
+    const copy = homeWaitingCopy(c.payment.amountCents);
+    return (
+      <section aria-label="Payment on its way" aria-live="polite" className={`${CARD} flex flex-col gap-3 p-5`}>
+        <span className="self-start">
+          <StatusPill tone="wait" dot>
+            {copy.title}
+          </StatusPill>
+        </span>
+        <p className="m-0 text-[19px] font-semibold leading-snug">{copy.headline}</p>
+        <p className="m-0 text-[15px] leading-snug text-ink-2">{copy.body}</p>
+      </section>
+    );
+  }
+  if (state === 'failed' && c.payment) {
+    const copy = homeFailedCopy(c.payment.amountCents);
+    return (
+      <section aria-label="Payment didn't go through" className="flex flex-col gap-3 rounded-2xl border-[1.5px] border-bad bg-card p-5">
+        <span className="self-start">
+          <StatusPill tone="bad" dot>
+            {copy.title}
+          </StatusPill>
+        </span>
+        <p className="m-0 text-[19px] font-semibold leading-snug">{copy.headline}</p>
+        <p className="m-0 text-[15px] leading-snug text-ink-2">{copy.body}</p>
+        <PayAction c={c} label="Try again" />
+      </section>
+    );
+  }
   return (
     <section aria-label="Amount due" className="flex flex-col gap-3.5 rounded-2xl border-[1.5px] border-accent bg-card p-5">
       <div className="text-[40px] font-bold leading-none tracking-[-0.02em] text-accent-ink">
         <Money cents={c.amountDueCents} /> <span className="text-xl font-semibold">due</span>
       </div>
       <p className="m-0 text-[17px] leading-snug">{dueReasonText(c.dueReason)}</p>
+      <PayAction c={c} label={payLabel(c.amountDueCents)} />
     </section>
   );
 }

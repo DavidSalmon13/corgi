@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from 'react-router';
 import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
+import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { SignIn } from './pages/SignIn';
 
 // Placeholder until B1–B3 (T15–T17) and P1 (T18) land.
@@ -28,6 +29,7 @@ export function App() {
           </RequireRole>
         }
       >
+        <Route path="policies/new" element={<NewPolicyPage />} />
         <Route path="*" element={<Soon />} />
       </Route>
       <Route

@@ -46,6 +46,35 @@ export type Coverage = {
   to: IsoDate;
 };
 
+/** policy.IssuePlan: what issuing would charge, from POST /api/broker/policies/preview. */
+export type IssuePlan = {
+  start: IsoDate;
+  end: IsoDate;
+  lines: {
+    kind: CoverKind;
+    description: string;
+    calc: { annualCents: number; days: number; termDays: number; amountCents: number };
+    from: IsoDate;
+    to: IsoDate;
+  }[];
+  totalCents: number;
+};
+
+/** POST /api/broker/policies body. Dates are yyyy-MM-dd. */
+export type IssueRequest = {
+  legalName: string;
+  businessDescription: string;
+  ownerName: string;
+  ownerEmail: string;
+  startDate: string;
+  productLiability: boolean;
+};
+
+export type Issued = { policyId: number; policyNumber: string; transactionDisplayId: string; totalCents: number };
+
+/** 422 body from ApiErrorHandler. */
+export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
+
 /** policy.PolicyViews.ListRow */
 export type PolicyListRow = {
   policyId: number;

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { api } from '../api/client';
 import type { DemoUser } from '../api/types';
 import { homeFor } from '../components/RouteGuards';
+import { Mark } from '../components/Mark';
 import { ThemeToggle } from '../components/ThemeToggle';
 
 function initials(name: string): string {
@@ -16,21 +17,6 @@ function initials(name: string): string {
 
 function firstName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
-}
-
-/** The Plainly corgi mark, from the sign-in design. */
-function Mark() {
-  return (
-    <svg width="64" height="64" viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true" className="text-ink">
-      <path d="M14 27 L11 7 L25 18 Z" className="fill-accent" />
-      <path d="M42 27 L45 7 L31 18 Z" className="fill-accent" />
-      <path d="M12 30 C12 18 44 18 44 30 C44 41 37 48 28 48 C19 48 12 41 12 30 Z" className="fill-accent" />
-      <path d="M21 39 C21 34 35 34 35 39 C35 44 21 44 21 39 Z" className="fill-card" />
-      <circle cx="21" cy="30" r="1.6" fill="currentColor" />
-      <circle cx="35" cy="30" r="1.6" fill="currentColor" />
-      <path d="M26 37 h4 l-2 2 z" fill="currentColor" />
-    </svg>
-  );
 }
 
 function RoleButton({ user, busy, onChoose }: { user: DemoUser; busy: boolean; onChoose: () => void }) {
@@ -78,11 +64,10 @@ export function SignIn() {
   return (
     <div className="flex min-h-dvh justify-center bg-bg">
       <main className="flex w-full max-w-[430px] flex-col px-5 py-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[13px] font-bold uppercase tracking-[.06em] text-accent-ink">
+        <div>
+          <span className="inline-block rounded-full bg-accent-soft px-2.5 py-1 text-[13px] font-bold uppercase tracking-[.06em] text-accent-ink">
             Demo · fictional people and money
           </span>
-          <ThemeToggle />
         </div>
 
         <div className="mt-16 flex flex-col gap-2.5 sm:mt-24">
@@ -116,9 +101,12 @@ export function SignIn() {
           )}
         </section>
 
-        <p className="mt-auto pt-12 text-sm leading-normal text-ink-2">
-          This is a demo. No real insurance is sold, and payments use Stripe's test mode.
-        </p>
+        <div className="mt-auto flex items-end justify-between gap-4 pt-12">
+          <p className="m-0 text-sm leading-normal text-ink-2">
+            This is a demo. No real insurance is sold, and payments use Stripe's test mode.
+          </p>
+          <ThemeToggle />
+        </div>
       </main>
     </div>
   );

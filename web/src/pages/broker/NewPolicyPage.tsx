@@ -157,6 +157,10 @@ export function NewPolicyPage() {
   }, [failedSaves]);
 
   const fieldError = (f: Field) => errors?.fields[f];
+  // Count what is still wrong, so the summary shrinks as fields are fixed and goes once they all are.
+  const open = errors ? Object.values(errors.fields).filter(Boolean).length : 0;
+  const hadFieldErrors = errors ? Object.keys(errors.fields).length > 0 : false;
+  const summary = !errors ? null : hadFieldErrors ? (open === 0 ? null : `${open} ${open === 1 ? 'thing' : 'things'} to fix before you can save.`) : errors.message;
   const owner = form.ownerName.trim().split(/\s+/)[0];
   const period = plan ? `${formatDate(plan.start)} → ${formatDate(plan.end)}` : 'Starts on the date above';
 
@@ -167,10 +171,10 @@ export function NewPolicyPage() {
         <p className="mt-1 text-base text-ink-2">The price updates as you type. Nothing is charged until the customer pays.</p>
       </div>
 
-      {errors && (
+      {summary && errors && (
         <div ref={summaryRef} tabIndex={-1} role="alert" className="rounded-card bg-bad-soft px-4 py-3.5 font-semibold text-bad">
-          {errors.message}
-          {Object.entries(errors.fields).some(([, m]) => m) && (
+          {summary}
+          {open > 0 && (
             <ul className="mt-1.5 list-disc pl-5 font-normal">
               {Object.entries(errors.fields).map(([f, m]) =>
                 m ? (

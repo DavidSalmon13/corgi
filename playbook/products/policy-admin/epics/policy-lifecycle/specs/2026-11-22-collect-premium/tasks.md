@@ -13,7 +13,7 @@ PR slices (at most 10 files each): T1 · T2–T4 · T5–T7 · T8–T10 · T11�
 ## Tests first (TDD)
 
 - [x] T2 Add `StripeTestSupport` (a signed-event builder using the `t=…,v1=` HMAC-SHA256 header, and a fake `StripeGateway`) and a `PaymentTestData` helper that issues a policy and signs in the owner.
-- [ ] T3 Write failing API tests:
+- [x] T3 Write failing API tests:
   - webhook signature handling (AC8);
   - idempotency, including a replay and two copies at once (AC9);
   - status transitions and ledger lines (AC5, AC6, AC10);

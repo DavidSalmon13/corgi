@@ -67,16 +67,16 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
   - `RefundController`: `POST /api/broker/refunds/{id}/retry` calls `RefundService.retry`.
 - **`CorrectCoverageService` (policy, rules + `@Transactional`):**
   - load → validate → pure `CorrectionPlan` (shared by preview and save).
-  - Locks the policy through `PolicyRepository.lockById`.
-  - Reads the live PRODUCT_LIABILITY coverage through `CoverageRepository.findLive`.
-  - The line to undo is the live CHARGE for that coverage with no reverser (it may be an ISSUE line), read through `LedgerQueryService`.
+  - Locks the policy through `PolicyRepository.findTerm(policyId, true)`, as `AddCoverageService` does. A payment still with the bank is detected through `PolicyRepository.hasPaymentProcessing`.
+  - Reads the live PRODUCT_LIABILITY coverage through a new `CoverageRepository.findLive(policyId, kind)`, a separate read after the lock.
+  - The line to undo is the live CHARGE for that coverage with no reverser (it may be an ISSUE line), read through a new `LedgerQueryService.liveChargeFor(coverageId)` over `LedgerRepository.liveChargeFor`.
   - The rebill is `ProRata.charge(annual, newStart, policyEnd, policyStart, policyEnd)`.
   - The refund plan comes from `balance + net`: if that is negative, it is allocated over succeeded payments newest first, each capped at collected minus non-failed refunds. Payments are read through `PaymentService`; existing refunds through `RefundService`.
   - Save writes:
-    - the CORRECT transaction with its reason (`PolicyTransactionRepository.insert`)
+    - the CORRECT transaction with its reason (`PolicyTransactionRepository.insert`, which gains a `reason` parameter; existing callers pass `null`)
     - the reversal + rebill (`LedgerPostingService.post`)
-    - the new coverage, marking the old one replaced (`CoverageRepository.insert` + `markReplaced`)
-    - cancelled OPEN intents (`PaymentService.cancelOpenIntents`, extracted from `PaymentService.start`)
+    - the new coverage, marking the old one replaced (`CoverageRepository.insert` + new `markReplaced(oldId, newId)`)
+    - cancelled OPEN intents (`PaymentService.cancelOpenIntents`, extracted from `PaymentService.start`; provisional name until billing is layered)
     - PENDING refunds (`RefundService.recordPending`), sent by an after-commit hook through `RefundService.send`
 - **`RefundService` (billing) over `RefundRepository` (`refunds` only):**
   - `send` calls `StripeGateway.createRefund(paymentIntentId, amount, idempotencyKey "refund-<id>-<attempt>", metadata)`; a failure → `markFailed`.
@@ -87,10 +87,10 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
     - Dedup uses `processed_stripe_events` as today.
 - **Ledger:** `NewEntry.refund`, a REFUND branch in `LedgerPostingService.check`, and the reversal keeps `coverage_id`. SQL stays in `LedgerRepository`.
 - **Reads:**
-  - The `CoverageRepository` live-coverage query returns `previousStart`.
-  - The transactions query returns `reason`.
-  - Policy detail gains refunds from `RefundService`.
-  - `MyCoverController` → its service gains `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to "We fixed when your extra cover started."
+  - `CoverageRepository.listForPolicy` and `exists` skip replaced rows, so timelines show one extra cover; `listForPolicy` also returns `previousStart` (the start of the row it replaced).
+  - `PolicyTransactionRepository.listForPolicy` returns `reason`.
+  - `PolicyService` (which replaced `PolicyQueries`) adds refunds from `RefundService` to the policy detail.
+  - `MyCoverController` → its service (provisional until `me` is layered) gains `refundWaiting {amount, cardLast4}`, and a CORRECT transaction maps to "We fixed when your extra cover started."
 - **Web:**
   - `ChangePolicyPage` gets tabs.
   - New `CorrectCoverForm` (debounced preview, `useQuery` like `AddCoverForm`, a confirm dialog, 422 field mapping).
@@ -121,3 +121,4 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
 | 2026-11-22 | david-schwartzman | change | Technical Approach and tasks follow the new controller → service → repository standard; depends on chore/api-repository-layer merging first | backend/layers |
+| 2026-11-22 | david-schwartzman | change | Matched names to the layered policy/ledger code on chore/api-repository-layer (findTerm lock, hasPaymentProcessing, PolicyService); billing and me names provisional | backend/layers |

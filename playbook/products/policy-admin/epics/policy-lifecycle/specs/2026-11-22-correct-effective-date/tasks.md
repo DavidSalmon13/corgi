@@ -14,12 +14,12 @@
 ## API
 
 - [ ] T4 `V8__corrections_and_refunds.sql`: `coverages.replaced_by_coverage_id`, `refunds` table + seq, `ledger_entries.refund_id` + REFUND trace check; new `RefundRepository` (insert, lockById, markSent/markSucceeded/markFailed, findByPolicy, refundedPerPayment)
-- [ ] T5 Ledger: `NewEntry.refund`, REFUND branch in `LedgerPostingService.check`, reversal keeps `coverage_id`; `LedgerQueryService.liveChargeFor(coverageId)` over `LedgerRepository`
+- [ ] T5 Ledger: `NewEntry.refund`, REFUND branch in `LedgerPostingService.check`, reversal keeps `coverage_id`; `LedgerQueryService.liveChargeFor(coverageId)` over new `LedgerRepository.liveChargeFor`
 - [ ] T6 `StripeGateway.createRefund` in `StripeJavaGateway` + `FakeStripeGateway`; refund event builders in `StripeTestSupport`
-- [ ] T7 `CorrectionPlan` + `CorrectCoverageService.preview`: `CoverageRepository.findLive`, live charge via `LedgerQueryService`, validation, rebill, refund allocation (payments via `PaymentService`, refunded amounts via `RefundService`)
-- [ ] T8 `CorrectCoverageService.correct` (`@Transactional`): `PolicyRepository.lockById`, `PolicyTransactionRepository.insert` with reason, `LedgerPostingService.post` reversal + rebill, `CoverageRepository.insert` + `markReplaced`, `PaymentService.cancelOpenIntents` (extracted from `start`), `RefundService.recordPending`, after-commit `RefundService.send`
+- [ ] T7 `CorrectionPlan` + `CorrectCoverageService.preview`: new `CoverageRepository.findLive(policyId, kind)`, `PolicyRepository.hasPaymentProcessing`, live charge via `LedgerQueryService.liveChargeFor`, validation, rebill, refund allocation (payments via `PaymentService`, refunded amounts via `RefundService`)
+- [ ] T8 `CorrectCoverageService.correct` (`@Transactional`): `PolicyRepository.findTerm(policyId, true)`, `PolicyTransactionRepository.insert` with new `reason` parameter, `LedgerPostingService.post` reversal + rebill, `CoverageRepository.insert` + new `markReplaced(oldId, newId)`, `PaymentService.cancelOpenIntents` (extracted from `start`; provisional until billing is layered), `RefundService.recordPending`, after-commit `RefundService.send`
 - [ ] T9 `RefundService` over `RefundRepository` (recordPending, send, retry, settle, fail; failure → FAILED) + `WebhookHandler` refund events → `RefundService.settle|fail` → REFUND line once via `LedgerPostingService`
-- [ ] T10 Thin `CorrectionController` (`/api/broker/policies/{id}/corrections`, `/preview`) → `CorrectCoverageService`, thin `RefundController` retry → `RefundService`; policy read service + `CoverageRepository`/`PolicyTransactionRepository` queries for live coverages, previousStart, reason, refunds; `MyCoverController` → its service for refundWaiting + correction due reason; API suite green
+- [ ] T10 Thin `CorrectionController` (`/api/broker/policies/{id}/corrections`, `/preview`) → `CorrectCoverageService`, thin `RefundController` retry → `RefundService`; `PolicyService` detail + `CoverageRepository.listForPolicy`/`exists` skip replaced rows and return previousStart, `PolicyTransactionRepository.listForPolicy` returns reason, refunds via `RefundService`; `MyCoverController` → its service (provisional until `me` is layered) for refundWaiting + correction due reason; API suite green
 
 ## Web
 

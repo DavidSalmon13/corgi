@@ -17,7 +17,12 @@ export type GlossaryTerm =
   | 'generalLiability'
   | 'productLiability'
   | 'rewrite'
-  | 'flatCancellation';
+  | 'flatCancellation'
+  | 'inceptionDate'
+  | 'expiryDate'
+  | 'statementDate'
+  | 'postingDate'
+  | 'dueOnReceipt';
 
 export const GLOSSARY: Record<GlossaryTerm, string> = {
   endorsement:
@@ -43,6 +48,12 @@ export const GLOSSARY: Record<GlossaryTerm, string> = {
     'A new policy issued to replace one that was cancelled, usually because it was set up wrong. The two stay linked, and each keeps its own money.',
   flatCancellation:
     'A cancellation from the policy\'s start date, so it never covered a day: all the premium paid comes back as return premium.',
+  inceptionDate: 'The day the policy starts: the first day of the policy period.',
+  expiryDate: "The day the policy period ends. Cover runs up to it; the expiry day itself isn't counted.",
+  statementDate: 'The day this statement was made. It shows every line posted up to then.',
+  postingDate:
+    'The day a line went on the ledger. It can differ from its effective date, the day the change applies from.',
+  dueOnReceipt: 'Payable as soon as it is posted: there is no later payment date.',
 };
 
 /**
@@ -57,7 +68,12 @@ export const TERM_PATTERNS: [GlossaryTerm, string][] = [
   ['midTermChange', 'mid-term changes?'],
   ['generalLiability', 'general liability'],
   ['productLiability', 'product liability'],
-  ['effectiveDate', 'effective dates?'],
+  ['effectiveDate', 'effective(?: dates?)?'],
+  ['statementDate', 'statement date'],
+  ['dueOnReceipt', 'due on receipt'],
+  ['inceptionDate', 'inception(?: date)?'],
+  ['expiryDate', 'expiry(?: date)?'],
+  ['postingDate', 'posting dates?|posted'],
   ['policyPeriod', 'policy period'],
   ['endorsement', 'endorsements?'],
   ['proRata', 'pro-rata'],

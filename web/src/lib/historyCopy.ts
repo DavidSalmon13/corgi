@@ -165,7 +165,7 @@ export function actionDetail(a: HistoryAction): string {
 
 export type LedgerChip = { id: string; undone: boolean; row: StatementRow };
 
-/** The card's ledger lines (LE-…), each struck when a later line undid it. Money on its way has no line yet. */
+/** The card's ledger lines (LE-…), each muted when a later line reversed it. Money on its way has no line yet. */
 export function ledgerChips(a: HistoryAction): LedgerChip[] {
   return a.rows.filter((r) => !r.pending).map((r) => ({ id: r.id, undone: r.undoneOn != null, row: r }));
 }

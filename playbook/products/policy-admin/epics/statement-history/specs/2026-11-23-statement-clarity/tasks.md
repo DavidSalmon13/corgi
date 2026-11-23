@@ -17,7 +17,7 @@
 
 ## Docs
 
-- [ ] T6 DECISIONS.md entry: no strikethrough on reversed lines; due on receipt; immediate refunds kept despite refund-then-charge churn; taxes and fees out of scope
+- [x] T6 DECISIONS.md entry: no strikethrough on reversed lines; due on receipt; immediate refunds kept despite refund-then-charge churn; taxes and fees out of scope
 
 ## Verification
 

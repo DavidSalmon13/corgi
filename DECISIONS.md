@@ -387,3 +387,13 @@ The correction, cancellation and cover-removal previews share their request reco
 ## 2026-11-23: Edge patterns check length first, and enums are read by name only
 
 The security review found that the owner-email `@Pattern` backtracked for seconds on a long run of no-break spaces: they match both the padding and the address part, and `@Size` doesn't stop `@Pattern` from running, because Hibernate evaluates every constraint on the field. The pattern now starts with a lookahead (`(?=.{0,200}\z)`) that refuses anything over `MAX_TEXT` before any backtracking. A 4,000-character attack string is rejected in under a millisecond. The code review found that Jackson reads a number as an enum by position, so `"kind":1` became product liability even with `READ_UNKNOWN_ENUM_VALUES_AS_NULL`. `CoverKind` is now read by `policy/CoverKindName`, which accepts only an exact name. Anything else is "Pick a cover to add.", so a cover can't change meaning if the enum is reordered.
+
+## 2026-11-23: Statement clarity: reversed lines aren't struck, money is due on receipt, refunds stay immediate
+
+**No strikethrough on a reversed line.** A line a correction later reversed was a real charge that counted in the balance until the reversal was posted. Striking it through read as "deleted" and contradicted the statement's own rule that we never edit a line. On the statement (P3), the broker's ledger and B5 History, a reversed line now keeps its weight, muted, with a "Reversed by correction · LE-…" tag that jumps to the correction. Inside a correction card the original is shown again only as a reference ("Replaces: … · posted <date> above"), with no balance and marked "not counted again". The card shows one "Balance after" in place of a balance per line, because the balance in the middle of a correction (−$678.00) read as "we owe you $678".
+
+**Due on receipt.** Plainly has no billing cycle or grace period, so what is owed is due when it is posted. The statement's due date is the posting date of the oldest line that later payments, credits and reversals haven't paid off, applied oldest first (a left-over credit pays the next charge). It is null whenever the balance isn't positive, so it appears exactly when P1 says "Due now".
+
+**Refunds stay immediate.** A correction that lowers the price is still refunded to the card straight away (see 2026-11-22 "A correction that lowers the price is refunded automatically"), even though a refund followed by a new charge for a later correction churns money through the card. Holding small credits on account is a separate feature and out of scope here.
+
+**Taxes and fees are out of scope.** The statement has no tax, surcharge or fee lines; premiums are the only charges Plainly posts.

@@ -16,7 +16,7 @@
 - [x] T5 `AddCoverageController`: typed `CoverKind` (unknown → null) + `LocalDate`, `@Valid`; delete `date()` / `coverKind()`
 - [x] T6 `CorrectionController` and `CancellationController`: typed `LocalDate`, `@NotBlank @Size` reason, `@Valid`; delete `date()`
 - [x] T6.1 `AuthController.SignUpRequest`: `@NotBlank` email/password, `@Valid` (sign-in untouched)
-- [ ] T7 For each unmerged endpoint that is on dev by then (remove-cover's removal request, more-policies' `/api/broker/customers/{id}/policies`): apply the same pattern to its request record; otherwise cancel this task with a note
+- [x] T7 For each unmerged endpoint that is on dev by then (remove-cover's removal request, more-policies' `/api/broker/customers/{id}/policies`): apply the same pattern to its request record; otherwise cancel this task with a note
 
 ## Docs
 - [ ] T8 DECISIONS.md: the three-layer model, the intentional edge/service overlap (DemoSeeder), and the database audit with no migration

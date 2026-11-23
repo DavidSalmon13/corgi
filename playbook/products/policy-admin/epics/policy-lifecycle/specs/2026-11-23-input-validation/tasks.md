@@ -22,5 +22,5 @@
 - [x] T8 DECISIONS.md: the three-layer model, the intentional edge/service overlap (DemoSeeder), and the database audit with no migration
 
 ## Verification
-- [ ] T9 Run the full API test suite; make every pre-existing endpoint test pass unchanged, or adjust only those that expected format and business errors in one response (testing skill)
+- [x] T9 Run the full API test suite; make every pre-existing endpoint test pass unchanged, or adjust only those that expected format and business errors in one response (testing skill)
 - [ ] T10 Run QA against acceptance criteria (qa skill)

@@ -16,6 +16,12 @@ Every demo account uses the password `plainly-demo-2026` (a test credential for 
 |---|---|---|
 | Broker | `sam@plainly.test` | Sam Reyes, who issues and manages policies |
 | Policyholder | `maya@juniperandrye.test` | Maya Okafor, owner of Juniper & Rye Bakery LLC, with a policy Sam issued |
+| Policyholder | `tomas@herreracycle.test` | Tomás Herrera, Herrera Cycle Works LLC: a mid-term endorsement adding product liability |
+| Policyholder | `priya@saffronlane.test` | Priya Raman, Saffron Lane Candle Co.: an endorsement whose effective date was corrected (reversal and rebill) |
+| Policyholder | `lena@kowalskiprint.test` | Lena Kowalski, Kowalski Print Studio: a cancelled policy with a pro-rata return premium |
+| Policyholder | `daniel@achebetailoring.test` | Daniel Achebe, Achebe Tailoring: a cancelled policy and its rewrite, so two policies |
+
+Sam's list also has two owners who haven't signed up yet: Brightside Dog Grooming LLC (product liability removed mid-term, with a return premium) and Marigold Tea House (a policy starting in two weeks). Their emails, `owen@brightsidegrooming.test` and `grace@marigoldtea.test`, can be used to try **Create your account**. Seed dates are counted back from the day the API first starts on a database, and no payments are seeded: every payment must trace to a Stripe event, so pay with a [test card](#paying-with-stripe-test-mode) to see one.
 
 To try the owner's first visit: sign in as Sam, create a customer with any email, sign out, then choose **Create your account** on the sign-in page and use that email. Owners can't sign up until their broker has entered their email ([why](DECISIONS.md)).
 
@@ -43,7 +49,7 @@ cd api && ./gradlew test
 Settings for a deployment (Railway):
 
 - The session cookie is marked Secure on every HTTPS request (Railway's proxy headers are trusted). `SESSION_COOKIE_SECURE=true` forces it on regardless.
-- `PLAINLY_DEMO_SEED`: on by default. At startup it adds Maya's demo policy and account if they're missing; set it to `false` to skip.
+- `PLAINLY_DEMO_SEED`: on by default. At startup it adds the demo customers above (policies, lifecycle changes and accounts) for any owner email that isn't taken yet; set it to `false` to skip.
 
 To start over with an empty database: `docker compose down -v`. The ledger is append-only even locally, so this is the only way to remove ledger rows.
 

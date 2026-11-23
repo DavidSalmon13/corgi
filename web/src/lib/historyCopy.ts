@@ -10,6 +10,7 @@ const CHANGE_TITLE: Record<string, string> = {
   ADD_COVERAGE: 'Endorsement added',
   CORRECT: 'Effective date corrected',
   CANCEL: 'Policy cancelled',
+  REMOVE_COVERAGE: 'Product liability removed',
 };
 
 function card(a: HistoryAction): string | null {

@@ -22,10 +22,11 @@ function hasEnded(endsOn: IsoDate, today: IsoDate): boolean {
 const COVER_NAME: Record<CoverKind, string> = { BASE: 'General liability', PRODUCT_LIABILITY: 'Product liability' };
 
 /** B4: which change left money owing, kept back from the credit. */
-const KEPT_BACK_B4: Record<KeptBackFor, string> = {
+export const KEPT_BACK_B4: Record<KeptBackFor, string> = {
   ISSUE: 'First year still owed',
   ADD_COVERAGE: 'Endorsement still owed',
   CORRECT: 'Correction still owed',
+  REMOVE_COVERAGE: 'Still owed after the product liability removal',
 };
 
 /** P6: the same, as the customer knows it. */
@@ -33,6 +34,7 @@ const KEPT_BACK_P6: Record<KeptBackFor, string> = {
   ISSUE: 'from your first year',
   ADD_COVERAGE: 'for your product liability endorsement',
   CORRECT: 'from the effective date correction',
+  REMOVE_COVERAGE: 'from before your product liability was removed',
 };
 
 /** One line of "What Maya gets back" (B4) or "How we worked it out" (P6). {@code total} is the bottom line. */

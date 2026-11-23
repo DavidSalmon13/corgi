@@ -26,6 +26,7 @@ const ACTIONS: Record<string, string> = {
   ADD_COVERAGE: 'Endorsement added',
   CORRECT: 'Effective date corrected',
   CANCEL: 'Cancelled',
+  REMOVE_COVERAGE: 'Product liability removed',
 };
 
 function humanise(type: string): string {

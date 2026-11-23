@@ -2,6 +2,7 @@ import type { MoneyStatus, RefKind, Statement, StatementCorrection, StatementRow
 import { formatDate, formatShortDate } from './dates';
 import { formatCents } from './money';
 import { dueReasonText, refundOnItsWay } from './myCoverCopy';
+import { removalCreditTitle } from './removeCoverCopy';
 
 // Every sentence on P3 "Your statement" and P4 "How we got this". Standard terms (reversal, rebill, pro-rata,
 // return premium) throughout; screens render these through `Glossed`, so each one carries its "?" explanation.
@@ -33,6 +34,7 @@ export function bannerCopy(banner: Statement['banner']): { title: string; detail
 export function rowTitle(row: StatementRow): string {
   const card = row.trace.money?.cardLast4;
   if (row.pending && row.kind === 'PAYMENT' && row.title === 'Payment' && card) return `Payment, card ending ${card}`;
+  if (row.kind === 'CREDIT' && row.trace.cause.transactionType === 'REMOVE_COVERAGE') return removalCreditTitle(row.title);
   return row.title;
 }
 
@@ -122,6 +124,7 @@ const VOICE = {
   policyholder: {
     extraCover: 'your product liability endorsement',
     credit: "Return premium for the days you won't be covered, because your policy ends early.",
+    removedCredit: "Return premium for the days your product liability won't cover, because it was removed.",
     undoTail: "We don't edit lines, so the original stays on your statement.",
     declined: 'Your bank said no, so no money moved.',
     waiting: 'Your payment is with your bank.',
@@ -140,6 +143,7 @@ const VOICE = {
   broker: {
     extraCover: 'the product liability endorsement',
     credit: "Return premium for the days the customer won't be covered, because the policy ends early.",
+    removedCredit: "Return premium for the days product liability won't cover the customer, because it was removed.",
     undoTail: 'Lines are never edited, so the original stays on the statement.',
     declined: "The customer's bank said no, so no money moved.",
     waiting: "The payment is with the customer's bank.",
@@ -186,7 +190,7 @@ function plainSentence(row: StatementRow, v: Voice): string {
       }
       return 'The premium for this coverage for the days it runs, pro-rata.';
     case 'CREDIT':
-      return v.credit;
+      return cause.transactionType === 'REMOVE_COVERAGE' ? v.removedCredit : v.credit;
     case 'REVERSAL':
       return `A reversal of the ${m.from ? formatShortDate(m.from) + ' ' : ''}line, in full. ${v.undoTail}`;
     case 'PAYMENT':
@@ -234,6 +238,8 @@ function changeWhat(cause: StatementCause, v: Voice): string {
         : 'Effective date corrected';
     case 'CANCEL':
       return on ? `Policy cancelled from ${formatDate(on)}` : 'Policy cancelled';
+    case 'REMOVE_COVERAGE':
+      return on ? `Product liability removed from ${formatDate(on)}` : 'Product liability removed';
     default:
       return v.otherChange;
   }

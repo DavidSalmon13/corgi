@@ -1,4 +1,4 @@
-import type { LedgerLine } from '../api/types';
+import type { LedgerLine, PolicyTransaction } from '../api/types';
 import { GLOSSARY } from '../lib/glossary';
 import { Glossed } from './Glossed';
 import { Term } from './Term';
@@ -49,8 +49,15 @@ const TD = 'px-3 py-3 align-top text-[15px] border-b border-dashed border-line';
  * Every ledger line, oldest first, with how its amount was worked out and the records it came from.
  * A table on wide screens; a stacked list on phones so nothing scrolls sideways.
  */
-export function LedgerTable({ lines }: { lines: LedgerLine[] }) {
-  const rows = toLedgerRows(lines);
+export function LedgerTable({
+  lines,
+  transactions = [],
+}: {
+  lines: LedgerLine[];
+  /** The policy's changes, so a removal's credit is titled as a removal. */
+  transactions?: Pick<PolicyTransaction, 'displayId' | 'type'>[];
+}) {
+  const rows = toLedgerRows(lines, transactions);
   if (rows.length === 0) {
     return <p className="text-[15px] text-ink-2">No lines yet.</p>;
   }

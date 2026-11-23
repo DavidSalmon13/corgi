@@ -13,6 +13,7 @@ import {
   offerRole,
   reviewerEntries,
 } from './landingCopy';
+import * as copy from './landingCopy';
 
 // covers AC3, AC4, AC5, AC6, AC7, T2
 describe('landingCopy', () => {
@@ -70,5 +71,26 @@ describe('landingCopy: what we offer', () => {
 
   it('has a quiet line for when prices cannot be loaded', () => {
     expect(PRICES_UNAVAILABLE).toMatch(/aren't available right now/);
+  });
+});
+
+// covers AC5, AC6, T6 — every required term is spotted by Glossed, and nothing offers a purchase
+describe('landingCopy: terms and calls to action', () => {
+  const allText = Object.values(copy)
+    .flatMap((v) => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap((x) => (typeof x === 'string' ? [x] : Object.values(x))) : typeof v === 'object' ? Object.values(v) : []))
+    .concat(offerDescription('BASE'), offerDescription('PRODUCT_LIABILITY'), offerRole('ENDORSEMENT'))
+    .join(' ');
+
+  it('marks general liability, premium, endorsement, pro-rata and ledger with their "?"', () => {
+    const marked = new Set(
+      glossParts(allText)
+        .filter((p) => typeof p !== 'string')
+        .map((p) => (p as { term: string }).term),
+    );
+    for (const term of ['generalLiability', 'premium', 'endorsement', 'proRata', 'ledger']) expect(marked).toContain(term);
+  });
+
+  it('never offers a quote or a purchase', () => {
+    expect(allText).not.toMatch(/get a quote|\bbuy now\b|\bbuy\b(?! online)/i);
   });
 });

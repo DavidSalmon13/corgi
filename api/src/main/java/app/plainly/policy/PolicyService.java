@@ -4,6 +4,7 @@ import app.plainly.billing.RefundService;
 import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerQueryService;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,18 @@ public class PolicyService {
         transactions.actorsForPolicy(policyId)
                 .forEach(a -> names.put(a.transactionDisplayId(), a.name()));
         return names;
+    }
+
+    /** Who to write to about a policy, and what it is: for emails (emails spec). */
+    public record Contact(String ownerName, String ownerEmail, String legalName, String policyNumber, LocalDate start,
+            LocalDate end) {}
+
+    /** The policyholder's name and address and the policy's number and term; reads only the policy and customer. */
+    public Contact contact(long policyId) {
+        return policies.findHead(policyId)
+                .map(h -> new Contact(h.customer().ownerName(), h.customer().ownerEmail(), h.customer().legalName(),
+                        h.number(), h.start(), h.end()))
+                .orElseThrow(() -> new NotFoundException("No policy " + policyId));
     }
 
     /** The name of the broker who issued the policy, if known. */

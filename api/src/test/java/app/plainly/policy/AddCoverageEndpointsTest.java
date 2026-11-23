@@ -158,4 +158,14 @@ class AddCoverageEndpointsTest {
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(content().string(Matchers.matchesPattern("(?s).*\"fields\":\\{\"kind\".*\"startDate\".*")));
     }
+
+    // covers input-validation AC4, review fix: a cover is named, never picked by its position in the list
+    @Test
+    void aNumberOrWrongCaseIsNotACover() throws Exception {
+        for (String kind : new String[] {"1", "\"1\"", "0", "\"product_liability\"", "{}", "[]"}) {
+            mvc.perform(json(coverages(999_999_999L), "{\"kind\":" + kind + ",\"startDate\":\"2026-10-15\"}", broker))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.fields.kind").value(AddCoverageService.NO_KIND));
+        }
+    }
 }

@@ -3,7 +3,6 @@ package app.plainly.policy;
 import app.plainly.auth.AuthFilter;
 import app.plainly.auth.SignedInUser;
 import app.plainly.common.LenientDate;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
@@ -29,13 +28,13 @@ class AddCoverageController {
     }
 
     /**
-     * Checked before the service runs (input-validation spec). A cover we don't know and an unreadable date both read
-     * as null, so each is a field message, not a 400. The service keeps the rules that need the policy: only product
+     * Checked before the service runs (input-validation spec). A cover we don't know by name (CoverKindName) and an
+     * unreadable date (LenientDate) both read as null, so each is a field message, not a 400. The service keeps the rules that need the policy: only product
      * liability can be added, once, inside the policy period.
      */
     record AddCoverageRequest(
             @NotNull(message = AddCoverageService.NO_KIND)
-                    @JsonFormat(with = JsonFormat.Feature.READ_UNKNOWN_ENUM_VALUES_AS_NULL) CoverKind kind,
+                    @JsonDeserialize(using = CoverKindName.class) CoverKind kind,
             @NotNull(message = AddCoverageService.NO_START) @JsonDeserialize(using = LenientDate.class)
                     LocalDate startDate) {
 

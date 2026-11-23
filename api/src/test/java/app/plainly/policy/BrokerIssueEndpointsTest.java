@@ -1,6 +1,7 @@
 package app.plainly.policy;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -11,6 +12,7 @@ import app.plainly.AuthTestSupport;
 import app.plainly.IntegrationTest;
 import app.plainly.TestData;
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,5 +174,17 @@ class BrokerIssueEndpointsTest {
                     .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
                     .andExpect(jsonPath("$.fields.startDate").value(IssuePolicyService.NO_START));
         }
+    }
+
+    // covers input-validation AC2, review fix: a long padded email is refused at once, not after seconds of regex backtracking
+    @Test
+    void aVeryLongPaddedEmailIsRefusedQuickly() throws Exception {
+        String nbsp = "\\u00A0".repeat(2000);
+        String body = """
+                {"legalName":"Long Email Bakery LLC","businessDescription":"a bakery","ownerName":"Lee Owner",
+                 "ownerEmail":"%s@a.%s@","startDate":"2026-09-01"}""".formatted(nbsp, nbsp);
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () -> mvc.perform(json("/api/broker/policies", body))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.fields.ownerEmail").value(IssuePolicyService.BAD_EMAIL)));
     }
 }

@@ -54,12 +54,16 @@ class BrokerIssueController {
             @NotNull(message = NO_START) @JsonDeserialize(using = LenientDate.class) LocalDate startDate,
             Boolean productLiability) {}
 
-    /** The email may carry the spaces the service trims, so the pattern allows them around the address. */
+    /**
+     * The email may carry the spaces the service trims, so the pattern allows them around the address. The lookahead
+     * refuses anything over {@code MAX_TEXT} first: without it, a long run of no-break spaces makes the pattern
+     * backtrack for seconds (security review, 2026-11-23).
+     */
     record IssueRequest(
             @NotBlank(message = NO_LEGAL_NAME) @Size(max = MAX_TEXT, message = TOO_LONG) String legalName,
             @NotBlank(message = NO_DESCRIPTION) @Size(max = MAX_TEXT, message = TOO_LONG) String businessDescription,
             @NotBlank(message = NO_OWNER_NAME) @Size(max = MAX_TEXT, message = TOO_LONG) String ownerName,
-            @NotBlank(message = BAD_EMAIL) @Pattern(regexp = "[\\s\\p{Z}]*" + EMAIL_SHAPE + "[\\s\\p{Z}]*", message = BAD_EMAIL)
+            @NotBlank(message = BAD_EMAIL) @Pattern(regexp = "(?s)(?=.{0," + MAX_TEXT + "}\\z)[\\s\\p{Z}]*" + EMAIL_SHAPE + "[\\s\\p{Z}]*", message = BAD_EMAIL)
                     @Size(max = MAX_TEXT, message = BAD_EMAIL) String ownerEmail,
             @NotNull(message = NO_START) @JsonDeserialize(using = LenientDate.class) LocalDate startDate,
             Boolean productLiability) {}

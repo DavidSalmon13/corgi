@@ -19,7 +19,7 @@
 | AC9 | 390 px with 16–20 px gutter, no horizontal scroll; desktop content column | pass | `px-5` (20 px), `max-w-[430px]` → `sm:max-w-[760px]`; 390 px screenshot fits with no overflow; 1280 px shows a centred column with a two-column hero and two-up offers/reviewer tiles |
 | AC10 | Matches L1 design, listed in README | pass | `design/plainly/README.md:24`; section order, card stack, step badges, offer cards and reviewer tiles follow `L1-Landing.dc.html` |
 | AC11 | One h1, sections labelled, correct links/buttons, focus, keyboard "?" | pass | one `<h1>` (`Landing.tsx:72`); every `section` has `aria-labelledby` its `h2`; navigation uses `Link`; global `:focus-visible` outline (`theme.css`); `Term` is focusable with Enter/Space |
-| AC12 | What we offer from the API; per-day only when exact; roles; failure line | pass | `offerPrice`/`offerRole`/`offerDescription` tests; observed 1280 px: "$1,200.00 a year", "$730.00 a year · $2.00 a day", "The policy" / "Endorsement ?"; with the API down, the page rendered with "Prices aren't available right now" (earlier run this session) |
+| AC12 | What we offer from the API; per-day only when exact; roles; failure line | pass | `offerPrice`/`offerRole`/`offerDescription` tests; observed 1280 px (after the code-review fix): "$1,200.00 a year", "$730.00 a year · $2.00 a day in a 365-day policy period ?", "The policy" / "Endorsement ?". The per-day line names its 365-day period per DECISIONS 2026-11-22 (leap-year periods are $1.9945…/day); this extends the spec's example wording; with the API down, the page rendered with "Prices aren't available right now" (earlier run this session) |
 | AC13 | Public endpoint, no session, kind/label/role/premium; other routes 401 | pass | `PublicCoverageEndpointTest` 3/3; observed `curl /api/public/coverages` → 200 with both covers, `/api/me` → 401, `/api/broker/policies` → 401 |
 
 ## Checks Run
@@ -27,7 +27,7 @@
 - build: `cd web && npm run build` (tsc + vite) — pass
 - lint: no lint script in `web/` or `api/` — n/a
 - typecheck: part of `npm run build` — pass
-- tests: `cd web && npx vitest run` — pass (369 passed, 0 failed)
+- tests: `cd web && npx vitest run` — pass (369 passed, 0 failed; re-run after the code-review fix)
 - tests: `cd api && ./gradlew test` — pass (525 passed, 0 failed)
 
 ## Issues Found
@@ -37,6 +37,8 @@
 | 1 | low | The preview card's "product liability endorsement's" puts the term's "?" between "endorsement" and "'s", which reads a little awkwardly ("endorsement ? 's start") | copy tweak in `landingCopy.ts` `PREVIEW.why` (e.g. "moved the start of your product liability endorsement a week earlier") |
 
 ## Notes
+
+- Re-checked AC12 after the code review's per-day price fix (commit 1422317): web build and 369 tests pass, and the desktop shot shows the new line. The API was unchanged by that fix.
 
 - Headless Chrome won't go narrower than ~500 px, so 390 px shots were rendered in a 390 px iframe. In that iframe the light-mode shot sometimes caught the page before the session call settled ("Loading…"). Dark at 390 px and light at 1280 px rendered fully, and the layout and tokens are the same in both themes.
 - Hygiene: all tasks except T7 (this run) were `[x]` before QA. No PR exists yet for `feat/policy-lifecycle/landing-page`. The spec's `> Status:` is still `shaped`, which the pr flow moves on.

@@ -1,10 +1,12 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link } from 'react-router';
 import { api } from '../../api/client';
 import type { PaymentView } from '../../api/types';
 import { Mark } from '../../components/Mark';
 import { StatusPill } from '../../components/StatusPill';
+import { mePolicyPath } from '../../lib/mePaths';
+import { useRefreshPolicy } from './MeNav';
 import { payFailedCopy, payPagePhase, payPaidCopy, payWaitingCopy } from '../../lib/paymentCopy';
 
 export const PRIMARY =
@@ -34,13 +36,18 @@ function Headline({ text, amount }: { text: string; amount: string }) {
 export function PaymentProgress({
   submitted,
   ownerName,
+  policyId,
+  policyNumber,
   onRetry,
 }: {
   submitted: Submitted;
   ownerName: string;
+  policyId: number;
+  /** Set when the owner has several policies, so "nothing more is due" names the one this payment was for. */
+  policyNumber: string | null;
   onRetry: (newCard: boolean) => void;
 }) {
-  const queryClient = useQueryClient();
+  const refresh = useRefreshPolicy();
   const payment = useQuery({
     queryKey: ['payment', submitted.paymentId],
     queryFn: () => api<PaymentView>(`/api/me/payments/${submitted.paymentId}`),
@@ -52,15 +59,15 @@ export function PaymentProgress({
   const phase = payPagePhase({ submitted: true, status: payment.data?.status ?? 'OPEN' });
 
   useEffect(() => {
-    // P1 should show the new state as soon as the owner goes back.
-    if (phase === 'paid' || phase === 'failed') void queryClient.invalidateQueries({ queryKey: ['my-cover'] });
-  }, [phase, queryClient]);
+    // P1, the statement and "Your policies" should show the new state as soon as the owner goes back.
+    if (phase === 'paid' || phase === 'failed') refresh(policyId);
+  }, [phase, policyId, refresh]);
 
   const amount = payment.data?.amountCents ?? submitted.amountCents;
   const last4 = payment.data?.cardLast4 ?? submitted.last4;
 
   if (phase === 'paid') {
-    const copy = payPaidCopy(ownerName, payment.data?.amountDueCents ?? 0);
+    const copy = payPaidCopy(ownerName, payment.data?.amountDueCents ?? 0, policyNumber);
     return (
       <>
         <section aria-live="polite" className="mt-16 flex flex-col items-center gap-3 text-center">
@@ -69,7 +76,7 @@ export function PaymentProgress({
           <h1 className="m-0 text-[28px]">{copy.headline}</h1>
           <p className="m-0 max-w-[300px] text-base leading-normal text-ink-2">{copy.body}</p>
         </section>
-        <Link to="/me" className={`${SECONDARY} mt-4`}>
+        <Link to={mePolicyPath(policyId)} className={`${SECONDARY} mt-4`}>
           Back to your cover
         </Link>
       </>
@@ -116,7 +123,7 @@ export function PaymentProgress({
         <p className="m-0 text-base leading-normal text-ink-2">{copy.body}</p>
         <div className="border-t border-dashed border-line pt-3 text-sm text-ink-2 tabular-nums">{copy.meta}</div>
       </section>
-      <Link to="/me" className={`${SECONDARY} mt-1`}>
+      <Link to={mePolicyPath(policyId)} className={`${SECONDARY} mt-1`}>
         Back to your cover
       </Link>
     </>

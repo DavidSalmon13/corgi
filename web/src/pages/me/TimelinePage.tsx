@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { HeaderEnd, usePolicyId } from './MeNav';
+import { meApiPath, mePolicyPath, myTimelineKey } from '../../lib/mePaths';
 import { Link } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { StatementRow, Timeline, TimelineCover, TimelineTerm } from '../../api/types';
@@ -36,13 +38,13 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh justify-center bg-bg">
       <div className="flex w-full max-w-[480px] flex-col">
         <header className="flex items-center justify-between pl-2 pr-5 pt-2">
-          <Link to="/me" className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
+          <Link to={mePolicyPath(usePolicyId())} className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Your coverage
           </Link>
-          <span className="text-lg font-bold tracking-[-0.01em]">Plainly</span>
+          <HeaderEnd />
         </header>
         <main className="flex flex-col gap-5 px-5 pb-8 pt-3">{children}</main>
       </div>
@@ -145,9 +147,10 @@ export function TimelinePage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [trace, setTrace] = useState<{ row: StatementRow; from: HTMLButtonElement } | null>(null);
   // AC9: always fetched fresh on load, so a broker's correction or cancellation shows on reload.
+  const policyId = usePolicyId();
   const timeline = useQuery({
-    queryKey: ['my-timeline'],
-    queryFn: () => api<Timeline>('/api/me/timeline'),
+    queryKey: myTimelineKey(policyId),
+    queryFn: () => api<Timeline>(meApiPath(policyId, 'timeline')),
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1,
   });
 
@@ -159,7 +162,7 @@ export function TimelinePage() {
         <h1 className="m-0 text-[30px] font-bold tracking-[-0.015em]">Coverage timeline</h1>
         <p className="m-0 text-[17px] leading-snug">
           {none
-            ? "You don't have any coverage yet, so there's nothing to draw. Your broker will set up your policy for you."
+            ? "We couldn't find that policy. Go back to your policies to pick one."
             : "We couldn't load your coverage. Reload to try again."}
         </p>
       </Shell>
@@ -216,7 +219,7 @@ export function TimelinePage() {
           <p key={k.transactionDisplayId} className="m-0 text-[15px] leading-[1.45]">
             <Glossed>{correctionSentence(k, c.kind)}</Glossed>
             {reason && ` ${reason}`}{' '}
-            <Link to={`/me/statement#correction-${k.transactionDisplayId}`} className="font-semibold text-accent-ink hover:text-ink">
+            <Link to={`${mePolicyPath(policyId, 'statement')}#correction-${k.transactionDisplayId}`} className="font-semibold text-accent-ink hover:text-ink">
               See what it changed
             </Link>
           </p>

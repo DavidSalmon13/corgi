@@ -11,6 +11,7 @@ import {
   payLabel,
   payPagePhase,
   payPaidCopy,
+  payingFor,
   payWaitingCopy,
   savedCardLabel,
 } from './paymentCopy';
@@ -149,5 +150,25 @@ describe('when sending the card fails for an unknown reason', () => {
   it("doesn't claim nothing was charged, and says to check before paying again", () => {
     expect(SEND_UNKNOWN).not.toMatch(/nothing was charged/i);
     expect(SEND_UNKNOWN).toMatch(/check your cover/i);
+  });
+});
+
+// covers more-policies AC8, AC9, T2 — a payment pays one policy, and its words say which
+describe('paying one of several policies', () => {
+  it('names the policy being paid', () => {
+    expect(payingFor('GL-2026-0014')).toBe('For policy GL-2026-0014');
+  });
+
+  it("says what is left on that policy, not that they owe nothing anywhere", () => {
+    expect(payPaidCopy('Maya Okafor', 0, 'GL-2026-0014').body).toBe(
+      'Your bank confirmed the payment. Nothing more is due on GL-2026-0014.',
+    );
+    expect(payPaidCopy('Maya Okafor', 1400, 'GL-2026-0014').body).toBe(
+      'Your bank confirmed the payment. $14.00 is still due on GL-2026-0014.',
+    );
+  });
+
+  it('keeps the single-policy words when no policy is named', () => {
+    expect(payPaidCopy('Maya Okafor', 0, null).body).toBe('Your bank confirmed the payment. You owe nothing now.');
   });
 });

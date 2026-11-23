@@ -16,7 +16,7 @@
 ## Page
 
 - [x] T2 Write web/src/lib/landingCopy.ts: hero, three steps, "what your policy page shows you" lines (standard terms), no-buy-online line, reviewer box copy
-- [ ] T3 Build web/src/pages/Landing.tsx from L1: header with Sign in, hero, How it works with Create your account, terms section via Term/Glossed, reviewer box from DEMO_ACCOUNTS, demo badge + footer + ThemeToggle
+- [x] T3 Build web/src/pages/Landing.tsx from L1: header with Sign in, hero, How it works with Create your account, terms section via Term/Glossed, reviewer box from DEMO_ACCOUNTS, demo badge + footer + ThemeToggle
 - [ ] T3.1 Share the demo badge and footer between AuthLayout and Landing without changing SignIn/SignUp's look
 - [ ] T3.2 "What we offer" section in Landing.tsx: PublicCoverage type + fetch in api/client.ts, per-kind description and price line (per-day only when exact) in landingCopy.ts with tests first, Term-wrapped terms, prices-unavailable line on failure (AC12)
 - [ ] T4 Replace HomeRedirect with Home in web/src/components/RouteGuards.tsx (pending → Waiting, signed in → homeFor, guest → Landing); wire `/` in web/src/App.tsx

@@ -21,6 +21,8 @@ public class AccountService {
 
     static final String NO_POLICY = "We can't find a policy for that email. Check with your broker that they used this address.";
     static final String ALREADY_SIGNED_UP = "This email already has an account. Sign in instead.";
+    static final String NO_EMAIL = "Enter the email your broker has on file for your business.";
+    static final String SHORT_PASSWORD = "Use at least " + MIN_PASSWORD + " characters.";
 
     private static final Pattern EDGE_SPACE = Pattern.compile("^[\\s\\p{Z}]+|[\\s\\p{Z}]+$");
 
@@ -81,10 +83,10 @@ public class AccountService {
         Map<String, String> errors = new LinkedHashMap<>();
         String normalized = normalize(email);
         if (normalized.isEmpty()) {
-            errors.put("email", "Enter the email your broker has on file for your business.");
+            errors.put("email", NO_EMAIL);
         }
         if (password == null || password.length() < MIN_PASSWORD) {
-            errors.put("password", "Use at least " + MIN_PASSWORD + " characters.");
+            errors.put("password", SHORT_PASSWORD);
         } else if (Passwords.tooLong(password)) {
             errors.put("password", "Keep it under " + Passwords.MAX_BYTES + " characters.");
         }

@@ -2,6 +2,7 @@ package app.plainly.policy;
 
 import static app.plainly.CorrectionTestData.REASON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -199,5 +200,32 @@ class CorrectionEndpointsTest {
                 .andExpect(jsonPath("$.error").value("not_found"));
         mvc.perform(json(corrections(999_999_999L), startOn("2026-10-08"), broker))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- input-validation spec: the shape is checked at the edge, before the service runs ---
+
+    // covers input-validation AC2, AC4, T1: an unknown policy would be a 404 from the service
+    @Test
+    void aBadBodyIsAFieldErrorBeforeTheServiceRuns() throws Exception {
+        mvc.perform(json(corrections(999_999_999L), body("\"2026-13-45\"", "\"  \""), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("2 things to fix before you can save."))
+                .andExpect(jsonPath("$.fields.startDate").value(CorrectCoverageService.NO_START))
+                .andExpect(jsonPath("$.fields.reason").value(CorrectCoverageService.NO_REASON));
+        mvc.perform(json(corrections(999_999_999L), body("\"2026-12-01\"", "\"" + "x".repeat(501) + "\""), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.fields.reason").value(CorrectCoverageService.REASON_TOO_LONG));
+        mvc.perform(json(corrections(999_999_999L) + "/preview", body("\"\"", "null"), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                .andExpect(jsonPath("$.fields.startDate").value(CorrectCoverageService.NO_START));
+    }
+
+    // covers input-validation AC5, T1
+    @Test
+    void theFieldsComeBackInFormOrder() throws Exception {
+        mvc.perform(json(corrections(policyId), "{}", broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(content().string(Matchers.matchesPattern("(?s).*\"fields\":\\{\"startDate\".*\"reason\".*")));
     }
 }

@@ -27,6 +27,8 @@ public class AddCoverageService {
 
     static final String CANCELLED = "This policy is cancelled, so cover can't be added.";
     static final String ALREADY_HAS = "This policy already has product liability coverage.";
+    static final String NO_KIND = "Pick a cover to add.";
+    static final String NO_START = "Pick the endorsement's effective date.";
     private static final DateTimeFormatter LONG = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US);
     private static final DateTimeFormatter SHORT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
 
@@ -107,12 +109,12 @@ public class AddCoverageService {
         }
         Map<String, String> errors = new LinkedHashMap<>();
         if (kind != CoverKind.PRODUCT_LIABILITY) {
-            errors.put("kind", "Pick a cover to add.");
+            errors.put("kind", NO_KIND);
         } else if (policy.hasProductLiability()) {
             errors.put("kind", ALREADY_HAS);
         }
         if (start == null) {
-            errors.put("startDate", "Pick the endorsement's effective date.");
+            errors.put("startDate", NO_START);
         } else if (start.isBefore(policy.start())) {
             errors.put("startDate", "The effective date can't be before the policy period starts (" + LONG.format(policy.start()) + ").");
         } else if (!start.isBefore(policy.end())) {

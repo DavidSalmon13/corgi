@@ -2,6 +2,7 @@ package app.plainly.policy;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -133,5 +134,28 @@ class AddCoverageEndpointsTest {
                 .andExpect(jsonPath("$.error").value("not_found"));
         mvc.perform(json(coverages(999_999_999L), OCT_15, broker))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- input-validation spec: the shape is checked at the edge, before the service runs ---
+
+    // covers input-validation AC2, AC4, T1: an unknown policy would be a 404 from the service
+    @Test
+    void anUnknownKindOrUnreadableDateIsAFieldErrorBeforeTheServiceRuns() throws Exception {
+        mvc.perform(json(coverages(999_999_999L), "{\"kind\":\"SPACE_TRAVEL\",\"startDate\":\"2026-13-45\"}", broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("2 things to fix before you can save."))
+                .andExpect(jsonPath("$.fields.kind").value(AddCoverageService.NO_KIND))
+                .andExpect(jsonPath("$.fields.startDate").value(AddCoverageService.NO_START));
+        mvc.perform(json(coverages(999_999_999L) + "/preview", "{\"kind\":\"PRODUCT_LIABILITY\",\"startDate\":\"\"}", broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.fields.startDate").value(AddCoverageService.NO_START));
+    }
+
+    // covers input-validation AC5, T1
+    @Test
+    void theFieldsComeBackInFormOrder() throws Exception {
+        mvc.perform(json(coverages(policyId), "{}", broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(content().string(Matchers.matchesPattern("(?s).*\"fields\":\\{\"kind\".*\"startDate\".*")));
     }
 }

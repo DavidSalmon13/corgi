@@ -10,8 +10,13 @@ public class ValidationException extends RuntimeException {
     private final Map<String, String> fields;
 
     public ValidationException(Map<String, String> fields) {
-        super(fields.size() + (fields.size() == 1 ? " thing" : " things") + " to fix before you can save.");
+        super(messageFor(fields.size()));
         this.fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
+    }
+
+    /** "1 thing to fix before you can save." The one wording for service and edge (input-validation) errors. */
+    public static String messageFor(int count) {
+        return count + (count == 1 ? " thing" : " things") + " to fix before you can save.";
     }
 
     public Map<String, String> fields() {

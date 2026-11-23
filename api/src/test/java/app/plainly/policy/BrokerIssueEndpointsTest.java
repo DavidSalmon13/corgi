@@ -2,6 +2,7 @@ package app.plainly.policy;
 
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -109,5 +110,67 @@ class BrokerIssueEndpointsTest {
         mvc.perform(json("/api/broker/policies", "not json"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("bad_request"));
+    }
+
+    // --- input-validation spec: the shape is checked at the edge, before the service runs ---
+
+    // covers input-validation AC2, AC4, T1
+    @Test
+    void anUnreadableOrBlankStartDateIsAFieldErrorOnTheDate() throws Exception {
+        for (String date : new String[] {"\"2026-13-45\"", "\"\"", "42"}) {
+            mvc.perform(json("/api/broker/policies/preview", "{\"startDate\":" + date + ",\"productLiability\":false}"))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                    .andExpect(jsonPath("$.fields.startDate").value(IssuePolicyService.NO_START));
+        }
+    }
+
+    // covers input-validation AC2, AC3, T1
+    @Test
+    void aBlankOrTooLongFieldGetsTheServicesMessage() throws Exception {
+        String tooLong = "x".repeat(201);
+        mvc.perform(json("/api/broker/policies", """
+                {"legalName":"%s","businessDescription":"   ","ownerName":"Lee Owner",
+                 "ownerEmail":"lee@example.com","startDate":"2026-09-01"}""".formatted(tooLong)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("2 things to fix before you can save."))
+                .andExpect(jsonPath("$.fields.legalName").value(IssuePolicyService.TOO_LONG))
+                .andExpect(jsonPath("$.fields.businessDescription").value(IssuePolicyService.NO_DESCRIPTION));
+    }
+
+    // covers input-validation AC2, AC7, T1: a taken email is a business rule, so it waits for the next submit
+    @Test
+    void aFormatErrorComesBackWithoutCallingTheService() throws Exception {
+        String email = TestData.uniqueEmail("taken");
+        String body = """
+                {"legalName":"%s","businessDescription":"a bakery","ownerName":"Tay Owner",
+                 "ownerEmail":"%s","startDate":"2026-09-01","productLiability":false}""";
+        mvc.perform(json("/api/broker/policies", body.formatted("Taken Bakery LLC", email))).andExpect(status().isCreated());
+        mvc.perform(json("/api/broker/policies", body.formatted("", email)))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                .andExpect(jsonPath("$.fields.legalName").value(IssuePolicyService.NO_LEGAL_NAME))
+                .andExpect(jsonPath("$.fields.ownerEmail").doesNotExist());
+    }
+
+    // covers input-validation AC5, T1
+    @Test
+    void theFieldsComeBackInFormOrder() throws Exception {
+        mvc.perform(json("/api/broker/policies", "{}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("5 things to fix before you can save."))
+                .andExpect(content().string(matchesPattern(
+                        "(?s).*\"fields\":\\{\"legalName\".*\"businessDescription\".*\"ownerName\".*\"ownerEmail\".*\"startDate\".*")));
+    }
+
+    // covers input-validation AC2, AC4, T4: in customer mode too; an unknown customer would be a 404 from the service
+    @Test
+    void customerModeChecksTheDateBeforeTheServiceRuns() throws Exception {
+        for (String path : new String[] {"/policies/preview", "/policies"}) {
+            mvc.perform(json("/api/broker/customers/" + Long.MAX_VALUE + path, "{\"startDate\":\"2026-13-45\"}"))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                    .andExpect(jsonPath("$.fields.startDate").value(IssuePolicyService.NO_START));
+        }
     }
 }

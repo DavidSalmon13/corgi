@@ -21,5 +21,5 @@
 
 ## Verification
 
-- [ ] T7 Run both suites with coverage on the changed files (testing skill)
+- [x] T7 Run both suites with coverage on the changed files (testing skill)
 - [ ] T8 Run QA against AC1–AC8 with the Nov 23 → Nov 30 → Nov 15 scenario at 1280 px light and 390 px dark (qa skill)

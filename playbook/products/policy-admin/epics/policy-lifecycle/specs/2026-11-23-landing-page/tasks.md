@@ -29,4 +29,4 @@
 ## Verification
 
 - [x] T6 Tests (testing skill): landingCopy.test.ts (wording, terms present), RouteGuards.test.ts (guest → landing, each role → its home), SignIn demo-param helper; jargon.test.ts passes over the new page
-- [ ] T7 Run QA against acceptance criteria (qa skill), incl. 390 px and dark-mode screenshots
+- [x] T7 Run QA against acceptance criteria (qa skill), incl. 390 px and dark-mode screenshots

@@ -28,17 +28,17 @@
   - today line and month ticks.
 
   P1 compact and B3 full are unchanged; add timeline.test.ts cases for any new helper.
-- [ ] T6 TimelinePage at /me/timeline:
+- [x] T6 TimelinePage at /me/timeline:
   - App.tsx route under RequireRole POLICYHOLDER, with "‹ Your cover" as the back link;
   - the answer, the timeline card and the detail card, with HowWeGotThis on "Charged by the day";
   - the correction sentence(s) and the no-policy page;
   - light/dark, 390 px.
-- [ ] T7 Entry and exit links:
+- [x] T7 Entry and exit links:
   - P1 Home's compact timeline links to /me/timeline, plus a "Cover timeline" row in More;
   - StatementPage scrolls to #correction-PTX-… and opens that card.
 
 ## Docs
-- [ ] T8 DECISIONS.md: the timeline reuses StatementService for its money (one calculation), and "charged by the day" counts only in-force settled lines.
+- [x] T8 DECISIONS.md: the timeline reuses StatementService for its money (one calculation), and "charged by the day" counts only in-force settled lines.
 
 ## Verification
 - [ ] T9 Run both suites with coverage on the changed files (testing skill)

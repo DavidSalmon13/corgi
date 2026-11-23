@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { Statement, StatementCorrection, StatementRow } from '../../api/types';
 import { HowWeGotThis } from '../../components/HowWeGotThis';
@@ -159,21 +159,34 @@ function CorrectionCard({
   lines,
   onOpen,
   defaultOpen,
+  linkedTo = false,
 }: {
   c: StatementCorrection;
   lines: Map<string, StatementRow>;
   onOpen: OpenTrace;
   defaultOpen: boolean;
+  /** cover-timeline AC4: the P2 link pointed here (#correction-PTX-…), so the card scrolls into view, open. */
+  linkedTo?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen || linkedTo);
+  const card = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!linkedTo) return;
+    setOpen(true);
+    card.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    card.current?.focus({ preventScroll: true });
+  }, [linkedTo]);
   const original = lines.get(c.originalLineId);
   const undo = lines.get(c.reversalLineId);
   const rebill = lines.get(c.rebillLineId);
-  const detailsId = `correction-${c.transactionDisplayId}`;
+  const detailsId = `correction-${c.transactionDisplayId}-details`;
   return (
     <section
+      ref={card}
+      id={`correction-${c.transactionDisplayId}`}
+      tabIndex={-1}
       aria-label={`Correction, ${formatDate(c.recordedOn)}`}
-      className="mx-3 mt-2 mb-3 overflow-hidden rounded-xl border-[1.5px] border-accent bg-card"
+      className="mx-3 mt-2 mb-3 scroll-mt-4 overflow-hidden outline-none rounded-xl border-[1.5px] border-accent bg-card"
     >
       <div className="flex items-start gap-3 px-3.5 pt-3.5 pb-2.5">
         <div className="min-w-0 flex-1">
@@ -321,6 +334,8 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
   const cardAt = new Map(s.corrections.map((c) => [c.reversalLineId, c]));
   const inCard = new Set(s.corrections.map((c) => c.rebillLineId));
   const latest = s.corrections.at(-1)?.transactionDisplayId;
+  const { hash } = useLocation();
+  const linked = hash.startsWith('#correction-') ? decodeURIComponent(hash.slice('#correction-'.length)) : null;
 
   let lastDate: string | null = null;
   const items = s.rows
@@ -334,7 +349,9 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
         <Fragment key={r.id}>
           {heading}
           {card ? (
-            <CorrectionCard c={card} lines={byId} onOpen={onOpen} defaultOpen={card.transactionDisplayId === latest} />
+            <CorrectionCard c={card} lines={byId} onOpen={onOpen} defaultOpen={card.transactionDisplayId === latest}
+              linkedTo={card.transactionDisplayId === linked}
+            />
           ) : (
             <Row row={r} onOpen={onOpen} first={Boolean(newDate)} />
           )}

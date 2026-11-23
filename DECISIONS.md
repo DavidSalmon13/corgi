@@ -251,3 +251,15 @@ B5 History is not a second calculation. `HistoryService` takes the rows and trac
 ## 2026-11-23: The broker sees the real state of money that went wrong; the policyholder's wording stays soft
 
 On P3 a refund Stripe failed still reads "Refund on its way", and a declined card reads "Didn't go through", because the customer can't act on Stripe's internals and the broker is already retrying. The broker can act, so B5 says "Refund failed" with Stripe's failure reason and a link to retry on B3, and shows the decline reason Stripe gave (read from `payments.failure_reason` through `PaymentRepository`). The "How we got this" drawer stays the same for both roles apart from the voice: same maths, cause and references, about "the customer" instead of "you".
+
+## 2026-11-23: On P2, "Charged by the day" opens one line, or lists the lines when there are several
+
+"How we got this" explains one ledger line. A cover that was only charged has one line in force, so "328 days · $656.00" is itself the button. After a cancellation a cover has a charge and a cancellation credit, so the detail card shows the total ("91 days kept · $299.18") with each line underneath, and each line's amount opens its own drawer. This follows the same rule as the B5 correction cards: every number that is a button explains exactly one line.
+
+## 2026-11-23: P1's way into the timeline is the "See your cover timeline" row in the cover card, not a row in More
+
+T7 planned a "Cover timeline" row in the More card. P1's design (and AC1) puts "See your cover timeline" as the last row of the "What you're covered for" card instead, directly above More, so a second row in More would have repeated the same link one card lower. The bars themselves also open P2 on tap; they are left out of the tab order so keyboard and screen-reader users meet the link once, as the row.
+
+## 2026-11-23: The cover timeline takes its money from the statement, and counts only lines still in force
+
+P2 is not a second calculation. `TimelineService` has no repository and no SQL: it reads the policy from `PolicyService` and the statement from `StatementService`, so every amount on the timeline is a statement row to the cent, and its "how we got this" drawer is that row's. A cover's "Charged by the day" is the sum of its CHARGE and CREDIT rows that are settled (not pending) and not undone. An undone line and its undo cancel out, so the corrected line is what counts. A cancellation credit is subtracted, so a cancelled cover shows what was kept. Rows are matched to a cover by the ledger line's own `coverage_id` (from `PolicyService`'s ledger view), not by comparing dates, so `Statement.Row` needed no new field. Payments and refunds are left out: they move money but don't change what the cover cost.

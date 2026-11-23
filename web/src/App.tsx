@@ -11,6 +11,7 @@ import { CancellationPage } from './pages/me/CancellationPage';
 import { HomePage } from './pages/me/HomePage';
 import { PayPage } from './pages/me/PayPage';
 import { StatementPage } from './pages/me/StatementPage';
+import { TimelinePage } from './pages/me/TimelinePage';
 import { SignIn } from './pages/SignIn';
 import { SignUp } from './pages/SignUp';
 
@@ -74,6 +75,14 @@ export function App() {
         element={
           <RequireRole role="POLICYHOLDER">
             <StatementPage />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/me/timeline"
+        element={
+          <RequireRole role="POLICYHOLDER">
+            <TimelinePage />
           </RequireRole>
         }
       />

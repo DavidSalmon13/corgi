@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
 import { SignOutButton } from './components/SignOutButton';
@@ -9,6 +9,7 @@ import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
 import { CancellationPage } from './pages/me/CancellationPage';
 import { HomePage } from './pages/me/HomePage';
+import { LegacyRedirect, MeLanding } from './pages/me/MeRoutes';
 import { PayPage } from './pages/me/PayPage';
 import { StatementPage } from './pages/me/StatementPage';
 import { TimelinePage } from './pages/me/TimelinePage';
@@ -41,51 +42,33 @@ export function App() {
       >
         <Route path="policies" element={<PoliciesPage />} />
         <Route path="policies/new" element={<NewPolicyPage />} />
+        <Route path="customers/:customerId/policies/new" element={<NewPolicyPage />} />
         <Route path="policies/:id" element={<PolicyWorkspace />} />
         <Route path="policies/:id/change" element={<ChangePolicyPage />} />
         <Route path="policies/:id/history" element={<HistoryPage />} />
         <Route path="*" element={<Soon />} />
       </Route>
+      {/* more-policies AC7, AC8: /me picks the single policy's home or "Your policies"; each page lives under its policy. */}
       <Route
         path="/me"
         element={
           <RequireRole role="POLICYHOLDER">
-            <HomePage />
+            <Outlet />
           </RequireRole>
         }
-      />
-      <Route
-        path="/me/pay"
-        element={
-          <RequireRole role="POLICYHOLDER">
-            <PayPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/me/cancellation"
-        element={
-          <RequireRole role="POLICYHOLDER">
-            <CancellationPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/me/statement"
-        element={
-          <RequireRole role="POLICYHOLDER">
-            <StatementPage />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/me/timeline"
-        element={
-          <RequireRole role="POLICYHOLDER">
-            <TimelinePage />
-          </RequireRole>
-        }
-      />
+      >
+        <Route index element={<MeLanding />} />
+        <Route path="policies" element={<Navigate to="/me" replace />} />
+        <Route path="policies/:policyId" element={<HomePage />} />
+        <Route path="policies/:policyId/pay" element={<PayPage />} />
+        <Route path="policies/:policyId/cancellation" element={<CancellationPage />} />
+        <Route path="policies/:policyId/statement" element={<StatementPage />} />
+        <Route path="policies/:policyId/timeline" element={<TimelinePage />} />
+        <Route path="pay" element={<LegacyRedirect page="pay" />} />
+        <Route path="cancellation" element={<LegacyRedirect page="cancellation" />} />
+        <Route path="statement" element={<LegacyRedirect page="statement" />} />
+        <Route path="timeline" element={<LegacyRedirect page="timeline" />} />
+      </Route>
       <Route path="*" element={<HomeRedirect />} />
     </Routes>
   );

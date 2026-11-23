@@ -13,9 +13,11 @@ import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { cancelledCard } from '../../lib/cancelCopy';
 import { formatDate } from '../../lib/dates';
+import { AllPoliciesLink, usePolicyId } from './MeNav';
 import { GLOSSARY } from '../../lib/glossary';
 import { coverRemovedSentence, refundAfterRemoval, removedOn } from '../../lib/removeCoverCopy';
 import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from '../../lib/myCoverCopy';
+import { meApiPath, mePolicyPath, myCoverKey } from '../../lib/mePaths';
 import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
 
 const CARD = 'rounded-2xl border border-line bg-card';
@@ -29,7 +31,8 @@ function initials(name: string): string {
     .join('');
 }
 
-function Header({ name }: { name?: string }) {
+/** The policyholder's header: the Plainly name, sign out and their initials. Shared with "Your policies". */
+export function MeHeader({ name }: { name?: string }) {
   return (
     <header className="flex items-center justify-between px-5 py-3.5">
       <span className="text-xl font-bold tracking-[-0.01em]">Plainly</span>
@@ -66,7 +69,7 @@ function Chevron() {
 /** "See why": into the statement, where the change behind the amount is laid out line by line. */
 function SeeWhy({ label = 'See why' }: { label?: string }) {
   return (
-    <Link to="/me/statement" className="font-semibold">
+    <Link to={mePolicyPath(usePolicyId(), 'statement')} className="font-semibold">
       {label}
     </Link>
   );
@@ -77,9 +80,10 @@ const PAY_BUTTON =
 
 /** The P1 pay button, or why there isn't one on a demo without Stripe keys. */
 function PayAction({ c, label }: { c: MyCover; label: string }) {
+  const policyId = usePolicyId();
   if (!c.paymentsEnabled) return <p className="m-0 text-sm leading-snug text-ink-2">{PAYMENTS_OFF}</p>;
   return (
-    <Link to="/me/pay" className={PAY_BUTTON}>
+    <Link to={mePolicyPath(policyId, 'pay')} className={PAY_BUTTON}>
       {label}
     </Link>
   );
@@ -100,6 +104,7 @@ function BrokerNote({ c }: { c: MyCover }) {
  * is still owed for the days covered, with a way to pay it and a link to how it was worked out.
  */
 function CancelledCard({ c }: { c: MyCover }) {
+  const policyId = usePolicyId();
   const k = c.cancellation;
   const copy = k ? cancelledCard(k, c.amountDueCents, c.today) : null;
   return (
@@ -123,7 +128,7 @@ function CancelledCard({ c }: { c: MyCover }) {
         </>
       )}
       {k && (
-        <Link to="/me/cancellation" className={LINK_BUTTON}>
+        <Link to={mePolicyPath(policyId, 'cancellation')} className={LINK_BUTTON}>
           See how we worked it out
         </Link>
       )}
@@ -224,16 +229,17 @@ function AmountCard({ c }: { c: MyCover }) {
 /** P1: the policyholder's cover — what they owe and why, what they're protected for, and who to ask. */
 export function HomePage() {
   const session = useSession();
+  const policyId = usePolicyId();
   const cover = useQuery({
-    queryKey: ['my-cover'],
-    queryFn: () => api<MyCover>('/api/me/cover'),
+    queryKey: myCoverKey(policyId),
+    queryFn: () => api<MyCover>(meApiPath(policyId, 'cover')),
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1,
   });
 
   const shell = (body: ReactNode) => (
     <div className="flex min-h-dvh justify-center bg-bg">
       <div className="flex w-full max-w-[480px] flex-col">
-        <Header name={session.data?.displayName} />
+        <MeHeader name={session.data?.displayName} />
         <main className="flex flex-col gap-[18px] px-5 pb-8 pt-1">{body}</main>
       </div>
     </div>
@@ -244,7 +250,12 @@ export function HomePage() {
     const none = cover.error instanceof ApiError && cover.error.status === 404;
     return shell(
       <p className="text-[17px] leading-snug">
-        {none ? "You don't have a policy yet. Your broker will set one up for you." : "We couldn't load your cover. Reload to try again."}
+        {none ? "We couldn't find that policy." : "We couldn't load your cover. Reload to try again."}{' '}
+        {none && (
+          <Link to="/me" className="font-semibold">
+            See your policies
+          </Link>
+        )}
       </p>,
     );
   }
@@ -262,6 +273,7 @@ export function HomePage() {
   return shell(
     <>
       <div>
+        <AllPoliciesLink />
         <p className="m-0 text-[15px] text-ink-2">{c.business.legalName}</p>
         <h1 className="mt-0.5 mb-0 text-[30px] font-bold tracking-[-0.015em]">Your coverage</h1>
       </div>
@@ -269,7 +281,9 @@ export function HomePage() {
       <AmountCard c={c} />
 
       <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 overflow-hidden p-5 pb-0`}>
-        <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today } : null)}</p>
+        <p className="m-0 text-[17px] leading-[1.45]">
+          <Glossed>{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today, startsOn: c.policy.start } : null)}</Glossed>
+        </p>
         {removal && (
           <p className="m-0 text-[15px] leading-snug text-ink-2">
             <Glossed>{coverRemovedSentence(removal, c.today)}</Glossed>
@@ -283,7 +297,7 @@ export function HomePage() {
         </div>
 
         {/* cover-timeline AC1: tapping the bars opens P2. Keyboard users get the "See your cover timeline" row below. */}
-        <Link to="/me/timeline" tabIndex={-1} className="block text-ink no-underline">
+        <Link to={mePolicyPath(policyId, 'timeline')} tabIndex={-1} className="block text-ink no-underline">
           <CoverTimeline
             variant="compact"
             start={c.policy.start}
@@ -325,14 +339,14 @@ export function HomePage() {
           ))}
         </ul>
 
-        <Link to="/me/timeline" className={`${NAV_ROW} -mx-5 border-t border-line`}>
+        <Link to={mePolicyPath(policyId, 'timeline')} className={`${NAV_ROW} -mx-5 border-t border-line`}>
           See your coverage timeline
           <Chevron />
         </Link>
       </section>
 
       <nav aria-label="More" className={`${CARD} overflow-hidden`}>
-        <Link to="/me/statement" className={NAV_ROW}>
+        <Link to={mePolicyPath(policyId, 'statement')} className={NAV_ROW}>
           <span className="flex flex-col">
             <span>Statement</span>
             <span className="text-sm font-normal text-ink-2">Every charge and payment, and how we got each one</span>

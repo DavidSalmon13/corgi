@@ -255,3 +255,7 @@ On P3 a refund Stripe failed still reads "Refund on its way", and a declined car
 ## 2026-11-23: On P2, "Charged by the day" opens one line, or lists the lines when there are several
 
 "How we got this" explains one ledger line. A cover that was only charged has one line in force, so "328 days · $656.00" is itself the button. After a cancellation a cover has a charge and a cancellation credit, so the detail card shows the total ("91 days kept · $299.18") with each line underneath, and each line's amount opens its own drawer. This follows the same rule as the B5 correction cards: every number that is a button explains exactly one line.
+
+## 2026-11-23: P1's way into the timeline is the "See your cover timeline" row in the cover card, not a row in More
+
+T7 planned a "Cover timeline" row in the More card. P1's design (and AC1) puts "See your cover timeline" as the last row of the "What you're covered for" card instead, directly above More, so a second row in More would have repeated the same link one card lower. The bars themselves also open P2 on tap; they are left out of the tab order so keyboard and screen-reader users meet the link once, as the row.

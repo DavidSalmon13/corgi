@@ -253,7 +253,7 @@ export function HomePage() {
 
       <AmountCard c={c} />
 
-      <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 p-5 pb-4`}>
+      <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 overflow-hidden p-5 pb-0`}>
         <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today } : null)}</p>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-ink-2">
           <Term explain={`The dates your policy runs, here ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
@@ -262,13 +262,17 @@ export function HomePage() {
           <span className="font-semibold text-ink tabular-nums">{periodLine(c.policy.start, periodEnd)}</span>
         </div>
 
-        <CoverTimeline
-          variant="compact"
-          start={c.policy.start}
-          end={c.policy.end}
-          today={c.today}
-          cancelledFrom={endsOn ?? undefined}
-          covers={[...base, ...extras].map((x) => ({ id: x.id, kind: x.kind, label: x.label, from: x.from, to: x.to }))} />
+        {/* cover-timeline AC1: tapping the bars opens P2. Keyboard users get the "See your cover timeline" row below. */}
+        <Link to="/me/timeline" tabIndex={-1} className="block text-ink no-underline">
+          <CoverTimeline
+            variant="compact"
+            start={c.policy.start}
+            end={c.policy.end}
+            today={c.today}
+            cancelledFrom={endsOn ?? undefined}
+            covers={[...base, ...extras].map((x) => ({ id: x.id, kind: x.kind, label: x.label, from: x.from, to: x.to }))}
+          />
+        </Link>
 
         <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[15px]">
           {base.map((x) => (
@@ -293,6 +297,11 @@ export function HomePage() {
             </li>
           ))}
         </ul>
+
+        <Link to="/me/timeline" className={`${NAV_ROW} -mx-5 border-t border-line`}>
+          See your cover timeline
+          <Chevron />
+        </Link>
       </section>
 
       <nav aria-label="More" className={`${CARD} overflow-hidden`}>

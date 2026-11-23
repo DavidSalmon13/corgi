@@ -33,7 +33,7 @@
   - the answer, the timeline card and the detail card, with HowWeGotThis on "Charged by the day";
   - the correction sentence(s) and the no-policy page;
   - light/dark, 390 px.
-- [ ] T7 Entry and exit links:
+- [x] T7 Entry and exit links:
   - P1 Home's compact timeline links to /me/timeline, plus a "Cover timeline" row in More;
   - StatementPage scrolls to #correction-PTX-… and opens that card.
 

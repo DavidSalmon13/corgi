@@ -31,11 +31,19 @@ export const KEPT_BACK_B4: Record<KeptBackFor, string> = {
 
 /** P6: the same, as the customer knows it. */
 const KEPT_BACK_P6: Record<KeptBackFor, string> = {
-  ISSUE: 'from your first year',
-  ADD_COVERAGE: 'for your product liability endorsement',
-  CORRECT: 'from the effective date correction',
-  REMOVE_COVERAGE: 'from before your product liability was removed',
+  ISSUE: 'Unpaid premium from your first year',
+  ADD_COVERAGE: 'Unpaid premium for your product liability endorsement',
+  CORRECT: 'Unpaid premium from the effective date correction',
+  REMOVE_COVERAGE: 'Unpaid premium from before your product liability was removed',
 };
+
+/** Cancelled from its start date, so not one day was covered: a flat cancellation. */
+export function isFlat(c: { usedDays: number }): boolean {
+  return c.usedDays === 0;
+}
+
+/** True whatever today is: the policy was cancelled from its start, so it never started. */
+const FLAT_SENTENCE = 'Your policy was cancelled before it started (a flat cancellation).';
 
 /** One line of "What Maya gets back" (B4) or "How we worked it out" (P6). {@code total} is the bottom line. */
 export type MoneyRow = { label: string; detail: string; amount: string; total: boolean };
@@ -110,7 +118,7 @@ export function refundPieces(plan: CancelPlan): string | null {
 
 /** The one sentence the customer gets about this cancellation. */
 export function customerWillSeeCancel(plan: CancelPlan, today: IsoDate): string {
-  const ends = coverEndsSentence(plan.cancelDate, today);
+  const ends = isFlat(plan) ? FLAT_SENTENCE : coverEndsSentence(plan.cancelDate, today);
   if (plan.refundTotalCents > 0) {
     return `${ends} We're sending ${formatCents(plan.refundTotalCents)} back to your ${card(mainCard(plan.refunds))}.`;
   }
@@ -169,7 +177,7 @@ export function cancelledCard(
   amountDueCents: number,
   today: IsoDate,
 ): { sentence: string; due: string | null } {
-  const ends = coverEndsSentence(c.endsOn, today);
+  const ends = isFlat(c) ? FLAT_SENTENCE : coverEndsSentence(c.endsOn, today);
   if (amountDueCents > 0) {
     return {
       sentence: ends,
@@ -185,26 +193,48 @@ export function cancelledCard(
   return { sentence: ends, due: null };
 }
 
-/** P6's heading: "Your cover has ended", or "Your cover ends on Dec 1, 2026" before that day. */
+/**
+ * P6's heading: "Your cover has ended", or "Your cover ends on Dec 1, 2026" before that day. A flat cancellation
+ * never started, so it says that instead of an end.
+ */
 export function cancellationTitle(c: Cancellation, today: IsoDate): string {
+  if (isFlat(c)) return 'Cancelled before it started';
   return hasEnded(c.endsOn, today) ? 'Your cover has ended' : `Your cover ends on ${formatDate(c.endsOn)}`;
 }
 
 /** Under P6's bar: "91 days used. The striped part, 274 unused days, comes back to you." */
 export function unusedDaysCaption(c: Cancellation): string {
+  if (isFlat(c)) {
+    const where = c.refundCents > 0 ? 'comes back to you' : 'comes off what you were charged';
+    return `No days used. All ${plural(c.termDays, 'day')} are unused, so the whole premium ${where}.`;
+  }
   const where = c.refundCents > 0 ? 'comes back to you' : 'comes off what you owed';
   return `${plural(c.usedDays, 'day')} used. The striped part, ${plural(c.unusedDays, 'unused day')}, ${where}.`;
 }
 
-/** P6 "How we worked it out": each return premium, what was kept back, then the refund or what's still due. */
+/**
+ * P6 "How we worked it out": premium charged but not yet paid (what the credit pays off first), each return premium,
+ * then the refund, what's still due, or nothing either way. Read top to bottom it adds up, like the statement.
+ */
 export function workedOutRows(c: Cancellation, amountDueCents = 0): MoneyRow[] {
-  const rows = c.credits.map((credit) =>
+  const unpaid =
+    amountDueCents > 0 || c.keptBackCents <= 0
+      ? []
+      : [
+          row(
+            c.keptBackFor ? KEPT_BACK_P6[c.keptBackFor] : 'Unpaid premium',
+            'Charged, not paid yet',
+            formatCents(c.keptBackCents, { signed: true }),
+          ),
+        ];
+  const credits = c.credits.map((credit) =>
     row(
       `${COVER_NAME[credit.kind]} return premium`,
       calcArithmetic({ annualCents: credit.annualCents, days: credit.days, termDays: c.termDays, amountCents: -credit.amountCents }),
       formatCents(credit.amountCents),
     ),
   );
+  const rows = [...unpaid, ...credits];
   if (amountDueCents > 0) {
     rows.push(
       row(
@@ -216,15 +246,10 @@ export function workedOutRows(c: Cancellation, amountDueCents = 0): MoneyRow[] {
     );
     return rows;
   }
-  if (c.keptBackCents > 0) {
-    const amount = `The ${formatCents(c.keptBackCents)}`;
-    const what = c.keptBackFor ? `${amount} ${KEPT_BACK_P6[c.keptBackFor]}` : amount;
-    rows.push(row('Unpaid balance kept back', `${what}, still owed`, formatCents(c.keptBackCents, { signed: true })));
-  }
   if (c.refundCents > 0) {
     rows.push(row(`Refund to ${card(c.cardLast4)}`, 'No short-rate penalty', formatCents(c.refundCents), true));
   } else {
-    rows.push(row('Nothing more to pay', 'No short-rate penalty', formatCents(0), true));
+    rows.push(row('Nothing to pay or refund', 'No short-rate penalty', formatCents(0), true));
   }
   return rows;
 }

@@ -1,3 +1,4 @@
+import { glossParts } from '../components/Glossed';
 import { describe, expect, it } from 'vitest';
 import type { CancelPlan, Cancellation, Cancelled } from '../api/types';
 import {
@@ -9,6 +10,7 @@ import {
   cancelledCard,
   cancelSaveProblems,
   cancellationTitle,
+  isFlat,
   coverEndsSentence,
   customerWillSeeCancel,
   refundPieces,
@@ -289,14 +291,53 @@ describe('the customer side', () => {
   it('P6: shows each credit, what was kept back and the money back', () => {
     const lines = workedOutRows(pending).map((r) => [r.label, r.detail, r.amount].join(' · '));
     expect(lines).toEqual([
+      'Unpaid premium from the effective date correction · Charged, not paid yet · +$14.00',
       'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
       'Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00',
-      'Unpaid balance kept back · The $14.00 from the effective date correction, still owed · +$14.00',
       'Refund to card ending 4242 · No short-rate penalty · $1,434.82',
     ]);
     expect(workedOutRows(owing, 29_918).map((r) => [r.label, r.detail, r.amount].join(' · '))).toEqual([
       'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
       'Still owed for the 91 days you were covered · No short-rate penalty · $299.18',
+    ]);
+  });
+
+  // A flat cancellation, cancelled from a start date still ahead (Nov 28) and never paid: nothing owed, nothing back.
+  const flat = cancellation({
+    endsOn: '2026-11-28',
+    usedDays: 0,
+    unusedDays: 365,
+    credits: [
+      { kind: 'BASE', annualCents: 120_000, days: 365, amountCents: -120_000 },
+      { kind: 'PRODUCT_LIABILITY', annualCents: 73_000, days: 365, amountCents: -73_000 },
+    ],
+    keptBackCents: 193_000,
+    keptBackFor: 'ISSUE',
+    refundCents: 0,
+    refundStatus: null,
+    cardLast4: null,
+  });
+
+  it('flat cancellation: says it was cancelled before it started, before and after its start date', () => {
+    expect(isFlat(flat)).toBe(true);
+    expect(isFlat(pending)).toBe(false);
+    for (const today of ['2026-11-23', '2026-11-30']) {
+      expect(cancelledCard(flat, 0, today)).toEqual({
+        sentence: 'Your policy was cancelled before it started (a flat cancellation).',
+        due: null,
+      });
+      expect(cancellationTitle(flat, today)).toBe('Cancelled before it started');
+    }
+    expect(glossParts(cancelledCard(flat, 0, TODAY).sentence)).toContainEqual({ word: 'flat cancellation', term: 'flatCancellation' });
+    expect(unusedDaysCaption(flat)).toBe('No days used. All 365 days are unused, so the whole premium comes off what you were charged.');
+  });
+
+  it('flat cancellation: the worked-out rows add up like the statement, with nothing to pay or refund', () => {
+    expect(workedOutRows(flat).map((r) => [r.label, r.detail, r.amount].join(' · '))).toEqual([
+      'Unpaid premium from your first year · Charged, not paid yet · +$1,930.00',
+      'General liability return premium · $1,200.00 × 365 ÷ 365 · −$1,200.00',
+      'Product liability return premium · $730.00 × 365 ÷ 365 · −$730.00',
+      'Nothing to pay or refund · No short-rate penalty · $0.00',
     ]);
   });
 
@@ -379,10 +420,10 @@ describe('cancelling after product liability was removed', () => {
     };
     const rows = workedOutRows(c);
     expect(rows.map((r) => r.label)).toEqual([
+      'Unpaid premium from before your product liability was removed',
       'General liability return premium',
-      'Unpaid balance kept back',
       'Refund to card ending 4242',
     ]);
-    expect(rows[1].detail).toBe('The $14.00 from before your product liability was removed, still owed');
+    expect(rows[0].detail).toBe('Charged, not paid yet');
   });
 });

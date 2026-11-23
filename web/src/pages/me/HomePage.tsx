@@ -116,7 +116,9 @@ function CancelledCard({ c }: { c: MyCover }) {
       <span className="self-start">
         <StatusPill tone="neutral">Cancelled</StatusPill>
       </span>
-      <p className="m-0 text-[19px] font-medium leading-snug">{copy?.sentence ?? 'This coverage has ended.'}</p>
+      <p className="m-0 text-[19px] font-medium leading-snug">
+        <Glossed>{copy?.sentence ?? 'This coverage has ended.'}</Glossed>
+      </p>
       {copy?.due && (
         <>
           <p className="m-0 text-[17px] font-semibold leading-snug text-accent-ink tabular-nums">{copy.due}</p>
@@ -269,7 +271,9 @@ export function HomePage() {
   const extras = c.covers.filter((x) => x.kind !== 'BASE');
   // cancel-refund AC10: on a cancelled policy the protection line, cover period and covers all stop on the cancel day.
   const endsOn = c.policy.status === 'CANCELLED' ? (c.cancellation?.endsOn ?? null) : null;
-  const periodEnd = endsOn ?? c.policy.end;
+  // A flat cancellation never started, so "Nov 28 – Nov 28" would mean nothing: show the period it was bought for, marked cancelled.
+  const flat = endsOn != null && endsOn <= c.policy.start;
+  const periodEnd = flat ? c.policy.end : (endsOn ?? c.policy.end);
 
   return shell(
     <>
@@ -291,10 +295,13 @@ export function HomePage() {
           </p>
         )}
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-ink-2">
-          <Term explain={`${GLOSSARY.policyPeriod} Yours is ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
+          <Term explain={`${GLOSSARY.policyPeriod} Yours ${flat ? 'was to be' : 'is'} ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.${flat ? ' It was cancelled before it started.' : ''}`}>
             Your policy period
           </Term>
-          <span className="font-semibold text-ink tabular-nums">{periodLine(c.policy.start, periodEnd)}</span>
+          <span className="font-semibold text-ink tabular-nums">
+            {flat ? <s className="decoration-ink-2">{periodLine(c.policy.start, periodEnd)}</s> : periodLine(c.policy.start, periodEnd)}
+            {flat && <span className="font-normal text-ink-2"> · cancelled</span>}
+          </span>
         </div>
 
         {/* cover-timeline AC1: tapping the bars opens P2. Keyboard users get the "See your cover timeline" row below. */}

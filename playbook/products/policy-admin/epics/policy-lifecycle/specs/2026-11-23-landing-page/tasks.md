@@ -6,7 +6,7 @@
 
 ## Design
 
-- [ ] T1 Design L1 landing screen: design/plainly/L1-Landing.dc.html (Plainly tokens, 390 px, light/dark) + row in design/plainly/README.md
+- [x] T1 Design L1 landing screen: design/plainly/L1-Landing.dc.html (Plainly tokens, 390 px, light/dark) + row in design/plainly/README.md
 
 ## Public coverages API
 

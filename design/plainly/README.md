@@ -1,6 +1,6 @@
 # Plainly: screen designs
 
-Design source for the eleven Plainly screens plus the demo sign-in, exported from the design canvas
+Design source for the twelve Plainly screens plus the demo sign-in, exported from the design canvas
 (https://claude.ai/artifact/DrLpH75E15cMgiEF9rmiMn, private to the owner).
 
 Each `.dc.html` file is one screen. They are design-canvas components, so they render inside that canvas
@@ -21,6 +21,7 @@ Every screen uses the same story: the extra cover's start moves from Oct 15 to O
 | `P5-Pay.dc.html` | P5 Pay | card form, waiting for your bank, paid, didn't go through |
 | `P6-Cancellation.dc.html` | P6 Cancellation summary | refund waiting, refunded |
 | `SignIn.dc.html` | Sign-in with role switcher (demo) | — |
+| `L1-Landing.dc.html` | L1 Landing for guests: what we offer, how it works, sign in / create your account | light, dark |
 
 ## Broker (desktop pages)
 

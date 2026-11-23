@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Landing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pl{--bg:#F8F4EC;--card:#FFFDF8;--ink:#1D2433;--ink2:#555C69;--line:#E4DCCD;--accent:#E9A23B;--accentInk:#8A5300;--accentSoft:#FBEBD0;--track:#EFE8DA;font-family:'Source Sans 3',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+.pl.dark{--bg:#15181F;--card:#1E222B;--ink:#EFEAE0;--ink2:#A9AFBA;--line:#323845;--accentInk:#F2B861;--accentSoft:#3A2C16;--track:#2A2F3A}
+a{color:var(--accentInk)}
+h2{margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px}
+.q{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:3px;border-radius:50%;border:1px solid var(--line);font-size:10px;font-weight:700;color:var(--ink2);vertical-align:2px}
+.t{border-bottom:1.5px dotted var(--ink2)}
+.step{display:flex;gap:14px;align-items:flex-start}
+.n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--accentSoft);color:var(--accentInk);font-weight:700;display:flex;align-items:center;justify-content:center}
+.btn{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:12px;background:var(--accent);color:#1D2433;font-weight:700;font-size:17px;text-decoration:none}
+.try{display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none}
+.av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none;font-size:14px}
+.price{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="{{theme}}" style="width: 390px; min-height: 2020px; box-sizing: border-box; display: flex; flex-direction: column; gap: 40px; padding: 20px 20px 28px">
+
+  <!-- Header: badge + Sign in, visible without scrolling (AC2) -->
+  <div style="display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <svg width="30" height="30" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M14 27 L11 7 L25 18 Z" style="fill: var(--accent)"></path><path d="M42 27 L45 7 L31 18 Z" style="fill: var(--accent)"></path><path d="M12 30 C12 18 44 18 44 30 C44 41 37 48 28 48 C19 48 12 41 12 30 Z" style="fill: var(--accent)"></path><path d="M21 39 C21 34 35 34 35 39 C35 44 21 44 21 39 Z" style="fill: var(--card)"></path></svg>
+      <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em">Plainly</span>
+    </div>
+    <a href="SignIn.dc.html" style="font-weight: 700; font-size: 16px; text-decoration: none; padding: 10px 4px">Sign in</a>
+  </div>
+
+  <!-- Hero (AC3) + a miniature of P1, so the promise is shown, not told -->
+  <div style="display: flex; flex-direction: column; gap: 18px">
+    <div style="align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--accentSoft); color: var(--accentInk)">Demo · fictional people and money</div>
+    <h1 style="margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em">Insurance for your business, in plain words.</h1>
+    <p style="margin: 0; font-size: 18px; line-height: 1.45; color: var(--ink2)"><span class="t">General liability</span><span class="q">?</span> cover for small businesses, where you always see what you're covered for, what you owe and why.</p>
+    <div style="position: relative; height: 150px">
+      <div class="card" style="position: absolute; inset: 14px 0 0 18px; background: var(--track)"></div>
+      <div class="card" style="position: absolute; inset: 0 18px 14px 0; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; color: var(--ink2)">Your cover · Juniper &amp; Rye Bakery</span>
+        <span style="font-size: 17px; line-height: 1.35">You owe <b style="color: var(--accentInk)">$14.00</b>. Your broker moved your extra cover's start a week earlier.</span>
+        <span style="margin-top: auto; font-size: 14px; font-weight: 600; color: var(--accentInk); border-bottom: 1.5px dotted var(--accentInk); align-self: flex-start">How we got this: 7 days × $2.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- What we offer (AC12): from GET /api/public/coverages -->
+  <section>
+    <h2>What we offer</h2>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div class="card" style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+          <span style="font-weight: 700; font-size: 18px"><span class="t">General liability</span><span class="q">?</span></span>
+          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink2)">The policy</span>
+        </div>
+        <span style="font-size: 15px; line-height: 1.45; color: var(--ink2)">Pays if someone is hurt at your business or their property is damaged, and you're held responsible.</span>
+        <span class="price">$1,200.00 <span style="font-size: 15px; font-weight: 500; color: var(--ink2)">a year <span class="t">premium</span><span class="q">?</span></span></span>
+      </div>
+      <div class="card" style="display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+          <span style="font-weight: 700; font-size: 18px"><span class="t">Product liability</span><span class="q">?</span></span>
+          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink2)"><span class="t">Endorsement</span><span class="q">?</span></span>
+        </div>
+        <span style="font-size: 15px; line-height: 1.45; color: var(--ink2)">Covers harm caused by something you made or sold. Add it any time; you pay <span class="t">pro-rata</span><span class="q">?</span> from the day it starts.</span>
+        <span class="price">$730.00 <span style="font-size: 15px; font-weight: 500; color: var(--ink2)">a year · $2.00 a day</span></span>
+      </div>
+    </div>
+    <p style="margin: 12px 0 0; font-size: 14px; color: var(--ink2)">You can't buy online yet. Ask your broker for a policy.</p>
+  </section>
+
+  <!-- How it works (AC4) -->
+  <section>
+    <h2>How it works</h2>
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div class="step"><span class="n">1</span><span style="font-size: 16px; line-height: 1.45"><b>Your broker issues your policy</b> and enters your email.</span></div>
+      <div class="step"><span class="n">2</span><span style="font-size: 16px; line-height: 1.45"><b>You get an email</b> saying your policy is ready.</span></div>
+      <div class="step"><span class="n">3</span><span style="font-size: 16px; line-height: 1.45"><b>You create your account</b> with that same email, and see your cover, pay and trace every amount.</span></div>
+    </div>
+    <a class="btn" href="SignIn.dc.html" style="margin-top: 20px">Create your account</a>
+    <p style="margin: 8px 0 0; font-size: 14px; color: var(--ink2); text-align: center">Use the email your broker has for you.</p>
+  </section>
+
+  <!-- What your policy page shows you (AC5) -->
+  <section>
+    <h2>What your policy page shows you</h2>
+    <div class="card" style="display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.45">
+      <span>Your <span class="t">premium</span><span class="q">?</span>, and exactly what you owe today.</span>
+      <span>Every <span class="t">endorsement</span><span class="q">?</span>, with its <span class="t">pro-rata</span><span class="q">?</span> charge worked out day by day.</span>
+      <span>A <span class="t">ledger</span><span class="q">?</span> where nothing is edited: a mistake gets a reversal and a new line, so you see both.</span>
+    </div>
+  </section>
+
+  <!-- Reviewer box (AC7) -->
+  <section>
+    <h2>Reviewing this demo?</h2>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <a class="try" href="SignIn.dc.html"><span class="av" style="background: var(--accent); color: #1D2433">MO</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 700">Try as Maya, the policyholder</span><span style="font-size: 13px; color: var(--ink2)">Opens sign-in with Maya's details filled in</span></span></a>
+      <a class="try" href="SignIn.dc.html"><span class="av" style="background: var(--track); color: var(--ink)">SR</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 700">Try as Sam, the broker</span><span style="font-size: 13px; color: var(--ink2)">Opens sign-in with Sam's details filled in</span></span></a>
+    </div>
+  </section>
+
+  <p style="margin: auto 0 0; font-size: 14px; line-height: 1.45; color: var(--ink2)">This is a demo. No real insurance is sold, and payments use Stripe's test mode.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":2020}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: (this.props.dark ?? false) ? 'pl dark' : 'pl' };
+  }
+}
+</script>
+</body>
+</html>

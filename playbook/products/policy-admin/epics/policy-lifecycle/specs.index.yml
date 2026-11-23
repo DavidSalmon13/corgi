@@ -128,6 +128,8 @@ specs:
     covers:
       - /
       - /api/public/coverages
-      - web/src/pages/LandingPage.tsx
-      - web/src/lib/landingCopy.ts
       - api/src/main/java/**/catalog/**
+      - web/src/pages/Landing.tsx
+      - web/src/lib/landingCopy.ts
+      - web/src/components/RouteGuards.tsx#HomeRedirect
+      - design/plainly/L1-Landing.dc.html

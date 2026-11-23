@@ -16,9 +16,10 @@ The stack as built. Change this file when a dependency is added or swapped, and 
 - Java 21 with Spring Boot 4 (Spring MVC), built with Gradle (Kotlin DSL)
 - Layered as **controller → service → repository**; only `@Repository` classes run SQL. Read and follow `playbook/standards/backend/layers.md` for any API work
 - SQL through Spring's `JdbcClient` inside repositories: plain SQL, no JPA or ORM
-- One package per area: `auth`, `policy`, `pricing`, `ledger`, `billing`, `me`, `common`
+- One package per area: `auth`, `policy`, `pricing`, `ledger`, `billing`, `me`, `notify`, `common`
 - Sign-in: server-side sessions with BCrypt hashes (`spring-security-crypto` only, not full Spring Security)
 - Payments: `stripe-java`, test mode only; webhooks verified by signature and processed once per event id
+- Email: Resend's REST API through Spring's `RestClient` (no SDK), sandbox sender only; off without `RESEND_API_KEY` and `RESEND_TEST_TO`
 - Tests: JUnit 5 with Testcontainers Postgres (`./gradlew test`, Docker must be running)
 
 ## Database

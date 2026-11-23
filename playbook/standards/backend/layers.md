@@ -26,7 +26,7 @@ HTTP ──▶ Controller ──▶ Service ──▶ Repository ──▶ Postg
 
 ## Package layout
 
-One package per module (`auth`, `policy`, `pricing`, `ledger`, `billing`, `me`, `common`). Each holds its own controllers, services, repositories and records:
+One package per module (`auth`, `policy`, `pricing`, `ledger`, `billing`, `me`, `notify`, `common`). Each holds its own controllers, services, repositories and records:
 
 ```
 policy/

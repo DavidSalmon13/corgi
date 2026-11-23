@@ -101,7 +101,7 @@ export function correctSaveLabel(plan: CorrectionPlan): string {
 /** The confirm dialog: what changes, then the three amounts. */
 export function confirmSummary(plan: CorrectionPlan, ownerName: string): { sentence: string; amounts: string } {
   const who = firstName(ownerName);
-  const moved = `The product liability endorsement's effective date becomes ${formatShortDate(plan.newStart)} instead of ${formatShortDate(plan.oldStart)}.`;
+  const moved = `The effective date of the product liability endorsement becomes ${formatShortDate(plan.newStart)} instead of ${formatShortDate(plan.oldStart)}.`;
   let money: string;
   if (plan.refunds.length > 0) {
     money = `${formatCents(plan.refundTotalCents)} goes back to ${cardPhrase(plan.refunds)} and ${who ?? 'the customer'} sees your reason word for word.`;
@@ -146,19 +146,43 @@ export function correctedBanner(ownerName: string, saved: Corrected, cardLast4: 
   return { message, refs };
 }
 
-/** "The $14.00 refund didn't go through. Stripe couldn't send the money to card ending 4242." */
-export function failedRefundText(refund: RefundView): string {
-  const card = refund.cardLast4 ? `card ending ${refund.cardLast4}` : 'the card';
-  return `The ${formatCents(refund.amountCents)} refund didn't go through. Stripe couldn't send the money to ${card}.`;
-}
+/** What a policy change is called in a sentence ("The cancellation is saved"), from its transaction type. */
+const CHANGE_NAME: Record<string, string> = {
+  CORRECT: 'correction',
+  CANCEL: 'cancellation',
+  REMOVE_COVERAGE: 'removal',
+};
 
-/** Under a failed refund on B3: the correction stands, and the customer still sees the money as owed. */
-export function failedRefundDetail(refund: RefundView, ownerName: string): string {
+/**
+ * B3's one banner for every refund Stripe couldn't send, however many payments the change split it across. Names
+ * the change that owed the money from its own transaction (a cancellation is never called a correction), and what
+ * the customer sees meanwhile: P1, P3 and P6 keep showing the refund as on its way while the broker retries it.
+ */
+export function failedRefundsBanner(
+  refunds: RefundView[],
+  transactions: { displayId: string; type: string }[],
+  ownerName: string,
+): { heading: string; detail: string; retryLabel: string } {
+  const total = refunds.reduce((sum, r) => sum + r.amountCents, 0);
+  const cards = [...new Set(refunds.map((r) => r.cardLast4))];
+  const to =
+    cards.length === 1 && cards[0] ? `card ending ${cards[0]}` : cards.length === 1 ? 'the card' : 'the cards';
+  const heading =
+    refunds.length === 1
+      ? `The ${formatCents(total)} refund didn't go through. Stripe couldn't send the money to ${to}.`
+      : `${formatCents(total)} in refunds didn't go through. Stripe couldn't send the money to ${to}.`;
+
+  const ids = [...new Set(refunds.map((r) => r.policyTransactionDisplayId).filter((id): id is string => !!id))];
+  const names = [...new Set(ids.map((id) => CHANGE_NAME[transactions.find((t) => t.displayId === id)?.type ?? '']))];
+  const what = names.length === 1 && names[0] ? `The ${names[0]} is` : ids.length > 1 ? 'The changes are' : 'The change is';
+  const saved = ids.length > 0 ? `${what} saved (${ids.join(', ')}).` : `${what} saved.`;
   const who = firstName(ownerName) ?? 'The customer';
-  const saved = refund.policyTransactionDisplayId
-    ? `The correction is saved (${refund.policyTransactionDisplayId}).`
-    : 'The correction is saved.';
-  return `${saved} ${who} still sees “We owe you ${formatCents(refund.amountCents)}” until it goes through.`;
+  const sees = refunds.length === 1 ? 'the refund' : 'the money';
+  return {
+    heading,
+    detail: `${saved} ${who} still sees ${sees} as on its way until it goes through.`,
+    retryLabel: refunds.length === 1 ? 'Retry refund' : `Retry all ${refunds.length} refunds`,
+  };
 }
 
 /** B3 timeline: "from Oct 8 · was Oct 15", or "from Oct 8" when the effective date was never corrected. */

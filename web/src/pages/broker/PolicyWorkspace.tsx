@@ -10,12 +10,13 @@ import { StatusPill } from '../../components/StatusPill';
 import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
 import { GLOSSARY } from '../../lib/glossary';
-import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/correctCopy';
+import { coverWasLabel, failedRefundsBanner } from '../../lib/correctCopy';
 import { removedBarLabel } from '../../lib/removeCoverCopy';
 import { balanceNote, balanceText, policyPeriod, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
 import { canRewrite, NEW_POLICY_FOR_CUSTOMER, REWRITE_POLICY } from '../../lib/policiesCopy';
 import { newPolicyPath } from '../../lib/mePaths';
+import { formatCents } from '../../lib/money';
 import type { ChangeSavedState } from './ChangePolicyPage';
 
 const COVER_NAME: Record<CoverKind, string> = {
@@ -114,36 +115,45 @@ function SavedBanner({ saved, onClose }: { saved: ChangeSavedState; onClose: () 
 }
 
 /**
- * A refund Stripe couldn't send, with a button that sends a new attempt for the same refund (its own idempotency key,
- * so a double click can't send twice). Only a broker sees B3, and the API checks that too.
+ * Every refund Stripe couldn't send, in one banner: a cancellation can split its refund over several payments, and
+ * one alert per payment buried the policy. Retrying sends a new attempt for each (its own idempotency key, so a
+ * double click can't send twice). Only a broker sees B3, and the API checks that too.
  */
-function FailedRefund({ refund, p }: { refund: RefundView; p: PolicyDetail }) {
+function FailedRefunds({ refunds, p }: { refunds: RefundView[]; p: PolicyDetail }) {
   const queryClient = useQueryClient();
   const retry = useMutation({
-    mutationFn: () => api<RefundRetried>(`/api/broker/refunds/${refund.id}/retry`, { method: 'POST' }),
+    mutationFn: () =>
+      Promise.all(refunds.map((r) => api<RefundRetried>(`/api/broker/refunds/${r.id}/retry`, { method: 'POST' }))),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['policy', String(p.policyId)] }),
   });
+  const copy = failedRefundsBanner(refunds, p.transactions, p.customer.ownerName);
+  const reasons = [...new Set(refunds.map((r) => r.failureReason).filter(Boolean))];
   return (
     <section
       role="alert"
-      aria-label={`Refund ${refund.displayId} didn't go through`}
+      aria-label={refunds.length === 1 ? `Refund ${refunds[0].displayId} didn't go through` : "Refunds didn't go through"}
       className="flex flex-col gap-2.5 rounded-card bg-bad-soft px-4 py-3.5 text-bad"
     >
-      <strong className="text-base">{failedRefundText(refund)}</strong>
+      <strong className="text-base">{copy.heading}</strong>
       <span className="text-sm leading-normal text-ink">
-        {failedRefundDetail(refund, p.customer.ownerName)}
-        {refund.failureReason && (
-          <span className="block text-ink-2">
-            Stripe's reason: {refund.failureReason} · {refund.displayId}, attempt {refund.attempt}
-          </span>
-        )}
+        {copy.detail}
+        {reasons.length === 1 && <span className="block text-ink-2">Stripe's reason: {reasons[0]}</span>}
       </span>
+      <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px] text-ink-2">
+        {refunds.map((r) => (
+          <li key={r.id} className="tabular-nums">
+            <span className="font-mono">{r.displayId}</span> · {formatCents(r.amountCents)}
+            {r.cardLast4 ? ` to card ending ${r.cardLast4}` : ''} · attempt {r.attempt}
+            {reasons.length > 1 && r.failureReason ? ` · ${r.failureReason}` : ''}
+          </li>
+        ))}
+      </ul>
       {retry.isError && (
         <span className="text-sm font-semibold">We couldn't reach the server to retry. Try again in a moment.</span>
       )}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => retry.mutate()} disabled={retry.isPending} className={`${ACTION_MAIN} disabled:opacity-60`}>
-          {retry.isPending ? 'Sending…' : 'Retry refund'}
+          {retry.isPending ? 'Sending…' : copy.retryLabel}
         </button>
         <a href={`mailto:${p.customer.ownerEmail}`} className={`${ACTION} bg-card`}>
           Email {p.customer.ownerName.trim().split(/\s+/)[0] || 'the customer'}
@@ -200,9 +210,7 @@ export function PolicyWorkspace() {
   return (
     <>
       {banner && <SavedBanner saved={banner} onClose={closeBanner} />}
-      {failedRefunds.map((r) => (
-        <FailedRefund key={r.id} refund={r} p={p} />
-      ))}
+      {failedRefunds.length > 0 && <FailedRefunds refunds={failedRefunds} p={p} />}
       <section aria-label="Policy" className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex min-w-0 flex-col gap-1.5">
           <BackLink />

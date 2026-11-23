@@ -8,8 +8,7 @@ import {
   correctingWhich,
   coverWasLabel,
   customerWillSeeCorrection,
-  failedRefundDetail,
-  failedRefundText,
+  failedRefundsBanner,
   netChange,
   netWhy,
   settleLine,
@@ -169,11 +168,11 @@ describe('what the correction does to the bill', () => {
 describe('saving a correction', () => {
   it('sums the change up in one line before saving', () => {
     expect(confirmSummary(owesMore, 'Maya Okafor')).toEqual({
-      sentence: "The product liability endorsement's effective date becomes Oct 8 instead of Oct 15. Maya will owe $14.00 more and see your reason word for word.",
+      sentence: "The effective date of the product liability endorsement becomes Oct 8 instead of Oct 15. Maya will owe $14.00 more and see your reason word for word.",
       amounts: 'Reversal −$642.00 · Rebill +$656.00 · Net +$14.00',
     });
     expect(confirmSummary(refundDue, 'Maya Okafor')).toEqual({
-      sentence: "The product liability endorsement's effective date becomes Oct 22 instead of Oct 15. $14.00 goes back to card ending 4242 and Maya sees your reason word for word.",
+      sentence: "The effective date of the product liability endorsement becomes Oct 22 instead of Oct 15. $14.00 goes back to card ending 4242 and Maya sees your reason word for word.",
       amounts: 'Reversal −$642.00 · Rebill +$628.00 · Net −$14.00',
     });
   });
@@ -198,30 +197,47 @@ describe('saving a correction', () => {
     );
   });
 
-  it('says a refund failed and where it was going', () => {
-    const failed: RefundView = {
-      id: 1, displayId: 'RF-0001', status: 'FAILED', amountCents: 1_400, cardLast4: '4242', attempt: 1,
-      policyTransactionDisplayId: 'PTX-0003', stripeRefundId: null, failureReason: 'expired_or_canceled_card',
-    };
-    expect(failedRefundText(failed)).toBe(
-      "The $14.00 refund didn't go through. Stripe couldn't send the money to card ending 4242.",
-    );
-    expect(failedRefundText({ ...failed, cardLast4: null })).toBe(
-      "The $14.00 refund didn't go through. Stripe couldn't send the money to the card.",
-    );
+  const failed: RefundView = {
+    id: 1, displayId: 'RF-0001', status: 'FAILED', amountCents: 1_400, cardLast4: '4242', attempt: 1,
+    policyTransactionDisplayId: 'PTX-0003', stripeRefundId: null, failureReason: 'expired_or_canceled_card',
+  };
+  const txs = [
+    { displayId: 'PTX-0003', type: 'CORRECT' },
+    { displayId: 'PTX-0004', type: 'CANCEL' },
+  ];
+
+  it('says a refund failed, where it was going, and that the correction stands', () => {
+    expect(failedRefundsBanner([failed], txs, 'Maya Okafor')).toEqual({
+      heading: "The $14.00 refund didn't go through. Stripe couldn't send the money to card ending 4242.",
+      detail: 'The correction is saved (PTX-0003). Maya still sees the refund as on its way until it goes through.',
+      retryLabel: 'Retry refund',
+    });
+    expect(failedRefundsBanner([{ ...failed, cardLast4: null, policyTransactionDisplayId: null }], txs, ' ')).toEqual({
+      heading: "The $14.00 refund didn't go through. Stripe couldn't send the money to the card.",
+      detail: 'The change is saved. The customer still sees the refund as on its way until it goes through.',
+      retryLabel: 'Retry refund',
+    });
   });
 
-  it('says the correction stands and what the customer sees until the refund goes through', () => {
-    const failed: RefundView = {
-      id: 1, displayId: 'RF-0001', status: 'FAILED', amountCents: 1_400, cardLast4: '4242', attempt: 1,
-      policyTransactionDisplayId: 'PTX-0003', stripeRefundId: null, failureReason: 'expired_or_canceled_card',
-    };
-    expect(failedRefundDetail(failed, 'Maya Okafor')).toBe(
-      'The correction is saved (PTX-0003). Maya still sees “We owe you $14.00” until it goes through.',
-    );
-    expect(failedRefundDetail({ ...failed, policyTransactionDisplayId: null }, ' ')).toBe(
-      'The correction is saved. The customer still sees “We owe you $14.00” until it goes through.',
-    );
+  it('groups a cancellation refund split over several payments, and never calls it a correction', () => {
+    const split = [
+      { ...failed, id: 1, displayId: 'RF-0001', amountCents: 1_400, policyTransactionDisplayId: 'PTX-0004' },
+      { ...failed, id: 2, displayId: 'RF-0002', amountCents: 70_200, policyTransactionDisplayId: 'PTX-0004' },
+      { ...failed, id: 3, displayId: 'RF-0003', amountCents: 106_066, policyTransactionDisplayId: 'PTX-0004' },
+    ];
+    expect(failedRefundsBanner(split, txs, 'Maya Okafor')).toEqual({
+      heading: "$1,776.66 in refunds didn't go through. Stripe couldn't send the money to card ending 4242.",
+      detail: 'The cancellation is saved (PTX-0004). Maya still sees the money as on its way until it goes through.',
+      retryLabel: 'Retry all 3 refunds',
+    });
+  });
+
+  it('names both changes when failed refunds come from more than one', () => {
+    const mixed = [failed, { ...failed, id: 2, displayId: 'RF-0002', cardLast4: '1881', policyTransactionDisplayId: 'PTX-0004' }];
+    expect(failedRefundsBanner(mixed, txs, 'Maya Okafor')).toMatchObject({
+      heading: "$28.00 in refunds didn't go through. Stripe couldn't send the money to the cards.",
+      detail: 'The changes are saved (PTX-0003, PTX-0004). Maya still sees the money as on its way until it goes through.',
+    });
   });
 
   it('shows the corrected start on the timeline with what it was', () => {

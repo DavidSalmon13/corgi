@@ -7,7 +7,7 @@
 ## Statement API
 
 - [x] T1 Failing StatementServiceTest cases for AC3 (balanceAfterCents per correction, incl. −$14 credit), AC5 (inception/expiry/statement date, dueDate = oldest unpaid line's posting date, null when paid up) and AC7 ($1,000/yr cover corrected 7 days: reversal = −original, net = rebill − original, no stray cent) (testing skill, TDD)
-- [ ] T2 Statement.Header (inceptionDate, expiryDate, statementDate, dueDate) and Statement.Correction.balanceAfterCents filled in StatementService from PolicyService; T1 passes (service)
+- [x] T2 Statement.Header (inceptionDate, expiryDate, statementDate, dueDate) and Statement.Correction.balanceAfterCents filled in StatementService from PolicyService; T1 passes (service)
 - [ ] T3 StatementEndpointTest asserts the new header and correction fields on GET /api/me/statement (controller)
 
 ## Web

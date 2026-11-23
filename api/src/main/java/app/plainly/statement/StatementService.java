@@ -22,6 +22,7 @@ import app.plainly.statement.Statement.RefKind;
 import app.plainly.statement.Statement.Row;
 import app.plainly.statement.Statement.Trace;
 import java.time.LocalDate;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,7 +68,32 @@ public class StatementService {
      * charges first, and a credit left over pays the next charge. Null when nothing is owed.
      */
     static LocalDate oldestUnpaid(List<Row> settledOldestFirst) {
-        return null; // T2
+        record Open(LocalDate postedOn, long cents) {}
+        ArrayDeque<Open> open = new ArrayDeque<>();
+        long credit = 0;
+        for (Row r : settledOldestFirst) {
+            long amount = r.amountCents();
+            if (amount > 0) {
+                long fromCredit = Math.min(credit, amount);
+                credit -= fromCredit;
+                if (amount > fromCredit) {
+                    open.addLast(new Open(r.date(), amount - fromCredit));
+                }
+            } else {
+                long paying = -amount;
+                while (paying > 0 && !open.isEmpty()) {
+                    Open oldest = open.pollFirst();
+                    if (oldest.cents() > paying) {
+                        open.addFirst(new Open(oldest.postedOn(), oldest.cents() - paying));
+                        paying = 0;
+                    } else {
+                        paying -= oldest.cents();
+                    }
+                }
+                credit += paying;
+            }
+        }
+        return open.isEmpty() ? null : open.peekFirst().postedOn();
     }
 
     private Statement build(PolicyViews.Detail p) {
@@ -107,9 +133,9 @@ public class StatementService {
             for (LedgerLine l : p.ledger()) {
                 rows.add(ledgerRow(l));
             }
-            rows.addAll(pendingRows());
             Statement.Header header = new Statement.Header(p.customer().legalName(), p.policyNumber(),
-                    p.balanceCents(), null, null, null, null); // T2 fills the term, statement and due dates
+                    p.balanceCents(), p.start(), p.end(), p.today(), oldestUnpaid(rows));
+            rows.addAll(pendingRows());
             return new Statement(header, banner(), List.copyOf(rows), corrections, p.today());
         }
 
@@ -153,7 +179,7 @@ public class StatementService {
                 out.add(new Correction(tx.displayId(), tx.recordedOn(), original.coverFrom(), rebill.coverFrom(),
                         rebill.calcDays() - original.calcDays(), undo.amountCents() + rebill.amountCents(), perDay,
                         tx.reason(), actors.get(tx.displayId()), original.displayId(), undo.displayId(),
-                        rebill.displayId(), 0)); // T2 fills the balance after the card
+                        rebill.displayId(), (undo.id() > rebill.id() ? undo : rebill).balanceAfterCents()));
             }
             return List.copyOf(out);
         }

@@ -69,15 +69,26 @@ public class TimelineService {
                 .filter(r -> Objects.equals(coverOfLine.get(r.id()), c.id()))
                 .toList();
         long charged = rows.stream().mapToLong(Statement.Row::amountCents).sum();
-        LocalDate keptTo = cancelledOn != null && cancelledOn.isBefore(c.to()) ? cancelledOn : c.to();
+        LocalDate keptTo = earliest(c.to(), cancelledOn, c.endedOn());
         int daysKept = Math.max(0, days(c.from(), keptTo));
         Long perDay = termDays > 0 && c.annualPremiumCents() % termDays == 0
                 ? c.annualPremiumCents() / termDays : null;
         Statement.Correction correction = c.previousStart() == null ? null : statement.corrections().stream()
                 .filter(k -> c.from().equals(k.newStart()) && c.previousStart().equals(k.oldStart()))
                 .reduce((a, b) -> b).orElse(null);
-        return new Timeline.Cover(c.id(), c.kind(), c.from(), c.to(), c.previousStart(), c.annualPremiumCents(),
-                perDay, daysKept, charged, rows, correction);
+        return new Timeline.Cover(c.id(), c.kind(), c.from(), c.to(), c.endedOn(), c.previousStart(),
+                c.annualPremiumCents(), perDay, daysKept, charged, rows, correction);
+    }
+
+    /** The cover is kept up to whichever comes first: its end, the cancel day or the day a removal ended it. */
+    private static LocalDate earliest(LocalDate to, LocalDate... others) {
+        LocalDate first = to;
+        for (LocalDate d : others) {
+            if (d != null && d.isBefore(first)) {
+                first = d;
+            }
+        }
+        return first;
     }
 
     private static int days(LocalDate from, LocalDate to) {

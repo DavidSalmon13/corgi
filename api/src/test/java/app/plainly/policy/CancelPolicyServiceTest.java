@@ -52,6 +52,7 @@ class CancelPolicyServiceTest {
     static final String REASON = "Closing the bakery at the end of November.";
 
     @Autowired CancelPolicyService service;
+    @Autowired RemoveCoverService remover;
     @Autowired CorrectCoverageService corrector;
     @Autowired AddCoverageService adder;
     @Autowired IssuePolicyService issuer;
@@ -442,6 +443,54 @@ class CancelPolicyServiceTest {
         assertThat(stripe.statusOf(open.intentId())).isEqualTo("canceled");
         assertThat(jdbc.sql("select stripe_canceled_at is not null from payments where id = ?")
                 .param(open.paymentId()).query(Boolean.class).single()).isTrue();
+    }
+
+    // --- after the extra cover was removed (remove-cover AC6) ---
+
+    /** Base paid, extra cover from Oct 8 paid, then removed from Dec 1 ($548.00 back). */
+    Owner removedFromDec1() throws Exception {
+        Owner owner = owner();
+        payInFull(owner);
+        adder.add(owner.policyId(), new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, OCT_8), brokerId());
+        payInFull(owner);
+        remover.remove(owner.policyId(), new RemoveCoverCommand(DEC_1, "No longer sells to shops."), brokerId());
+        return owner;
+    }
+
+    // covers remove-cover AC6, T1
+    @Test
+    void cancellingOnOrAfterTheRemovalDayCreditsTheRemovedExtraCoverNothing() throws Exception {
+        long id = removedFromDec1().policyId();
+
+        assertThat(service.preview(id, DEC_1).credits()).extracting(CancelPolicyPlan.Credit::kind)
+                .containsExactly(CoverKind.BASE);
+        assertThat(service.preview(id, JAN_1).credits()).extracting(CancelPolicyPlan.Credit::kind)
+                .containsExactly(CoverKind.BASE);
+    }
+
+    // covers remove-cover AC6, T1
+    @Test
+    void cancellingBeforeTheRemovalDayCreditsTheExtraCoverOnlyUpToIt() throws Exception {
+        long id = removedFromDec1().policyId();
+        LocalDate nov1 = LocalDate.of(2026, 11, 1);
+
+        CancelPolicyPlan plan = service.preview(id, nov1);
+
+        assertThat(plan.credits()).hasSize(2);
+        assertThat(plan.credits().get(1)).satisfies(extra -> {
+            assertThat(extra.kind()).isEqualTo(CoverKind.PRODUCT_LIABILITY);
+            assertThat(extra.from()).isEqualTo(nov1);
+            assertThat(extra.to()).isEqualTo(DEC_1);
+            assertThat(extra.calc().days()).isEqualTo(30);
+            assertThat(extra.amountCents()).isEqualTo(-6_000);
+        });
+        // Every extra-cover day is credited once: Nov 1 → Dec 1 here, Dec 1 → Sep 1 by the removal.
+        long extraCredited = -jdbc.sql("""
+                select coalesce(sum(amount_cents), 0) from ledger_entries
+                where policy_id = ? and entry_type = 'CREDIT' and coverage_id = ?""")
+                .params(id, coverageId(id, CoverKind.PRODUCT_LIABILITY)).query(Long.class).single()
+                - plan.credits().get(1).amountCents();
+        assertThat(extraCredited).isEqualTo(54_800 + 6_000);
     }
 
     // --- two brokers at once (AC8) ---

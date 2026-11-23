@@ -49,23 +49,37 @@ public record CancelPolicyPlan(long policyId, LocalDate cancelDate, LocalDate po
     }
 
     /**
-     * Each live cover's credit, priced over max(its start, the cancel day) → its end. A cover that starts on or after
-     * the cancel day is credited in full, to the cent of its charge. A cover worth nothing for those days is skipped.
-     * Pure, so preview and save price it the same way.
+     * Each live cover's credit, priced over max(its start, the cancel day) → its end, where a removed cover ends on
+     * its removal day ({@code endedOn}), so no day is credited twice (remove-cover AC6). A cover that starts on or
+     * after the cancel day is credited in full, to the cent of what is left of its charge. A cover worth nothing for
+     * those days is skipped. Pure, so preview and save price it the same way.
+     *
+     * <p>A removed cover's days are credited in two pieces, the removal's and this one. Rounding each on its own can
+     * give back a cent more or less than the cover was charged, so this piece is what the cover's days from here to its
+     * original end are worth less what the removal already credited: together they always equal one credit for the
+     * whole span.
      */
     static List<Credit> credits(PolicyRepository.Term policy, List<CoverageRepository.Live> covers,
             LocalDate cancelDate) {
         List<Credit> credits = new ArrayList<>();
         for (CoverageRepository.Live cover : covers) {
             LocalDate from = cover.from().isAfter(cancelDate) ? cover.from() : cancelDate;
-            if (!from.isBefore(cover.to())) {
+            LocalDate to = cover.endedOn() != null ? cover.endedOn() : cover.to();
+            if (!from.isBefore(to)) {
                 continue;
             }
-            ProRata.Charge unused = ProRata.charge(cover.annualPremiumCents(), from, cover.to(), policy.start(),
+            ProRata.Charge unused = ProRata.charge(cover.annualPremiumCents(), from, to, policy.start(),
                     policy.end());
+            if (cover.endedOn() != null && cover.endedOn().isBefore(cover.to())) {
+                long toEnd = ProRata.charge(cover.annualPremiumCents(), from, cover.to(), policy.start(), policy.end())
+                        .amountCents();
+                long removal = ProRata.charge(cover.annualPremiumCents(), cover.endedOn(), cover.to(), policy.start(),
+                        policy.end()).amountCents();
+                unused = new ProRata.Charge(unused.annualCents(), unused.days(), unused.termDays(), toEnd - removal);
+            }
             if (unused.amountCents() > 0) {
                 credits.add(new Credit(cover.id(), cover.kind(), cover.kind().label() + " return premium", from,
-                        cover.to(), unused));
+                        to, unused));
             }
         }
         return List.copyOf(credits);

@@ -22,3 +22,13 @@ specs:
       - /api/broker/policies/{id}/history
       - web/src/pages/broker/HistoryPage.tsx
       - web/src/lib/historyCopy.ts
+  - folder: 2026-11-23-cover-timeline
+    slug: cover-timeline
+    status: shaped
+    branch: feat/statement-history/cover-timeline
+    covers:
+      - /me/timeline
+      - /api/me/timeline
+      - api/src/main/java/**/timeline/**
+      - web/src/pages/me/TimelinePage.tsx
+      - web/src/lib/timelineCopy.ts

@@ -26,7 +26,7 @@ public class EmailTemplates {
             LocalDate settledOn, long leftToPayCents) {}
 
     /** Why money went back: the only two changes that give money back. */
-    public enum RefundReason { CORRECTION, CANCELLATION }
+    public enum RefundReason { CORRECTION, CANCELLATION, COVER_REMOVED }
 
     /** A refund went through: the money is on its way back to the card. */
     public record RefundReceipt(String ownerName, String ownerEmail, long amountCents, String cardLast4,
@@ -85,6 +85,8 @@ public class EmailTemplates {
                     + "you aren't covered.";
             case CANCELLATION -> "We sent it back because your cover ended early, so you'd paid for days after it "
                     + "ended.";
+            case COVER_REMOVED -> "We sent it back because your extra cover was removed, so you'd paid for days it "
+                    + "no longer runs.";
         };
         return new Email(r.ownerEmail(), subject, "Hi " + r.ownerName() + ",")
                 .para(money(r.amountCents()) + " is on its way back to " + yourCard(r.cardLast4()) + ".")

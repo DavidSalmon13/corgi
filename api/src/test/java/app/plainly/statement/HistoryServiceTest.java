@@ -24,6 +24,8 @@ import app.plainly.policy.CancelPolicyService;
 import app.plainly.policy.CorrectCoverageCommand;
 import app.plainly.policy.CorrectCoverageService;
 import app.plainly.policy.IssuePolicyService;
+import app.plainly.policy.RemoveCoverCommand;
+import app.plainly.policy.RemoveCoverService;
 import app.plainly.statement.History.Action;
 import app.plainly.statement.History.ActionKind;
 import app.plainly.statement.Statement.Ref;
@@ -61,6 +63,7 @@ class HistoryServiceTest {
     @Autowired AddCoverageService adder;
     @Autowired CorrectCoverageService corrector;
     @Autowired CancelPolicyService canceller;
+    @Autowired RemoveCoverService remover;
     @Autowired MockMvc mvc;
     @Autowired JdbcClient jdbc;
 
@@ -349,6 +352,28 @@ class HistoryServiceTest {
         assertThat(a.reason()).isEqualTo(why);
         assertThat(a.rows()).isNotEmpty().allSatisfy(r -> assertThat(r.kind()).isEqualTo(EntryType.CREDIT));
         assertThat(a.amountCents()).isNegative().isEqualTo(settledRowsSum(a));
+    }
+
+    // covers remove-cover AC7, T1
+    @Test
+    void aRemovalIsOneCardWithItsCreditAndTheBrokersReason() throws Exception {
+        long id = paid("Removal Card Bakery LLC").owner().policyId();
+        String why = "Stopped selling packaged goods to shops.";
+        RemoveCoverService.Removed removed = remover.remove(id, new RemoveCoverCommand(DEC_1, why),
+                CorrectionTestData.brokerId(jdbc));
+
+        Action a = action(service.forPolicy(id), removed.transactionDisplayId());
+
+        assertThat(a.kind()).isEqualTo(ActionKind.CHANGE);
+        assertThat(a.changeType()).isEqualTo("REMOVE_COVERAGE");
+        assertThat(a.reason()).isEqualTo(why);
+        assertThat(a.actorName()).isEqualTo(brokerName());
+        assertThat(a.rows()).singleElement().satisfies(r -> {
+            assertThat(r.kind()).isEqualTo(EntryType.CREDIT);
+            assertThat(r.id()).isEqualTo(removed.creditDisplayId());
+            assertThat(r.amountCents()).isEqualTo(-54_800L);
+        });
+        assertThat(a.amountCents()).isEqualTo(-54_800L);
     }
 
     // --- a second correction adds a card and changes nothing earlier (AC8) ---

@@ -46,6 +46,8 @@ public class MyCoverService {
         CORRECTION,
         /** The policy was cancelled and its credit didn't cover the days already used, so the rest is still owed. */
         CANCELLATION,
+        /** The extra cover was removed and its credit didn't cover what was owed, so the rest is still due. */
+        COVER_REMOVED,
         /** Another later change left money owing. */
         CHANGE,
         /** Paid up, or we owe them. */
@@ -66,6 +68,7 @@ public class MyCoverService {
                 case "ADD_COVERAGE" -> EXTRA_COVER;
                 case "CORRECT" -> CORRECTION;
                 case "CANCEL" -> CANCELLATION;
+                case "REMOVE_COVERAGE" -> COVER_REMOVED;
                 default -> CHANGE;
             };
         }
@@ -97,7 +100,7 @@ public class MyCoverService {
 
     /**
      * {@code latestChangeFrom}: the day the newest change after issuing takes effect, or null if there is none.
-     * {@code latestChangeReason}: the broker's words for that change when it was a correction, shown as written.
+     * {@code latestChangeReason}: the broker's words for that change (a correction or a removal), shown as written.
      * {@code refundWaiting}: null unless a refund is on its way.
      */
     public record MyCover(Business business, Policy policy, List<PolicyViews.Coverage> covers, long amountDueCents,

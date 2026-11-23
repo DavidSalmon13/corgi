@@ -21,6 +21,8 @@ import app.plainly.policy.CorrectCoverageService;
 import app.plainly.policy.CoverKind;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;
+import app.plainly.policy.RemoveCoverCommand;
+import app.plainly.policy.RemoveCoverService;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,7 @@ class MyCoverTest {
     @Autowired CorrectCoverageService corrector;
     @Autowired FakeStripeGateway stripe;
     @Autowired CancelPolicyService canceller;
+    @Autowired RemoveCoverService remover;
 
     /** Issues a policy, then signs its owner up with the email the broker entered, as a real owner would. */
     Cookie ownerOf(String business, boolean extra) throws Exception {
@@ -259,5 +262,50 @@ class MyCoverTest {
         mvc.perform(get("/api/me/cover").cookie(ownerOf("Still Active Home LLC", false)))
                 .andExpect(jsonPath("$.policy.cancelledOn").doesNotExist())
                 .andExpect(jsonPath("$.cancellation").doesNotExist());
+    }
+
+    // --- remove-cover AC7, T1: P1 after the extra cover is removed ---
+
+    static final String REMOVAL_NOTE = "Stopped selling packaged goods to shops.";
+
+    // covers remove-cover AC7, T1
+    @Test
+    void aRemovedExtraCoverEndsOnItsDayAndItsReturnPremiumIsOnItsWay() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Removed Home LLC");
+        remover.remove(paid.owner().policyId(), new RemoveCoverCommand(DEC_1, REMOVAL_NOTE),
+                CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.policy.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.amountDueCents").value(0))
+                .andExpect(jsonPath("$.dueReason").value("NOTHING_DUE"))
+                .andExpect(jsonPath("$.latestChangeFrom").value("2026-12-01"))
+                .andExpect(jsonPath("$.latestChangeReason").value(REMOVAL_NOTE))
+                .andExpect(jsonPath("$.refundWaiting.amountCents").value(54800))
+                .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"))
+                .andExpect(jsonPath("$.covers.length()").value(2))
+                .andExpect(jsonPath("$.covers[0].endedOn").doesNotExist())
+                .andExpect(jsonPath("$.covers[1].kind").value("PRODUCT_LIABILITY"))
+                .andExpect(jsonPath("$.covers[1].endedOn").value("2026-12-01"))
+                .andExpect(jsonPath("$.cancellation").doesNotExist());
+    }
+
+    // covers remove-cover AC7, T1
+    @Test
+    void anUnpaidExtraCoverRemovedLeavesLessOwedBecauseOfTheRemoval() throws Exception {
+        PaymentTestData.Owner owner = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issue, "Removed Unpaid Home LLC");
+        CorrectionTestData.payInFull(mvc, jdbc, owner);
+        long broker = CorrectionTestData.brokerId(jdbc);
+        addCover.add(owner.policyId(), new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, CorrectionTestData.OCT_15),
+                broker); // $642.00 owed
+        remover.remove(owner.policyId(), new RemoveCoverCommand(DEC_1, REMOVAL_NOTE), broker);
+
+        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+                .andExpect(jsonPath("$.amountDueCents").value(9400))
+                .andExpect(jsonPath("$.dueReason").value("COVER_REMOVED"))
+                .andExpect(jsonPath("$.latestChangeFrom").value("2026-12-01"))
+                .andExpect(jsonPath("$.latestChangeReason").value(REMOVAL_NOTE))
+                .andExpect(jsonPath("$.refundWaiting").doesNotExist());
     }
 }

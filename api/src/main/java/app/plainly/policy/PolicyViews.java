@@ -13,9 +13,24 @@ public final class PolicyViews {
 
     public record LastAction(String type, LocalDate recordedOn) {}
 
-    /** One row on B1. {@code paymentWaiting}: a payment is with the bank and not settled yet. */
+    /** Another policy this one points at: the cancelled policy a rewrite replaces, or the rewrite that replaced it. */
+    public record PolicyLink(long policyId, String policyNumber) {}
+
+    /**
+     * One row on B1. {@code paymentWaiting}: a payment is with the bank and not settled yet. {@code replaces} and
+     * {@code replacedBy} link a rewrite and the cancelled policy it replaced; null when there is none.
+     */
     public record ListRow(long policyId, String customerName, String ownerName, String policyNumber, String status,
-            long balanceCents, boolean owesMoney, boolean paymentWaiting, LastAction lastAction) {}
+            long balanceCents, boolean owesMoney, boolean paymentWaiting, LastAction lastAction, long customerId,
+            PolicyLink replaces, PolicyLink replacedBy) {}
+
+    /**
+     * One of a customer's policies, for the policyholder's "Your policies". {@code balanceCents} is the ledger balance
+     * (negative while a refund is on its way); {@code refunds} are its refunds, so the caller can say what is pending.
+     */
+    public record OwnedPolicy(long policyId, String policyNumber, LocalDate start, LocalDate end, String status,
+            LocalDate cancelledOn, long balanceCents, boolean paymentWaiting, List<RefundListing> refunds,
+            PolicyLink replaces, PolicyLink replacedBy) {}
 
     /** {@code ownerSignedUpAt} is null until the owner creates their account (real-sign-in AC11). */
     public record Customer(String legalName, String businessDescription, String ownerName, String ownerEmail,
@@ -35,9 +50,11 @@ public final class PolicyViews {
     /**
      * Everything B3 shows: header, covers for the timeline, and the ledger with where each line came from.
      * {@code end} is always the original term end; {@code cancelledOn} is the day all cover stopped, or null.
+     * {@code customerId} opens "New policy for this customer"; {@code replaces}/{@code replacedBy} are the rewrite links.
      */
     public record Detail(long policyId, String policyNumber, String status, LocalDate start, LocalDate end,
             LocalDate cancelledOn, LocalDate today,
             Customer customer, long balanceCents, boolean paymentWaiting, List<Coverage> coverages, List<LedgerLine> ledger,
-            List<Transaction> transactions, List<RefundListing> refunds) {}
+            List<Transaction> transactions, List<RefundListing> refunds, long customerId, PolicyLink replaces,
+            PolicyLink replacedBy) {}
 }

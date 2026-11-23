@@ -44,7 +44,7 @@ public class PolicyService {
                     long balance = balances.get(r.id());
                     var last = r.lastType() == null ? null : new PolicyViews.LastAction(r.lastType(), r.lastOn());
                     return new PolicyViews.ListRow(r.id(), r.customer(), r.owner(), r.number(), r.status(), balance,
-                            balance > 0, r.paymentWaiting(), last);
+                            balance > 0, r.paymentWaiting(), last, r.customerId(), r.replaces(), r.replacedBy());
                 })
                 .toList();
     }
@@ -53,7 +53,29 @@ public class PolicyService {
         return find(policyId).orElseThrow(() -> new NotFoundException("No policy " + policyId));
     }
 
-    /** The newest policy of a customer (one policy per customer for now). */
+    /** A customer's policies, newest first, each with its balance, refunds and rewrite links. */
+    public List<PolicyViews.OwnedPolicy> listForCustomer(long customerId) {
+        List<PolicyRepository.CustomerPolicy> rows = policies.listForCustomer(customerId);
+        Map<Long, Long> balances = ledger.balances(rows.stream().map(PolicyRepository.CustomerPolicy::id).toList());
+        return rows.stream()
+                .map(p -> new PolicyViews.OwnedPolicy(p.id(), p.number(), p.start(), p.end(), p.status(), p.cancelledOn(),
+                        balances.get(p.id()), p.paymentWaiting(), refunds.listForPolicy(p.id()), p.replaces(),
+                        p.replacedBy()))
+                .toList();
+    }
+
+    /**
+     * {@code policyId} when the customer holds it. A policy that isn't theirs and one that doesn't exist both throw
+     * the same NotFoundException, so a policyholder can't learn which policy ids exist (AC9).
+     */
+    public long requireOwned(long customerId, long policyId) {
+        if (!policies.isOwnedBy(policyId, customerId)) {
+            throw new NotFoundException("No policy " + policyId + " for you.");
+        }
+        return policyId;
+    }
+
+    /** The newest policy of a customer. Kept until the policyholder API names its policy (more-policies T9). */
     public Optional<PolicyViews.Detail> latestForCustomer(long customerId) {
         return policies.latestIdForCustomer(customerId).flatMap(this::find);
     }
@@ -100,6 +122,6 @@ public class PolicyService {
         return policies.findHead(policyId).map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(),
                 h.end(), h.cancelledOn(), today.date(), h.customer(), ledger.balance(policyId), policies.hasPaymentProcessing(policyId),
                 coverages.listForPolicy(policyId), ledger.lines(policyId), transactions.listForPolicy(policyId),
-                refunds.listForPolicy(policyId)));
+                refunds.listForPolicy(policyId), h.customerId(), h.replaces(), h.replacedBy()));
     }
 }

@@ -73,6 +73,8 @@ class MyCoverTest {
                 .andExpect(jsonPath("$.amountDueCents").value(193000))
                 .andExpect(jsonPath("$.dueReason").value("FIRST_YEAR"))
                 .andExpect(jsonPath("$.broker.name").value("Sam Reyes"))
+                .andExpect(jsonPath("$.broker.email").value("sam@plainly.test"))
+                .andExpect(jsonPath("$.broker.phone").value("(415) 555-0142"))
                 .andExpect(jsonPath("$.today").value("2026-11-22"));
     }
 

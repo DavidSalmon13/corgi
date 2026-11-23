@@ -108,6 +108,11 @@ public class PolicyService {
         return transactions.issuedByName(policyId);
     }
 
+    /** The broker who issued the policy, with their email and phone, if known. */
+    public Optional<PolicyTransactionRepository.BrokerContact> issuedByContact(long policyId) {
+        return transactions.issuedByContact(policyId);
+    }
+
     private Optional<PolicyViews.Detail> find(long policyId) {
         return policies.findHead(policyId).map(h -> new PolicyViews.Detail(policyId, h.number(), h.status(), h.start(),
                 h.end(), h.cancelledOn(), today.date(), h.customer(), ledger.balance(policyId), policies.hasPaymentProcessing(policyId),

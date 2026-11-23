@@ -5,6 +5,7 @@ import {
   HERO_LEAD,
   NO_BUY_ONLINE,
   OFFER_INTRO,
+  OUR_BROKER,
   PRICES_UNAVAILABLE,
   SHOWS,
   STEPS,
@@ -29,6 +30,11 @@ describe('landingCopy', () => {
   it('uses the standard terms on the policy-page lines', () => {
     const text = SHOWS.join(' ');
     for (const term of ['premium', 'endorsement', 'pro-rata', 'ledger', 'reversal']) expect(text).toContain(term);
+  });
+
+  it("gives the demo broker's contact, matching his sign-in account", () => {
+    const sam = DEMO_ACCOUNTS.find((a) => a.role === 'Broker')!;
+    expect(OUR_BROKER).toEqual({ name: sam.name, email: sam.email, phone: '(415) 555-0142' });
   });
 
   it('says buying online is not available', () => {

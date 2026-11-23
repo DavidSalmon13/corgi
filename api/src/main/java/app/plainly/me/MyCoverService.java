@@ -81,7 +81,8 @@ public class MyCoverService {
     /** {@code end} is the original term end; {@code cancelledOn} is the day all cover stopped, or null. */
     public record Policy(String policyNumber, String status, LocalDate start, LocalDate end, LocalDate cancelledOn) {}
 
-    public record Broker(String name) {}
+    /** The broker who set up the policy and how to reach them; {@code email} and {@code phone} may be null. */
+    public record Broker(String name, String email, String phone) {}
 
     /** Money we owe the owner that is going back to their card (refunds not yet settled, including ones being retried). */
     public record RefundWaiting(long amountCents, String cardLast4) {}
@@ -124,13 +125,15 @@ public class MyCoverService {
         DueReason reason = DueReason.of(due, p.transactions());
         LocalDate latestChangeFrom = onlyIssued ? null : latest.effectiveDate();
         String latestChangeReason = onlyIssued ? null : latest.reason();
-        String broker = policies.issuedBy(p.policyId()).orElse("Your broker");
+        Broker broker = policies.issuedByContact(p.policyId())
+                .map(b -> new Broker(b.name(), b.email(), b.phone()))
+                .orElse(new Broker("Your broker", null, null));
         return new MyCover(
                 new Business(p.customer().legalName(), p.customer().businessDescription(), p.customer().ownerName()),
                 new Policy(p.policyNumber(), p.status(), p.start(), p.end(), p.cancelledOn()),
                 p.coverages(), due, reason, latestChangeFrom, latestChangeReason, refundWaiting(p.refunds()),
                 cancellation(p),
-                new Broker(broker), p.today(),
+                broker, p.today(),
                 payments.latestSubmitted(p.policyId()).orElse(null), stripe.enabled());
     }
 

@@ -54,9 +54,18 @@ public class PolicyTransactionRepository {
 
     /** The name of the broker who issued the policy (a read of app_users). */
     public Optional<String> issuedByName(long policyId) {
+        return issuedByContact(policyId).map(BrokerContact::name);
+    }
+
+    /** The broker who issued the policy and how to reach them; {@code phone} may be null. */
+    public record BrokerContact(String name, String email, String phone) {}
+
+    /** Who issued the policy, with their email and phone (a read of app_users). */
+    public Optional<BrokerContact> issuedByContact(long policyId) {
         return jdbc.sql("""
-                select u.display_name from policy_transactions t join app_users u on u.id = t.created_by
+                select u.display_name, u.email, u.phone from policy_transactions t join app_users u on u.id = t.created_by
                 where t.policy_id = ? and t.type = 'ISSUE' order by t.id limit 1""")
-                .param(policyId).query(String.class).optional();
+                .param(policyId)
+                .query((rs, n) -> new BrokerContact(rs.getString(1), rs.getString(2), rs.getString(3))).optional();
     }
 }

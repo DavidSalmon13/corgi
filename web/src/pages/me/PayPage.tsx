@@ -1,14 +1,16 @@
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type { Stripe } from '@stripe/stripe-js';
 import { loadStripe } from '@stripe/stripe-js/pure';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { HeaderEnd, usePolicyId, useRefreshPolicy, useSeveralPolicies } from './MeNav';
+import { meApiPath, mePolicyPath, myCoverKey } from '../../lib/mePaths';
 import { Link } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { MyCover, StartedPayment } from '../../api/types';
 import { Mark } from '../../components/Mark';
 import { dueReasonText } from '../../lib/myCoverCopy';
-import { PAYMENTS_OFF, SEND_UNKNOWN, STRIPE_NOTE, payLabel, savedCardLabel } from '../../lib/paymentCopy';
+import { PAYMENTS_OFF, SEND_UNKNOWN, STRIPE_NOTE, payLabel, payingFor, savedCardLabel } from '../../lib/paymentCopy';
 import { STRIPE_FONTS, stripeAppearance } from '../../lib/stripeAppearance';
 import { PRIMARY, PaymentProgress, SECONDARY, type Submitted } from './PaymentProgress';
 
@@ -43,13 +45,13 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh justify-center bg-bg">
       <div className="flex w-full max-w-[480px] flex-col">
         <header className="flex items-center justify-between pl-2 pr-5 pt-2">
-          <Link to="/me" className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
+          <Link to={mePolicyPath(usePolicyId())} className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Your cover
           </Link>
-          <span className="text-lg font-bold">Plainly</span>
+          <HeaderEnd />
         </header>
         <main className="flex flex-col gap-5 px-5 pb-8 pt-3">{children}</main>
       </div>
@@ -58,6 +60,7 @@ function Shell({ children }: { children: ReactNode }) {
 }
 
 function Notice({ title, body }: { title: string; body: string }) {
+  const policyId = usePolicyId();
   return (
     <>
       <section className={`${CARD} mt-10 flex items-center gap-4 p-5`}>
@@ -67,7 +70,7 @@ function Notice({ title, body }: { title: string; body: string }) {
           {body && <p className="mt-1 mb-0 text-[15px] leading-snug text-ink-2">{body}</p>}
         </div>
       </section>
-      <Link to="/me" className={SECONDARY}>
+      <Link to={mePolicyPath(policyId)} className={SECONDARY}>
         Back to your cover
       </Link>
     </>
@@ -76,16 +79,19 @@ function Notice({ title, body }: { title: string; body: string }) {
 
 /** P5 "Pay": take a card for the balance due. The amount always comes from the server. */
 export function PayPage() {
-  const queryClient = useQueryClient();
+  const policyId = usePolicyId();
+  const several = useSeveralPolicies();
+  const refresh = useRefreshPolicy();
   // Bumping the attempt opens a fresh payment, e.g. after a decline ("Try again").
   const [attempt, setAttempt] = useState(0);
   const [preferNewCard, setPreferNewCard] = useState(false);
   const [submitted, setSubmitted] = useState<Submitted | null>(null);
 
-  const cover = useQuery({ queryKey: ['my-cover'], queryFn: () => api<MyCover>('/api/me/cover') });
+  const cover = useQuery({ queryKey: myCoverKey(policyId), queryFn: () => api<MyCover>(meApiPath(policyId, 'cover')) });
+  // more-policies AC9: the payment is for this policy only; the API checks the owner holds it.
   const start = useQuery({
-    queryKey: ['pay-start', attempt],
-    queryFn: () => api<StartedPayment>('/api/me/payments', { method: 'POST' }),
+    queryKey: ['pay-start', policyId, attempt],
+    queryFn: () => api<StartedPayment>('/api/me/payments', { method: 'POST', body: JSON.stringify({ policyId }) }),
     staleTime: Infinity,
     gcTime: 0,
     retry: false,
@@ -95,13 +101,19 @@ export function PayPage() {
     setSubmitted(null);
     setPreferNewCard(newCard);
     setAttempt((n) => n + 1);
-    void queryClient.invalidateQueries({ queryKey: ['my-cover'] });
+    refresh(policyId);
   };
 
   if (submitted) {
     return (
       <Shell>
-        <PaymentProgress submitted={submitted} ownerName={cover.data?.business.ownerName ?? ''} onRetry={retry} />
+        <PaymentProgress
+          submitted={submitted}
+          ownerName={cover.data?.business.ownerName ?? ''}
+          policyId={policyId}
+          policyNumber={several ? (cover.data?.policy.policyNumber ?? null) : null}
+          onRetry={retry}
+        />
       </Shell>
     );
   }
@@ -126,11 +138,14 @@ export function PayPage() {
   return (
     <Shell>
       <div>
+        {several && cover.data && (
+          <p className="m-0 mb-1 text-sm font-semibold text-ink-2">{payingFor(cover.data.policy.policyNumber)}</p>
+        )}
         <h1 className="m-0 text-[40px] font-bold tracking-[-0.02em] text-accent-ink tabular-nums">{payLabel(s.amountCents)}</h1>
         {reason && (
           <p className="mt-1.5 mb-0 text-[17px] leading-snug">
             {reason}{' '}
-            <Link to="/me" className="font-semibold text-accent-ink">
+            <Link to={mePolicyPath(policyId, 'statement')} className="font-semibold text-accent-ink">
               See why
             </Link>
           </p>

@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { HeaderEnd, usePolicyId } from './MeNav';
+import { meApiPath, mePolicyPath, myCoverKey } from '../../lib/mePaths';
 import { Link, Navigate } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { Cancellation, MyCover } from '../../api/types';
@@ -31,13 +33,13 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh justify-center bg-bg">
       <div className="flex w-full max-w-[480px] flex-col">
         <header className="flex items-center justify-between pl-2 pr-5 pt-2">
-          <Link to="/me" className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
+          <Link to={mePolicyPath(usePolicyId())} className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Your coverage
           </Link>
-          <span className="text-lg font-bold">Plainly</span>
+          <HeaderEnd />
         </header>
         <main className="flex flex-col gap-5 px-5 pb-8 pt-3">{children}</main>
       </div>
@@ -121,24 +123,25 @@ function WorkedOut({ rows }: { rows: MoneyRow[] }) {
   );
 }
 
-/** P6 (/me/cancellation): when cover ends, the days used and unused, and how the money back was worked out. */
+/** P6 (/me/policies/:policyId/cancellation): when cover ends, the days used and unused, and how the money back was worked out. */
 export function CancellationPage() {
+  const policyId = usePolicyId();
   const cover = useQuery({
-    queryKey: ['my-cover'],
-    queryFn: () => api<MyCover>('/api/me/cover'),
+    queryKey: myCoverKey(policyId),
+    queryFn: () => api<MyCover>(meApiPath(policyId, 'cover')),
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1,
   });
 
   if (cover.isPending) return <Shell><p className="text-[15px] text-ink-2">Loading…</p></Shell>;
   if (cover.isError) {
-    if (cover.error instanceof ApiError && cover.error.status === 404) return <Navigate to="/me" replace />;
+    if (cover.error instanceof ApiError && cover.error.status === 404) return <Navigate to={mePolicyPath(policyId)} replace />;
     return <Shell><p className="text-[17px] leading-snug">We couldn't load your coverage. Reload to try again.</p></Shell>;
   }
 
   const c = cover.data;
   const k = c.cancellation;
   // cancel-refund AC11: only a cancelled policy has this page.
-  if (c.policy.status !== 'CANCELLED' || !k) return <Navigate to="/me" replace />;
+  if (c.policy.status !== 'CANCELLED' || !k) return <Navigate to={mePolicyPath(policyId)} replace />;
 
   const summary = cancelledCard(k, c.amountDueCents, c.today);
   const pill = c.amountDueCents > 0 ? null : refundPill(k);
@@ -170,7 +173,7 @@ export function CancellationPage() {
             <p className="m-0 text-[17px] font-semibold leading-snug text-accent-ink tabular-nums">{summary.due}</p>
             {c.paymentsEnabled ? (
               <Link
-                to="/me/pay"
+                to={mePolicyPath(policyId, 'pay')}
                 className="flex min-h-[52px] items-center justify-center rounded-xl bg-accent text-[17px] font-bold text-on-accent no-underline"
               >
                 {payLabel(c.amountDueCents)}

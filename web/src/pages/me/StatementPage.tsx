@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { HeaderEnd, usePolicyId } from './MeNav';
+import { meApiPath, mePolicyPath, myStatementKey } from '../../lib/mePaths';
 import { Link, useLocation } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { Statement, StatementCorrection, StatementRow } from '../../api/types';
@@ -31,13 +33,13 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh justify-center bg-bg">
       <div className="flex w-full max-w-[480px] flex-col">
         <header className="flex items-center justify-between pl-2 pr-5 pt-2">
-          <Link to="/me" className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
+          <Link to={mePolicyPath(usePolicyId())} className="flex min-h-11 items-center gap-1 px-2 text-base font-semibold text-accent-ink no-underline hover:text-ink">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
             Your coverage
           </Link>
-          <span className="text-lg font-bold tracking-[-0.01em]">Plainly</span>
+          <HeaderEnd />
         </header>
         <main className="flex flex-col gap-5 px-5 pb-8 pt-3">{children}</main>
       </div>
@@ -365,9 +367,10 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
 /** P3: every charge, credit, payment and refund on the policy, with a running balance and how we got each amount. */
 export function StatementPage() {
   const [trace, setTrace] = useState<{ row: StatementRow; from: HTMLButtonElement } | null>(null);
+  const policyId = usePolicyId();
   const statement = useQuery({
-    queryKey: ['my-statement'],
-    queryFn: () => api<Statement>('/api/me/statement'),
+    queryKey: myStatementKey(policyId),
+    queryFn: () => api<Statement>(meApiPath(policyId, 'statement')),
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1,
   });
 
@@ -377,7 +380,7 @@ export function StatementPage() {
     return (
       <Shell>
         <p className="text-[17px] leading-snug">
-          {none ? "You don't have a policy yet, so there's nothing on your statement." : "We couldn't load your statement. Reload to try again."}
+          {none ? "We couldn't find that policy. Go back to your policies to pick one." : "We couldn't load your statement. Reload to try again."}
         </p>
       </Shell>
     );

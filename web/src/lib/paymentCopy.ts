@@ -64,14 +64,26 @@ export function payWaitingCopy(
   };
 }
 
-export function payPaidCopy(ownerName: string, stillDueCents: number): StateCopy {
+/** P5's line under the heading when the owner has several policies: which one this payment is for. */
+export function payingFor(policyNumber: string): string {
+  return `For policy ${policyNumber}`;
+}
+
+/**
+ * After a payment settles. With several policies, pass the policy number: the payment only paid that one, so
+ * "You owe nothing now" could be wrong, and the copy says what is left on that policy instead (more-policies AC9).
+ */
+export function payPaidCopy(ownerName: string, stillDueCents: number, policyNumber: string | null = null): StateCopy {
+  const on = policyNumber ? ` on ${policyNumber}` : '';
   return {
     title: 'Paid',
     headline: `You're all set, ${firstName(ownerName)}.`,
     body:
       stillDueCents > 0
-        ? `Your bank confirmed the payment. ${formatCents(stillDueCents)} is still due.`
-        : 'Your bank confirmed the payment. You owe nothing now.',
+        ? `Your bank confirmed the payment. ${formatCents(stillDueCents)} is still due${on}.`
+        : policyNumber
+          ? `Your bank confirmed the payment. Nothing more is due${on}.`
+          : 'Your bank confirmed the payment. You owe nothing now.',
   };
 }
 

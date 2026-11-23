@@ -5,13 +5,13 @@
 > Branch: feat/statement-history/cover-timeline
 
 ## Timeline API
-- [ ] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:
+- [x] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:
   - base only, with extra cover, after a correction (Oct 15 → Oct 8: previousStart, dayDelta 7, reason, PTX id) and cancelled on Dec 1;
   - charged by the day: 328 d · $656.00; and 91 d · $299.18 / 54 d · $108.00 when cancelled;
   - the covers' sum equals the statement's settled lines for those covers;
   - a re-correction shows the new state.
-- [ ] T2 Timeline records + TimelineService.forOwner in app.plainly.timeline, built from PolicyService + StatementService (no repository). Add coverageId to Statement.Row only if matching by dates is ambiguous. T1 passes (service).
-- [ ] T3 MyTimelineController GET /api/me/timeline; TimelineEndpointTest with 200 for a policyholder, 403 for a broker and 404 with no policy (controller).
+- [x] T2 Timeline records + TimelineService.forOwner in app.plainly.timeline, built from PolicyService + StatementService (no repository). Add coverageId to Statement.Row only if matching by dates is ambiguous. T1 passes (service).
+- [x] T3 MyTimelineController GET /api/me/timeline; TimelineEndpointTest with 200 for a policyholder, 403 for a broker and 404 with no policy (controller).
 
 ## Web
 - [ ] T4 Timeline types in api/types.ts + lib/timelineCopy.ts, with timelineCopy.test.ts written first. It covers:

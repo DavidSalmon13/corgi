@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import app.plainly.AuthTestSupport;
 import app.plainly.FakeStripeGateway;
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.PaymentTestData;
 import app.plainly.PaymentTestData.Owner;
 import app.plainly.PaymentTestData.Started;
@@ -326,7 +327,7 @@ class MyPaymentsTest {
             mvc.perform(post("/api/me/payments").cookie(owner.session()))
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.error").value("payments_off"));
-            mvc.perform(get("/api/me/cover").cookie(owner.session()))
+            mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                     .andExpect(jsonPath("$.paymentsEnabled").value(false));
         } finally {
             stripe.setEnabled(true);

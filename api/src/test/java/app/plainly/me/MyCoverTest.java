@@ -10,6 +10,7 @@ import app.plainly.CorrectionTestData.Paid;
 import app.plainly.FakeStripeGateway;
 import app.plainly.PaymentTestData;
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.StripeTestSupport;
 import app.plainly.TestData;
 import app.plainly.policy.AddCoverageCommand;
@@ -46,17 +47,20 @@ class MyCoverTest {
     @Autowired RemoveCoverService remover;
 
     /** Issues a policy, then signs its owner up with the email the broker entered, as a real owner would. */
-    Cookie ownerOf(String business, boolean extra) throws Exception {
+    record Signed(Cookie session, long policyId) {}
+
+    Signed ownerOf(String business, boolean extra) throws Exception {
         long broker = jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
         String email = TestData.uniqueEmail("maya");
-        issue.issue(new IssuePolicyCommand(business, "a neighborhood bakery", "Maya Okafor", email, LocalDate.of(2026, 9, 1), extra),
-                broker);
-        return AuthTestSupport.signUp(mvc, email);
+        long policyId = issue.issue(new IssuePolicyCommand(business, "a neighborhood bakery", "Maya Okafor", email, LocalDate.of(2026, 9, 1), extra),
+                broker).policyId();
+        return new Signed(AuthTestSupport.signUp(mvc, email), policyId);
     }
 
     @Test
     void theOwnerSeesTheirCoverWhatTheyOweAndWhy() throws Exception {
-        mvc.perform(get("/api/me/cover").cookie(ownerOf("My Cover Bakery LLC", true)))
+        Signed s = ownerOf("My Cover Bakery LLC", true);
+        mvc.perform(get(MePaths.cover(s.policyId())).cookie(s.session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.business.legalName").value("My Cover Bakery LLC"))
                 .andExpect(jsonPath("$.business.description").value("a neighborhood bakery"))
@@ -74,10 +78,13 @@ class MyCoverTest {
 
     @Test
     void eachOwnerOnlySeesTheirOwnBusiness() throws Exception {
-        Cookie a = ownerOf("Owner A Florist LLC", false);
-        Cookie b = ownerOf("Owner B Tacos LLC", false);
-        mvc.perform(get("/api/me/cover").cookie(a)).andExpect(jsonPath("$.business.legalName").value("Owner A Florist LLC"));
-        mvc.perform(get("/api/me/cover").cookie(b)).andExpect(jsonPath("$.business.legalName").value("Owner B Tacos LLC"));
+        Signed a = ownerOf("Owner A Florist LLC", false);
+        Signed b = ownerOf("Owner B Tacos LLC", false);
+        mvc.perform(get(MePaths.cover(a.policyId())).cookie(a.session())).andExpect(jsonPath("$.business.legalName").value("Owner A Florist LLC"));
+        mvc.perform(get(MePaths.cover(b.policyId())).cookie(b.session())).andExpect(jsonPath("$.business.legalName").value("Owner B Tacos LLC"));
+        // covers more-policies AC9, T1: another owner's policy is not found, not shown
+        mvc.perform(get(MePaths.cover(b.policyId())).cookie(a.session())).andExpect(status().isNotFound());
+        mvc.perform(get(MePaths.cover(Long.MAX_VALUE)).cookie(a.session())).andExpect(status().isNotFound());
     }
 
     // covers add-coverage AC9, T2 — after extra cover is added, P1 says that is why more is due
@@ -89,7 +96,7 @@ class MyCoverTest {
                 email, LocalDate.of(2026, 9, 1), false), broker).policyId();
         addCover.add(policyId, new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, LocalDate.of(2026, 10, 15)), broker);
 
-        mvc.perform(get("/api/me/cover").cookie(AuthTestSupport.signUp(mvc, email)))
+        mvc.perform(get(MePaths.cover(policyId)).cookie(AuthTestSupport.signUp(mvc, email)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amountDueCents").value(120000 + 64200))
                 .andExpect(jsonPath("$.dueReason").value("EXTRA_COVER"))
@@ -107,7 +114,7 @@ class MyCoverTest {
         corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_8,
                 CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amountDueCents").value(1400))
                 .andExpect(jsonPath("$.dueReason").value("CORRECTION"))
@@ -126,7 +133,7 @@ class MyCoverTest {
                 new CorrectCoverageCommand(CorrectionTestData.OCT_22, CorrectionTestData.REASON),
                 CorrectionTestData.brokerId(jdbc));
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amountDueCents").value(0))
                 .andExpect(jsonPath("$.dueReason").value("NOTHING_DUE"))
@@ -142,7 +149,7 @@ class MyCoverTest {
         mvc.perform(StripeTestSupport.delivery(StripeTestSupport.refundSucceeded(StripeTestSupport.newEventId(),
                 stripeRefundId, refundId, paid.extraIntentId(), 1400))).andExpect(status().isOk());
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(jsonPath("$.amountDueCents").value(0))
                 .andExpect(jsonPath("$.refundWaiting").doesNotExist());
     }
@@ -160,7 +167,7 @@ class MyCoverTest {
             stripe.failRefunds(null);
         }
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(jsonPath("$.amountDueCents").value(0))
                 .andExpect(jsonPath("$.refundWaiting.amountCents").value(1400))
                 .andExpect(jsonPath("$.refundWaiting.cardLast4").value("4242"));
@@ -183,7 +190,7 @@ class MyCoverTest {
         Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issue, addCover, "Cancelled Home LLC");
         cancelWorkedExample(paid);
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policy.status").value("CANCELLED"))
                 .andExpect(jsonPath("$.policy.cancelledOn").value("2026-12-01"))
@@ -228,7 +235,7 @@ class MyCoverTest {
                     (String) row[1], (Long) row[0], (String) row[2], r.amountCents()))).andExpect(status().isOk());
         }
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(jsonPath("$.cancellation.refundCents").value(143482))
                 .andExpect(jsonPath("$.cancellation.refundStatus").value("SUCCEEDED"))
                 .andExpect(jsonPath("$.cancellation.settledOn").value("2026-11-22"))
@@ -242,7 +249,7 @@ class MyCoverTest {
         canceller.cancel(owner.policyId(), new CancelPolicyCommand(DEC_1, "Closing the bakery."),
                 CorrectionTestData.brokerId(jdbc));
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(29918))
                 .andExpect(jsonPath("$.dueReason").value("CANCELLATION"))
                 .andExpect(jsonPath("$.cancellation.usedDays").value(91))
@@ -259,7 +266,8 @@ class MyCoverTest {
 
     @Test
     void anActivePolicyHasNoCancellation() throws Exception {
-        mvc.perform(get("/api/me/cover").cookie(ownerOf("Still Active Home LLC", false)))
+        Signed s = ownerOf("Still Active Home LLC", false);
+        mvc.perform(get(MePaths.cover(s.policyId())).cookie(s.session()))
                 .andExpect(jsonPath("$.policy.cancelledOn").doesNotExist())
                 .andExpect(jsonPath("$.cancellation").doesNotExist());
     }
@@ -275,7 +283,7 @@ class MyCoverTest {
         remover.remove(paid.owner().policyId(), new RemoveCoverCommand(DEC_1, REMOVAL_NOTE),
                 CorrectionTestData.brokerId(jdbc));
 
-        mvc.perform(get("/api/me/cover").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.cover(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policy.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.amountDueCents").value(0))
@@ -301,7 +309,7 @@ class MyCoverTest {
                 broker); // $642.00 owed
         remover.remove(owner.policyId(), new RemoveCoverCommand(DEC_1, REMOVAL_NOTE), broker);
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(9400))
                 .andExpect(jsonPath("$.dueReason").value("COVER_REMOVED"))
                 .andExpect(jsonPath("$.latestChangeFrom").value("2026-12-01"))

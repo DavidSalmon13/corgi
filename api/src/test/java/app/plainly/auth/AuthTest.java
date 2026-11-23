@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.policy.IssuePolicyCommand;
 import app.plainly.policy.IssuePolicyService;
 import jakarta.servlet.http.Cookie;
@@ -259,7 +260,7 @@ class AuthTest {
         mvc.perform(get("/api/auth/session")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/broker/policies")).andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("signed_out"));
-        mvc.perform(get("/api/me/cover")).andExpect(status().isUnauthorized());
+        mvc.perform(get(MePaths.POLICIES)).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -269,9 +270,9 @@ class AuthTest {
         mvc.perform(get("/api/broker/policies").cookie(owner))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("forbidden"));
-        mvc.perform(get("/api/me/cover").cookie(broker)).andExpect(status().isForbidden());
-        mvc.perform(get("/api/me/cover").cookie(owner)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.business.legalName").value("Auth Test Bakery LLC"));
+        mvc.perform(get(MePaths.POLICIES).cookie(broker)).andExpect(status().isForbidden());
+        mvc.perform(get(MePaths.POLICIES).cookie(owner)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.policies.length()").value(1));
     }
 
     @Test
@@ -314,7 +315,7 @@ class AuthTest {
                 .isEqualTo("no-store");
         assertThat(mvc.perform(get("/api/auth/session").cookie(broker)).andReturn().getResponse().getHeader("Cache-Control"))
                 .isEqualTo("no-store");
-        assertThat(mvc.perform(get("/api/me/cover")).andReturn().getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
+        assertThat(mvc.perform(get(MePaths.POLICIES)).andReturn().getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
     }
 
     // covers real-sign-in AC7, T17 — security review: the cookie is Secure on any HTTPS request

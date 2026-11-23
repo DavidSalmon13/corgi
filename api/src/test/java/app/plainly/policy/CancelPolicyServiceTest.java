@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import app.plainly.FakeStripeGateway;
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.PaymentTestData;
 import app.plainly.PaymentTestData.Owner;
 import app.plainly.PaymentTestData.Started;
@@ -217,7 +218,7 @@ class CancelPolicyServiceTest {
         assertThat(plan.keptBackFor()).isNull();
 
         service.cancel(owner.policyId(), from(DEC_1), brokerId());
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/me/cover")
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(MePaths.cover(owner.policyId()))
                         .cookie(owner.session()))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .jsonPath("$.cancellation.keptBackCents").value(65600))

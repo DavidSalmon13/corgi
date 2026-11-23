@@ -251,3 +251,7 @@ B5 History is not a second calculation. `HistoryService` takes the rows and trac
 ## 2026-11-23: The broker sees the real state of money that went wrong; the policyholder's wording stays soft
 
 On P3 a refund Stripe failed still reads "Refund on its way", and a declined card reads "Didn't go through", because the customer can't act on Stripe's internals and the broker is already retrying. The broker can act, so B5 says "Refund failed" with Stripe's failure reason and a link to retry on B3, and shows the decline reason Stripe gave (read from `payments.failure_reason` through `PaymentRepository`). The "How we got this" drawer stays the same for both roles apart from the voice: same maths, cause and references, about "the customer" instead of "you".
+
+## 2026-11-23: On P2, "Charged by the day" opens one line, or lists the lines when there are several
+
+"How we got this" explains one ledger line. A cover that was only charged has one line in force, so "328 days · $656.00" is itself the button. After a cancellation a cover has a charge and a cancellation credit, so the detail card shows the total ("91 days kept · $299.18") with each line underneath, and each line's amount opens its own drawer. This follows the same rule as the B5 correction cards: every number that is a button explains exactly one line.

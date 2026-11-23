@@ -28,7 +28,7 @@
   - today line and month ticks.
 
   P1 compact and B3 full are unchanged; add timeline.test.ts cases for any new helper.
-- [ ] T6 TimelinePage at /me/timeline:
+- [x] T6 TimelinePage at /me/timeline:
   - App.tsx route under RequireRole POLICYHOLDER, with "‹ Your cover" as the back link;
   - the answer, the timeline card and the detail card, with HowWeGotThis on "Charged by the day";
   - the correction sentence(s) and the no-policy page;

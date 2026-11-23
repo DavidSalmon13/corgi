@@ -49,6 +49,12 @@ public class AccountRepository {
         return jdbc.sql("select id from app_users where email = ?").param(email).query(Long.class).optional();
     }
 
+    /** True when an account under this email has set its password (a waiting owner hasn't). */
+    public boolean signedUp(String email) {
+        return jdbc.sql("select exists (select 1 from app_users where email = ? and password_hash is not null)")
+                .param(email).query(Boolean.class).single();
+    }
+
     public boolean emailExists(String email) {
         return jdbc.sql("select exists (select 1 from app_users where email = ?)").param(email).query(Boolean.class).single();
     }

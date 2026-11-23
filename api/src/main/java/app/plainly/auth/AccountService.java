@@ -58,6 +58,11 @@ public class AccountService {
         return accounts.emailExists(normalize(email));
     }
 
+    /** True when this email has an account someone can sign in to; false for none, or one still waiting. */
+    public boolean hasSignedUp(String email) {
+        return accounts.signedUp(normalize(email));
+    }
+
     /**
      * The owner's account, waiting with their email and no password until they sign up (real-sign-in AC4).
      * Joins the caller's transaction; throws DuplicateKeyException if another account took the email.

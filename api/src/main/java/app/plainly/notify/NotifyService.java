@@ -1,5 +1,6 @@
 package app.plainly.notify;
 
+import app.plainly.auth.AccountService;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerQueryService;
 import app.plainly.notify.EmailTemplates.PaymentReceipt;
@@ -47,6 +48,7 @@ public class NotifyService implements DisposableBean {
     private final EmailGateway gateway;
     private final EmailTemplates templates;
     private final PolicyService policies;
+    private final AccountService accounts;
     private final LedgerQueryService ledger;
     private final Today today;
     private final TransactionTemplate ownTransaction;
@@ -56,12 +58,13 @@ public class NotifyService implements DisposableBean {
     private final ThreadPoolTaskExecutor sender;
 
     public NotifyService(SentEmailRepository emails, EmailGateway gateway, EmailTemplates templates,
-            PolicyService policies, LedgerQueryService ledger, Today today, PlatformTransactionManager transactions,
+            PolicyService policies, AccountService accounts, LedgerQueryService ledger, Today today, PlatformTransactionManager transactions,
             @Value("${plainly.email.send-async:true}") boolean sendAsync) {
         this.emails = emails;
         this.gateway = gateway;
         this.templates = templates;
         this.policies = policies;
+        this.accounts = accounts;
         this.ledger = ledger;
         this.today = today;
         this.ownTransaction = new TransactionTemplate(transactions);
@@ -97,7 +100,8 @@ public class NotifyService implements DisposableBean {
             PolicyService.Contact c = policies.contact(e.policyId());
             String broker = policies.issuedBy(e.policyId()).orElse(null);
             return templates.policyIssued(new EmailTemplates.PolicyIssued(c.ownerName(), c.ownerEmail(),
-                    c.legalName(), c.policyNumber(), c.start(), c.end(), e.priceForTheYearCents(), broker));
+                    c.legalName(), c.policyNumber(), c.start(), c.end(), e.priceForTheYearCents(), broker, e.policyId(),
+                    accounts.hasSignedUp(c.ownerEmail())));
         });
     }
 
@@ -106,7 +110,7 @@ public class NotifyService implements DisposableBean {
         queue(EmailKind.PAYMENT_RECEIPT, e.paymentId(), () -> {
             PolicyService.Contact c = policies.contact(e.policyId());
             return templates.paymentReceipt(new PaymentReceipt(c.ownerName(), c.ownerEmail(), e.amountCents(),
-                    e.cardLast4(), today.date(), ledger.balance(e.policyId())));
+                    e.cardLast4(), today.date(), ledger.balance(e.policyId()), e.policyId()));
         });
     }
 
@@ -120,7 +124,7 @@ public class NotifyService implements DisposableBean {
                 case null, default -> RefundReason.CORRECTION;
             };
             return templates.refundReceipt(new RefundReceipt(c.ownerName(), c.ownerEmail(), e.amountCents(),
-                    e.cardLast4(), reason));
+                    e.cardLast4(), reason, e.policyId()));
         });
     }
 

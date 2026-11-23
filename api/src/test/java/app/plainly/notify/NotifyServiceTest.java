@@ -7,6 +7,7 @@ import app.plainly.FakeEmailGateway;
 import app.plainly.IntegrationTest;
 import app.plainly.PaymentTestData;
 import app.plainly.TestData;
+import app.plainly.auth.AccountService;
 import app.plainly.notify.NotifyEvents.PaymentSettled;
 import app.plainly.notify.NotifyEvents.PolicyIssued;
 import app.plainly.notify.NotifyEvents.RefundSettled;
@@ -20,7 +21,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-// covers AC2, AC3, AC4, AC5, AC6, T6, T6.1
+// covers AC2, AC3, AC4, AC5, AC6, T6, T6.1; more-policies AC5, AC10, T1
 /**
  * An email is claimed in the transaction of the change that causes it and sent only after that transaction
  * commits: never for a change that rolled back, once per source, and a failed or switched-off send never undoes
@@ -36,6 +37,7 @@ class NotifyServiceTest {
     @Autowired ApplicationEventPublisher events;
     @Autowired PlatformTransactionManager txManager;
     @Autowired FakeEmailGateway email;
+    @Autowired AccountService accounts;
 
     TransactionTemplate tx;
     long policyId;
@@ -120,6 +122,44 @@ class NotifyServiceTest {
         assertThat(email.sentTo(owner)).singleElement().extracting(sent -> sent.message().text())
                 .satisfies(t -> assertThat(t).contains("$548.00", "your extra cover was removed")
                         .doesNotContain("start date", "ended early"));
+    }
+
+    // covers more-policies AC5, AC10, T1: a new owner sets up their account; an owner who has one signs in
+    @Test
+    void theIssueEmailAsksANewOwnerToSetUpTheirAccount() {
+        tx.executeWithoutResult(s -> events.publishEvent(new PolicyIssued(policyId, 120_000)));
+
+        assertThat(email.sentTo(owner)).singleElement().satisfies(sent -> assertThat(sent.message().html())
+                .contains("Set up your account", "/signup\"").doesNotContain("Sign in to see it"));
+    }
+
+    // covers more-policies AC5, AC10, T1
+    @Test
+    void theIssueEmailAsksAnOwnerWithAnAccountToSignInToTheNewPolicy() {
+        long customerId = jdbc.sql("select customer_id from policies where id = ?").param(policyId)
+                .query(Long.class).single();
+        accounts.createWaitingOwner("Test Owner", "Test Shop LLC", customerId, owner);
+        accounts.signUp(owner, "test-password-123", "test-password-123");
+
+        tx.executeWithoutResult(s -> events.publishEvent(new PolicyIssued(policyId, 120_000)));
+
+        assertThat(email.sentTo(owner)).singleElement().satisfies(sent -> {
+            assertThat(sent.message().text()).contains("Sign in to see it").doesNotContain("Set up your account");
+            assertThat(sent.message().html()).contains("/me/policies/" + policyId + "\"");
+        });
+    }
+
+    // covers more-policies AC10, T1: receipts link to the statement of the policy they are for
+    @Test
+    void receiptsLinkToTheirOwnPolicysStatement() {
+        PaymentTestData.addCharge(jdbc, policyId, 1_400);
+        tx.executeWithoutResult(s -> events.publishEvent(new PaymentSettled(SOURCE.incrementAndGet(), policyId, 1_400, "4242")));
+        tx.executeWithoutResult(s -> events.publishEvent(
+                new RefundSettled(SOURCE.incrementAndGet(), policyId, 1_400, "4242", "CORRECT")));
+
+        String statement = "/me/policies/" + policyId + "/statement\"";
+        assertThat(email.sentTo(owner)).hasSize(2).allSatisfy(sent -> assertThat(sent.message().html())
+                .contains(statement).doesNotContain("/me/statement\""));
     }
 
     @Test

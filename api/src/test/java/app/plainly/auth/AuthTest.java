@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -334,5 +335,20 @@ class AuthTest {
         issue.issue(new IssuePolicyCommand("Tab Shop LLC", "a shop", "Tia Owner", "\t\u00a0" + email.toUpperCase() + " ",
                 LocalDate.of(2026, 9, 1), false), brokerId);
         assertThat(signUp(email, OWNER_PASSWORD, OWNER_PASSWORD).getResponse().getStatus()).isEqualTo(200);
+    }
+
+    // ---- input-validation spec: a blank email or password is caught before the service runs
+
+    // covers input-validation AC2, AC5, T1: the service would also say the passwords don't match
+    @Test
+    void aBlankEmailOrPasswordIsAFieldErrorBeforeTheServiceRuns() throws Exception {
+        mvc.perform(json(post("/api/auth/signup"), "{\"email\":\"  \",\"password\":\"\",\"confirmPassword\":\"x\"}"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("2 things to fix before you can save."))
+                .andExpect(jsonPath("$.fields.email").value(AccountService.NO_EMAIL))
+                .andExpect(jsonPath("$.fields.password").value(AccountService.SHORT_PASSWORD))
+                .andExpect(jsonPath("$.fields.confirmPassword").doesNotExist())
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern("(?s).*\"fields\":\\{\"email\".*\"password\".*")))
+                .andExpect(cookie().doesNotExist(SESSION));
     }
 }

@@ -28,8 +28,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class IssuePolicyService {
 
-    private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
-    private static final int MAX_TEXT = 200;
+    /** What the service accepts once the email is trimmed; the edge allows the spaces it trims (input-validation). */
+    static final String EMAIL_SHAPE = "[^@\\s]+@[^@\\s]+\\.[^@\\s]+";
+    private static final Pattern EMAIL = Pattern.compile("^" + EMAIL_SHAPE + "$");
+    static final int MAX_TEXT = 200;
+    static final String NO_LEGAL_NAME = "Enter the business's legal name.";
+    static final String NO_DESCRIPTION = "Say in a few words what the business does.";
+    static final String NO_OWNER_NAME = "Enter the owner's name.";
+    static final String BAD_EMAIL = "Enter an email like name@business.com.";
+    static final String TOO_LONG = "Keep this under " + MAX_TEXT + " characters.";
+    static final String NO_START = "Pick the day cover should start.";
     static final String EMAIL_TAKEN = "Another customer already uses this email.";
     static final String REPLACED_NOT_FOUND = "We couldn't find the policy to replace.";
 
@@ -187,12 +195,12 @@ public class IssuePolicyService {
 
     /** The new customer's details; the start date is checked apart, since every issue needs it. */
     private void checkCustomer(IssuePolicyCommand cmd, Map<String, String> errors) {
-        text(cmd.legalName(), "legalName", "Enter the business's legal name.", errors);
-        text(cmd.businessDescription(), "businessDescription", "Say in a few words what the business does.", errors);
-        text(cmd.ownerName(), "ownerName", "Enter the owner's name.", errors);
+        text(cmd.legalName(), "legalName", NO_LEGAL_NAME, errors);
+        text(cmd.businessDescription(), "businessDescription", NO_DESCRIPTION, errors);
+        text(cmd.ownerName(), "ownerName", NO_OWNER_NAME, errors);
         String email = AccountService.trim(cmd.ownerEmail());
         if (!EMAIL.matcher(email).matches() || email.length() > MAX_TEXT) {
-            errors.put("ownerEmail", "Enter an email like name@business.com.");
+            errors.put("ownerEmail", BAD_EMAIL);
         } else if (emailTaken(email)) {
             errors.put("ownerEmail", EMAIL_TAKEN);
         }
@@ -207,13 +215,13 @@ public class IssuePolicyService {
         if (value == null || value.isBlank()) {
             errors.put(field, message);
         } else if (value.strip().length() > MAX_TEXT) {
-            errors.put(field, "Keep this under " + MAX_TEXT + " characters.");
+            errors.put(field, TOO_LONG);
         }
     }
 
     private void checkStart(LocalDate start, Map<String, String> errors) {
         if (start == null) {
-            errors.put("startDate", "Pick the day cover should start.");
+            errors.put("startDate", NO_START);
             return;
         }
         LocalDate now = today.date();

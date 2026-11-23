@@ -5,7 +5,7 @@
 > Branch: feat/policy-lifecycle/input-validation
 
 ## Failing tests first (TDD)
-- [ ] T1 Add failing endpoint tests for AC2–AC5: garbage date, unknown kind, blank + too-long fields, field order, and the service not being called — in BrokerIssueEndpointsTest, AddCoverageEndpointsTest, CorrectionEndpointsTest, CancellationEndpointsTest, AuthTest
+- [x] T1 Add failing endpoint tests for AC2–AC5: garbage date, unknown kind, blank + too-long fields, field order, and the service not being called — in BrokerIssueEndpointsTest, AddCoverageEndpointsTest, CorrectionEndpointsTest, CancellationEndpointsTest, AuthTest
 
 ## Boundary plumbing (common/)
 - [ ] T2 Add `common/LenientDate` deserializer (blank/unreadable → null)

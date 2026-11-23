@@ -2,6 +2,7 @@ package app.plainly.policy;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -216,5 +217,32 @@ class CancellationEndpointsTest {
                 .andExpect(jsonPath("$.error").value("not_found"));
         mvc.perform(json(cancellation(999_999_999L), from("2026-12-01"), broker))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- input-validation spec: the shape is checked at the edge, before the service runs ---
+
+    // covers input-validation AC2, AC4, T1: an unknown policy would be a 404 from the service
+    @Test
+    void aBadBodyIsAFieldErrorBeforeTheServiceRuns() throws Exception {
+        mvc.perform(json(cancellation(999_999_999L), body("\"2026-13-45\"", "\"  \""), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("2 things to fix before you can save."))
+                .andExpect(jsonPath("$.fields.cancelDate").value(CancelPolicyService.NO_DATE))
+                .andExpect(jsonPath("$.fields.reason").value(CancelPolicyService.NO_REASON));
+        mvc.perform(json(cancellation(999_999_999L), body("\"2026-12-01\"", "\"" + "x".repeat(501) + "\""), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.fields.reason").value(CancelPolicyService.REASON_TOO_LONG));
+        mvc.perform(json(cancellation(999_999_999L) + "/preview", body("\"\"", "null"), broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                .andExpect(jsonPath("$.fields.cancelDate").value(CancelPolicyService.NO_DATE));
+    }
+
+    // covers input-validation AC5, T1
+    @Test
+    void theFieldsComeBackInFormOrder() throws Exception {
+        mvc.perform(json(cancellation(policyId), "{}", broker))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(content().string(Matchers.matchesPattern("(?s).*\"fields\":\\{\"cancelDate\".*\"reason\".*")));
     }
 }

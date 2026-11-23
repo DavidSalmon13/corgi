@@ -3,7 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-22-correct-effective-date
 > Branch: feat/policy-lifecycle/drag-effective-date
-> PR: https://github.com/DavidSalmon13/corgi/pull/48
+> PR: https://github.com/DavidSalmon13/corgi/pull/48 · https://github.com/DavidSalmon13/corgi/pull/100 (AC15)
 > Reviewed: 2026-11-22 · code-reviewer · REQUEST CHANGES → HIGH (unclear Stripe answer could refund twice) and both MEDIUMs (stuck PENDING refunds; settle vs correction ordering) fixed in T17–T18; retry audit (LOW) open (stale — spec changed 2026-11-24)
 > SecurityReviewed: 2026-11-22 · security-reviewer · FAIL → HIGH and MEDIUM fixed in T17–T18, amount/intent check (LOW) fixed; retried_by audit (LOW) and FAILED-in-cap (INFO) open (stale — spec changed 2026-11-24)
 

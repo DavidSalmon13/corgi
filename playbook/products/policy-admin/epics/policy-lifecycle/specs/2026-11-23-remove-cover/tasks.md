@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-23-remove-cover
 > Branch: feat/policy-lifecycle/remove-cover
+> PR: https://github.com/DavidSalmon13/corgi/pull/79
 > Reviewed: 2026-11-23 APPROVE
 > SecurityReviewed: 2026-11-23 APPROVE
 

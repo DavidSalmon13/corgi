@@ -3,6 +3,7 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-23-landing-page
 > Branch: feat/policy-lifecycle/landing-page
+> PR: https://github.com/DavidSalmon13/corgi/pull/95
 > Reviewed: 2026-11-23 APPROVE WITH COMMENTS
 > SecurityReviewed: 2026-11-23 APPROVE WITH COMMENTS
 

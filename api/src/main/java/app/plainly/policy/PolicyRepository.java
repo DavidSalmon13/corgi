@@ -175,18 +175,6 @@ public class PolicyRepository {
                 .params(day, policyId).update() == 1;
     }
 
-    /** The newest policy of a customer. Kept until the policyholder API names its policy (more-policies T9). */
-    public Optional<Long> latestIdForCustomer(long customerId) {
-        return jdbc.sql("select id from policies where customer_id = ? order by id desc limit 1")
-                .param(customerId).query(Long.class).optional();
-    }
-
-    /** As {@link #latestIdForCustomer}, holding the row until the caller's transaction ends. */
-    public Optional<Long> lockLatestIdForCustomer(long customerId) {
-        return jdbc.sql("select id from policies where customer_id = ? order by id desc limit 1 for update")
-                .param(customerId).query(Long.class).optional();
-    }
-
     /** Holds the policy row until the caller's transaction ends; fails if there is no such policy. */
     public void lock(long policyId) {
         jdbc.sql("select id from policies where id = ? for update").param(policyId).query(Long.class).single();

@@ -75,16 +75,6 @@ public class PolicyService {
         return policyId;
     }
 
-    /** The newest policy of a customer. Kept until the policyholder API names its policy (more-policies T9). */
-    public Optional<PolicyViews.Detail> latestForCustomer(long customerId) {
-        return policies.latestIdForCustomer(customerId).flatMap(this::find);
-    }
-
-    /** The customer's newest policy id, its row held until the caller's transaction ends. */
-    public Optional<Long> lockLatestForCustomer(long customerId) {
-        return policies.lockLatestIdForCustomer(customerId);
-    }
-
     /** Holds the policy row until the caller's transaction ends. */
     public void lock(long policyId) {
         policies.lock(policyId);

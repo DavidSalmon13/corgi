@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The policyholder's pay page (P5). Under {@code /api/me}, so only a signed-in policyholder gets here. */
@@ -18,10 +19,14 @@ class MyPaymentsController {
         this.payments = payments;
     }
 
-    /** Opens a payment for the balance due. Any request body is ignored: the server sets the amount. */
+    /** Which policy to pay. Any amount the browser sends is ignored: the server sets it from the ledger. */
+    record StartPayment(long policyId) {}
+
+    /** Opens a payment for that policy's balance due. */
     @PostMapping("/api/me/payments")
-    PaymentService.Started start(@RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser me) {
-        return payments.start(me);
+    PaymentService.Started start(@RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser me,
+            @RequestBody StartPayment body) {
+        return payments.start(me, body.policyId());
     }
 
     /** Polled by the pay page until Stripe settles the payment. */

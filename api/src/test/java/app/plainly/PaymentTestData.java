@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -40,7 +41,8 @@ public final class PaymentTestData {
 
     /** Starts paying the balance due, as the pay page does, and returns the payment it opened. */
     public static Started startPayment(MockMvc mvc, JdbcClient jdbc, Owner owner) throws Exception {
-        var result = mvc.perform(post("/api/me/payments").cookie(owner.session())).andReturn();
+        var result = mvc.perform(post(MePaths.PAYMENTS).cookie(owner.session())
+                .contentType(MediaType.APPLICATION_JSON).content(MePaths.payFor(owner.policyId()))).andReturn();
         String body = result.getResponse().getContentAsString();
         assertThat(result.getResponse().getStatus()).as("start payment: " + body).isEqualTo(200);
         long paymentId = ((Number) JsonPath.read(body, "$.paymentId")).longValue();

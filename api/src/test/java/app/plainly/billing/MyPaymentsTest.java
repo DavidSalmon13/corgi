@@ -45,6 +45,12 @@ class MyPaymentsTest {
                 .query(String.class).single();
     }
 
+    /** POST /api/me/payments for the owner's policy, as the pay page does (more-policies AC9). */
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder pay(Owner owner) {
+        return post(MePaths.PAYMENTS).cookie(owner.session()).contentType(MediaType.APPLICATION_JSON)
+                .content(MePaths.payFor(owner.policyId()));
+    }
+
     private void deliver(String body) throws Exception {
         mvc.perform(StripeTestSupport.delivery(body)).andExpect(status().isOk());
     }
@@ -55,7 +61,7 @@ class MyPaymentsTest {
     void startingAPaymentOpensAStripeIntentForTheBalanceDue() throws Exception {
         Owner owner = owner("Start Pay Bakery LLC");
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        mvc.perform(pay(owner))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentId").isNumber())
                 .andExpect(jsonPath("$.amountCents").value(BASE_DUE_CENTS))
@@ -81,8 +87,9 @@ class MyPaymentsTest {
     void anAmountSentByTheBrowserIsIgnored() throws Exception {
         Owner owner = owner("Cheeky Amount Bakery LLC");
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"amountCents\":1}"))
+        mvc.perform(post(MePaths.PAYMENTS).cookie(owner.session())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"policyId\":%d,\"amountCents\":1}".formatted(owner.policyId())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amountCents").value(BASE_DUE_CENTS));
     }
@@ -119,7 +126,7 @@ class MyPaymentsTest {
         Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
         deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "4242", "pm_nd"));
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        mvc.perform(pay(owner))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("nothing_due"));
     }
@@ -143,7 +150,7 @@ class MyPaymentsTest {
         Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
         deliver(StripeTestSupport.intentProcessing(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        mvc.perform(pay(owner))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("payment_in_flight"))
                 .andExpect(jsonPath("$.message").value("Your last payment is still on its way."));
@@ -206,7 +213,7 @@ class MyPaymentsTest {
         stripe.setStatus(p.intentId(), "succeeded");
         PaymentTestData.addCharge(jdbc, owner.policyId(), 500);
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        mvc.perform(pay(owner))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("payment_in_flight"))
                 .andExpect(jsonPath("$.message").value("Your last payment is still on its way."));
@@ -220,7 +227,7 @@ class MyPaymentsTest {
         deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "0002", "Your card was declined."));
         stripe.setStatus(p.intentId(), "succeeded");
 
-        mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        mvc.perform(pay(owner))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("payment_in_flight"));
         assertThat(stripe.intentsFor(stripeCustomerOf(owner))).hasSize(1);
@@ -268,7 +275,7 @@ class MyPaymentsTest {
         deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), first.intentId(), first.amountCents(), "4242", "pm_saved"));
         PaymentTestData.addCharge(jdbc, owner.policyId(), 1400);
 
-        String body = mvc.perform(post("/api/me/payments").cookie(owner.session()))
+        String body = mvc.perform(pay(owner))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.amountCents").value(1400))
                 .andExpect(jsonPath("$.savedCard.last4").value("4242"))
@@ -312,9 +319,9 @@ class MyPaymentsTest {
 
     @Test
     void paymentsAreForPolicyholdersOnly() throws Exception {
-        mvc.perform(post("/api/me/payments").cookie(AuthTestSupport.signInAsBroker(mvc)))
+        mvc.perform(post(MePaths.PAYMENTS).cookie(AuthTestSupport.signInAsBroker(mvc)))
                 .andExpect(status().isForbidden());
-        mvc.perform(post("/api/me/payments")).andExpect(status().isUnauthorized());
+        mvc.perform(post(MePaths.PAYMENTS)).andExpect(status().isUnauthorized());
     }
 
     // --- AC13: no keys, no payments ---
@@ -324,7 +331,7 @@ class MyPaymentsTest {
         Owner owner = owner("Keys Off Bakery LLC");
         stripe.setEnabled(false);
         try {
-            mvc.perform(post("/api/me/payments").cookie(owner.session()))
+            mvc.perform(pay(owner))
                     .andExpect(status().isServiceUnavailable())
                     .andExpect(jsonPath("$.error").value("payments_off"));
             mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))

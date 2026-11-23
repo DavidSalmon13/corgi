@@ -5,7 +5,7 @@
 > Branch: feat/statement-history/cover-timeline
 
 ## Timeline API
-- [ ] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:
+- [x] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:
   - base only, with extra cover, after a correction (Oct 15 → Oct 8: previousStart, dayDelta 7, reason, PTX id) and cancelled on Dec 1;
   - charged by the day: 328 d · $656.00; and 91 d · $299.18 / 54 d · $108.00 when cancelled;
   - the covers' sum equals the statement's settled lines for those covers;

@@ -3,6 +3,7 @@
 > Epic: statement-history
 > Spec: 2026-11-23-emails
 > Branch: feat/statement-history/emails
+> PR: https://github.com/DavidSalmon13/corgi/pull/67
 > Reviewed: 2026-11-23 APPROVE
 > SecurityReviewed: 2026-11-23 APPROVE
 

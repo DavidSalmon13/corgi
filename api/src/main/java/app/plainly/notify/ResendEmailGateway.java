@@ -30,16 +30,27 @@ class ResendEmailGateway implements EmailGateway {
     private final RestClient client;
     private final String from;
     private final String testInbox;
+    private final String keyPrefix;
 
     @Autowired
     ResendEmailGateway(@Value("${plainly.email.api-key}") String apiKey, @Value("${plainly.email.from}") String from,
-            @Value("${plainly.email.test-to}") String testInbox) {
-        this(apiKey, from, testInbox, RestClient.builder().requestFactory(timeouts()));
+            @Value("${plainly.email.test-to}") String testInbox,
+            @Value("${plainly.idempotency-prefix}") String keyPrefix) {
+        this(apiKey, from, testInbox, RestClient.builder().requestFactory(timeouts()), keyPrefix);
+    }
+
+    ResendEmailGateway(String apiKey, String from, String testInbox) {
+        this(apiKey, from, testInbox, RestClient.builder().requestFactory(timeouts()), "");
     }
 
     ResendEmailGateway(String apiKey, String from, String testInbox, RestClient.Builder builder) {
+        this(apiKey, from, testInbox, builder, "");
+    }
+
+    ResendEmailGateway(String apiKey, String from, String testInbox, RestClient.Builder builder, String keyPrefix) {
         this.from = from;
         this.testInbox = testInbox;
+        this.keyPrefix = keyPrefix;
         if (apiKey.isBlank() || testInbox.isBlank()) {
             log.warn("Resend isn't set up (RESEND_API_KEY and RESEND_TEST_TO are both needed): emails are off");
             this.client = null;
@@ -60,7 +71,8 @@ class ResendEmailGateway implements EmailGateway {
         }
         try {
             Map<?, ?> sent = client.post().uri("/emails").contentType(MediaType.APPLICATION_JSON)
-                    .header("Idempotency-Key", idempotencyKey)
+                    // Prefixed per environment: local runs and Railway share one Resend account (see StripeJavaGateway.key).
+                    .header("Idempotency-Key", keyPrefix.isBlank() ? idempotencyKey : keyPrefix + ":" + idempotencyKey)
                     .body(Map.of("from", from, "to", List.of(testInbox), "subject", message.subject(),
                             "html", message.html(), "text", message.text()))
                     .retrieve().body(Map.class);

@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,11 +38,19 @@ class StripeJavaGateway implements StripeGateway {
 
     private final StripeClient client;
     private final String publishableKey;
+    private final String keyPrefix;
 
+    StripeJavaGateway(String secretKey, String publishableKey, String webhookSecret) {
+        this(secretKey, publishableKey, webhookSecret, "");
+    }
+
+    @Autowired
     StripeJavaGateway(@Value("${plainly.stripe.secret-key}") String secretKey,
             @Value("${plainly.stripe.publishable-key}") String publishableKey,
-            @Value("${plainly.stripe.webhook-secret}") String webhookSecret) {
+            @Value("${plainly.stripe.webhook-secret}") String webhookSecret,
+            @Value("${plainly.idempotency-prefix}") String keyPrefix) {
         this.publishableKey = publishableKey;
+        this.keyPrefix = keyPrefix;
         if (secretKey.isBlank() || publishableKey.isBlank() || webhookSecret.isBlank()) {
             log.warn("Stripe isn't fully set up (STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY and STRIPE_WEBHOOK_SECRET "
                     + "are all needed): card payments are off");
@@ -71,7 +80,7 @@ class StripeJavaGateway implements StripeGateway {
             Customer customer = stripe().v1().customers().create(
                     CustomerCreateParams.builder().setName(name).setEmail(email)
                             .putMetadata("plainly_customer_id", String.valueOf(customerId)).build(),
-                    RequestOptions.builder().setIdempotencyKey("customer-" + customerId).build());
+                    RequestOptions.builder().setIdempotencyKey(key("customer-" + customerId)).build());
             return customer.getId();
         } catch (StripeException e) {
             throw unreachable("create customer", e);
@@ -97,7 +106,7 @@ class StripeJavaGateway implements StripeGateway {
                                     .build())
                             .putAllMetadata(metadata)
                             .build(),
-                    RequestOptions.builder().setIdempotencyKey(idempotencyKey).build());
+                    RequestOptions.builder().setIdempotencyKey(key(idempotencyKey)).build());
             return new CreatedIntent(intent.getId(), intent.getClientSecret());
         } catch (StripeException e) {
             throw unreachable("create payment intent", e);
@@ -124,7 +133,7 @@ class StripeJavaGateway implements StripeGateway {
             PaymentIntent canceled = stripe().v1().paymentIntents().cancel(paymentIntentId,
                     PaymentIntentCancelParams.builder()
                             .setCancellationReason(PaymentIntentCancelParams.CancellationReason.ABANDONED).build(),
-                    RequestOptions.builder().setIdempotencyKey("cancel-" + paymentIntentId).build());
+                    RequestOptions.builder().setIdempotencyKey(key("cancel-" + paymentIntentId)).build());
             return new IntentState(canceled.getStatus(), canceled.getClientSecret());
         } catch (StripeException e) {
             // The bank may have taken it between our read and the cancel: read again rather than guess.
@@ -161,7 +170,7 @@ class StripeJavaGateway implements StripeGateway {
                             .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER)
                             .putAllMetadata(metadata)
                             .build(),
-                    RequestOptions.builder().setIdempotencyKey(idempotencyKey).build());
+                    RequestOptions.builder().setIdempotencyKey(key(idempotencyKey)).build());
             return new CreatedRefund(refund.getId(), refund.getStatus());
         } catch (StripeException e) {
             throw refundProblem(e);
@@ -207,6 +216,15 @@ class StripeJavaGateway implements StripeGateway {
                 ? e.getStripeError().getMessage()
                 : "Stripe couldn't send the money back to the card.";
         return new RefundRefused(reason);
+    }
+
+    /**
+     * Local runs and the Railway deploy share one Stripe sandbox but number their rows from 1, so a bare
+     * "pay-2" from one would collide with the other's for Stripe's 24 hours (idempotency_error). The prefix
+     * keeps each environment's keys apart.
+     */
+    private String key(String key) {
+        return keyPrefix.isBlank() ? key : keyPrefix + ":" + key;
     }
 
     private StripeClient stripe() {

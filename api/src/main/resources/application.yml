@@ -42,5 +42,8 @@ plainly:
     test-to: ${RESEND_TEST_TO:}
     # Send after commit on a small background pool, so a slow Resend never holds a request. Off in tests.
     send-async: true
+  # Namespaces the Stripe and Resend idempotency keys, so local runs and the Railway deploy (one shared sandbox,
+  # both numbering rows from 1) never send the same key. Railway sets RAILWAY_ENVIRONMENT_ID itself.
+  idempotency-prefix: ${IDEMPOTENCY_PREFIX:${RAILWAY_ENVIRONMENT_ID:local}}
   # Where the web app lives, for links in emails.
   web-url: ${PLAINLY_WEB_URL:http://localhost:5173}

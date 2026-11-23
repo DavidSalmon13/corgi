@@ -64,6 +64,20 @@ class ResendEmailGatewayTest {
     }
 
     @Test
+    void theIdempotencyKeyCarriesTheEnvironmentPrefix() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer resend = MockRestServiceServer.bindTo(builder).build();
+        resend.expect(requestTo("https://api.resend.com/emails"))
+                .andExpect(header("Idempotency-Key", "railway-env:PAYMENT_RECEIPT/42"))
+                .andRespond(withSuccess("{\"id\":\"re_msg_1\"}", MediaType.APPLICATION_JSON));
+        var gateway = new ResendEmailGateway("re_test_key", "Plainly <onboarding@resend.dev>", "inbox@example.test",
+                builder, "railway-env");
+
+        assertThat(gateway.send(MESSAGE, "PAYMENT_RECEIPT/42")).isEqualTo("re_msg_1");
+        resend.verify();
+    }
+
+    @Test
     void aResendErrorIsAnEmailProblem() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer resend = MockRestServiceServer.bindTo(builder).build();

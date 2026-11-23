@@ -52,7 +52,8 @@ public class AddCoverageService {
             long balanceCents) {}
 
     /** The policy as adding cover needs it. */
-    private record PolicyTerm(long id, String status, LocalDate start, LocalDate end, boolean hasProductLiability) {}
+    private record PolicyTerm(long id, String status, LocalDate start, LocalDate end, boolean hasProductLiability,
+            LocalDate productLiabilityEndedOn) {}
 
     /** Prices the extra cover without saving anything (the live preview on B4). */
     public AddCoveragePlan preview(long policyId, CoverKind kind, LocalDate startDate) {
@@ -88,14 +89,21 @@ public class AddCoverageService {
     private PolicyTerm load(long policyId, boolean lock) {
         PolicyRepository.Term policy = policies.findTerm(policyId, lock)
                 .orElseThrow(() -> new NotFoundException("There's no policy with that id."));
-        boolean hasProductLiability = coverages.exists(policyId, CoverKind.PRODUCT_LIABILITY);
-        return new PolicyTerm(policy.id(), policy.status(), policy.start(), policy.end(), hasProductLiability);
+        var extra = coverages.findLive(policyId, CoverKind.PRODUCT_LIABILITY);
+        return new PolicyTerm(policy.id(), policy.status(), policy.start(), policy.end(), extra.isPresent(),
+                extra.map(CoverageRepository.Live::endedOn).orElse(null));
     }
 
-    /** One message per field (AC4). A cancelled policy has no field to fix, so its message stands alone. */
+    /**
+     * One message per field (AC4). A cancelled policy, or one whose extra cover was removed (once per policy), has no
+     * field to fix, so its message stands alone.
+     */
     private static void validate(PolicyTerm policy, CoverKind kind, LocalDate start) {
         if (!"ACTIVE".equals(policy.status())) {
             throw new ValidationException(Map.of("policy", CANCELLED));
+        }
+        if (policy.productLiabilityEndedOn() != null) {
+            throw new ValidationException(Map.of("policy", removed(policy.productLiabilityEndedOn())));
         }
         Map<String, String> errors = new LinkedHashMap<>();
         if (kind != CoverKind.PRODUCT_LIABILITY) {
@@ -113,6 +121,12 @@ public class AddCoverageService {
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
+    }
+
+    /** Extra cover can be removed once per policy, so it can't come back (AC5). */
+    static String removed(LocalDate endedOn) {
+        return CoverKind.PRODUCT_LIABILITY.label() + " was removed from this policy on " + LONG.format(endedOn)
+                + ", so it can't be added again.";
     }
 
     /** Yearly price × days from the start to the policy's end ÷ days in the policy year, rounded once. */

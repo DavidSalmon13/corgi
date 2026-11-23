@@ -73,6 +73,13 @@ describe('a policy cancelled flat, on its start date', () => {
     );
   });
 
+  // A start date still ahead: the policy won't cover a day, so it must not say "You're covered".
+  it("says it won't cover the business when the start date hasn't come yet", () => {
+    expect(protectionSentence('Bakery and café', true, { endsOn: '2026-11-28', today: '2026-11-23', startsOn: '2026-11-28' })).toBe(
+      "This policy was cancelled on its start date, Nov 28, 2026 (a flat cancellation), so it won't cover your business.",
+    );
+  });
+
   // covers more-policies AC11 (code review): P1 renders this sentence through <Glossed>, so the term gets its "?"
   it('marks "flat cancellation" for its "?" explanation', () => {
     const sentence = protectionSentence('Bakery and café', false, { endsOn: '2026-09-01', today: '2026-11-23', startsOn: '2026-09-01' });

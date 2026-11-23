@@ -158,7 +158,9 @@ export function CancellationPage() {
       </div>
 
       <section aria-label="Summary" className={`${CARD} flex flex-col gap-3 p-5`}>
-        <p className="m-0 text-[19px] font-medium leading-snug">{summary.sentence}</p>
+        <p className="m-0 text-[19px] font-medium leading-snug">
+          <Glossed>{summary.sentence}</Glossed>
+        </p>
         {pill && (
           <>
             <span className="self-start">

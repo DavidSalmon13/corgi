@@ -291,7 +291,7 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
 }
 
 /** One line of the preview; the bottom line (refund or still owed) is bigger and set off by a solid rule. */
-function PreviewRow({ row }: { row: MoneyRow }) {
+export function PreviewRow({ row }: { row: MoneyRow }) {
   const label = [row.label, row.detail, row.amount].join(' · ');
   return row.total ? (
     <div role="group" aria-label={label} className="flex items-baseline justify-between gap-4 border-t-[1.5px] border-ink py-3">

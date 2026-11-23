@@ -14,6 +14,7 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { cancelledCard } from '../../lib/cancelCopy';
 import { formatDate } from '../../lib/dates';
 import { GLOSSARY } from '../../lib/glossary';
+import { coverRemovedSentence, refundAfterRemoval, removedOn } from '../../lib/removeCoverCopy';
 import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from '../../lib/myCoverCopy';
 import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
 
@@ -137,6 +138,8 @@ function AmountCard({ c }: { c: MyCover }) {
     payment: c.payment,
   });
   if (state === 'cancelled') return <CancelledCard c={c} />;
+  // remove-cover AC7: after a removal the refund is the removed days' return premium, not a corrected date.
+  const removal = removedOn(c.covers);
   if (c.refundWaiting && c.amountDueCents === 0) {
     return (
       <section aria-label="Refund on its way" className={`${CARD} flex flex-col gap-3 p-5`}>
@@ -146,12 +149,18 @@ function AmountCard({ c }: { c: MyCover }) {
           </StatusPill>
         </span>
         <p className="m-0 text-[19px] font-medium leading-snug">{refundOnItsWay(c.refundWaiting)}</p>
-        <p className="m-0 text-[15px] leading-snug text-ink-2">
-          We corrected the <Term explain={GLOSSARY.effectiveDate}>effective date</Term> of your{' '}
-          <Term explain={GLOSSARY.productLiability}>product liability</Term>{' '}
-          <Term explain={GLOSSARY.endorsement}>endorsement</Term>, so you'd paid for days you weren't covered. Banks
-          take 5–10 days to show a refund. <SeeWhy />
-        </p>
+        {removal ? (
+          <p className="m-0 text-[15px] leading-snug text-ink-2">
+            <Glossed>{refundAfterRemoval(removal, c.today)}</Glossed> <SeeWhy />
+          </p>
+        ) : (
+          <p className="m-0 text-[15px] leading-snug text-ink-2">
+            We corrected the <Term explain={GLOSSARY.effectiveDate}>effective date</Term> of your{' '}
+            <Term explain={GLOSSARY.productLiability}>product liability</Term>{' '}
+            <Term explain={GLOSSARY.endorsement}>endorsement</Term>, so you'd paid for days you weren't covered. Banks
+            take 5–10 days to show a refund. <SeeWhy />
+          </p>
+        )}
         <BrokerNote c={c} />
       </section>
     );
@@ -206,7 +215,7 @@ function AmountCard({ c }: { c: MyCover }) {
       <p className="m-0 text-[17px] leading-snug">
         <Glossed>{dueReasonText(c.dueReason, c.latestChangeFrom)}</Glossed> <SeeWhy />
       </p>
-      {c.dueReason === 'CORRECTION' && <BrokerNote c={c} />}
+      {(c.dueReason === 'CORRECTION' || c.dueReason === 'COVER_REMOVED') && <BrokerNote c={c} />}
       <PayAction c={c} label={payLabel(c.amountDueCents)} />
     </section>
   );
@@ -241,7 +250,9 @@ export function HomePage() {
   }
 
   const c = cover.data;
-  const hasExtra = c.covers.some((x) => x.kind !== 'BASE');
+  // remove-cover AC7: once removed product liability has ended, the business is no longer covered for what it sells.
+  const hasExtra = c.covers.some((x) => x.kind !== 'BASE' && !(x.endedOn && x.endedOn <= c.today));
+  const removal = c.policy.status === 'CANCELLED' ? null : removedOn(c.covers);
   const base = c.covers.filter((x) => x.kind === 'BASE');
   const extras = c.covers.filter((x) => x.kind !== 'BASE');
   // cancel-refund AC10: on a cancelled policy the protection line, cover period and covers all stop on the cancel day.
@@ -259,6 +270,11 @@ export function HomePage() {
 
       <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 overflow-hidden p-5 pb-0`}>
         <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today } : null)}</p>
+        {removal && (
+          <p className="m-0 text-[15px] leading-snug text-ink-2">
+            <Glossed>{coverRemovedSentence(removal, c.today)}</Glossed>
+          </p>
+        )}
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-ink-2">
           <Term explain={`${GLOSSARY.policyPeriod} Yours is ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
             Your policy period
@@ -274,7 +290,14 @@ export function HomePage() {
             end={c.policy.end}
             today={c.today}
             cancelledFrom={endsOn ?? undefined}
-            covers={[...base, ...extras].map((x) => ({ id: x.id, kind: x.kind, label: x.label, from: x.from, to: x.to }))}
+            covers={[...base, ...extras].map((x) => ({
+              id: x.id,
+              kind: x.kind,
+              label: x.label,
+              from: x.from,
+              to: x.to,
+              endedOn: x.endedOn ?? undefined,
+            }))}
           />
         </Link>
 
@@ -294,7 +317,10 @@ export function HomePage() {
               <span className="flex-1">
                 <Term explain={GLOSSARY.productLiability}>Product liability</Term>
               </span>
-              <span className="text-ink-2 tabular-nums">{coverDates(x.from, endsOn)}</span>
+              {/* remove-cover AC7: a removed cover ends on its own day, unless the policy was cancelled before it. */}
+              <span className="text-ink-2 tabular-nums">
+                {coverDates(x.from, x.endedOn && (!endsOn || x.endedOn < endsOn) ? x.endedOn : endsOn)}
+              </span>
             </li>
           ))}
         </ul>

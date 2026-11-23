@@ -21,6 +21,7 @@ import {
 import { daysBetween } from '../../lib/dates';
 import { GLOSSARY } from '../../lib/glossary';
 import { policyPeriod } from '../../lib/policyCopy';
+import { removeBlockedReason, removedCoverReason } from '../../lib/removeCoverCopy';
 import { useDebounced } from '../../lib/useDebounced';
 import {
   BlockedCard,
@@ -36,22 +37,25 @@ import {
 } from './changeForm';
 import { CancelPolicyForm } from './CancelPolicyForm';
 import { CorrectCoverForm } from './CorrectCoverForm';
+import { RemoveCoverForm } from './RemoveCoverForm';
 
 export type { ChangeSavedState } from './changeForm';
 
 type Field = 'kind' | 'startDate' | 'policy';
-type Tab = 'add' | 'correct' | 'cancel';
+type Tab = 'add' | 'correct' | 'cancel' | 'remove';
 
 const EXTRA_CENTS = 73_000;
 const TABS: { id: Tab; label: string }[] = [
   { id: 'add', label: 'Add endorsement' },
   { id: 'correct', label: 'Correct' },
   { id: 'cancel', label: 'Cancel' },
+  { id: 'remove', label: 'Remove' },
 ];
+const OTHER_TABS: readonly string[] = ['correct', 'cancel', 'remove'];
 
 /**
- * B4 "Mid-term change": Add endorsement · Correct · Cancel. {@code ?tab=correct} and {@code ?tab=cancel} open those tabs
- * (B3's Correct and Cancel actions).
+ * B4 "Mid-term change": Add endorsement · Correct · Cancel · Remove. {@code ?tab=correct}, {@code ?tab=cancel} and
+ * {@code ?tab=remove} open those tabs (B3's Correct, Cancel and Remove product liability actions).
  */
 export function ChangePolicyPage() {
   const { id } = useParams();
@@ -80,13 +84,16 @@ export function ChangePolicyPage() {
 
 /** Why a tab can't be used on this policy right now, or null when it can. Each tab has its own reasons. */
 function blockedReason(tab: Tab, p: PolicyDetail): string | null {
+  if (tab === 'remove') return removeBlockedReason(p);
   if (p.status === 'CANCELLED') return 'This policy is cancelled.';
-  const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
-  if (tab === 'add') return hasExtra ? 'This policy already has product liability coverage.' : null;
+  const extra = p.coverages.find((c) => c.kind === 'PRODUCT_LIABILITY');
+  // remove-cover AC5: once removed, product liability can't be added back or corrected on this policy.
+  if (extra?.endedOn && (tab === 'add' || tab === 'correct')) return removedCoverReason(tab, extra.endedOn);
+  if (tab === 'add') return extra ? 'This policy already has product liability coverage.' : null;
   if (tab === 'cancel') {
     return p.paymentWaiting ? 'A payment is waiting for the bank. Cancel once it settles.' : null;
   }
-  if (!hasExtra) return 'This policy has no product liability endorsement to correct.';
+  if (!extra) return 'This policy has no product liability endorsement to correct.';
   return p.paymentWaiting ? 'A payment is waiting for the bank. Correct this once it settles.' : null;
 }
 
@@ -94,7 +101,7 @@ function ChangePolicy({ p }: { p: PolicyDetail }) {
   const back = `/broker/policies/${p.policyId}`;
   const [search, setSearch] = useSearchParams();
   const asked = search.get('tab');
-  const tab: Tab = asked === 'correct' || asked === 'cancel' ? asked : 'add';
+  const tab: Tab = asked && OTHER_TABS.includes(asked) ? (asked as Tab) : 'add';
   const blocked = blockedReason(tab, p);
   const choose = (t: Tab) => setSearch(t === 'add' ? {} : { tab: t }, { replace: true });
 
@@ -138,6 +145,8 @@ function ChangePolicy({ p }: { p: PolicyDetail }) {
         <CorrectCoverForm key="correct" p={p} back={back} />
       ) : tab === 'cancel' ? (
         <CancelPolicyForm key="cancel" p={p} back={back} />
+      ) : tab === 'remove' ? (
+        <RemoveCoverForm key="remove" p={p} back={back} />
       ) : (
         <AddCoverForm key="add" p={p} back={back} />
       )}

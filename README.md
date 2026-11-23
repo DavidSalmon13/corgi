@@ -1,7 +1,9 @@
 # Plainly
 
-Business insurance, explained in plain language. A policy administration platform for the Corgi work trial (Track 1). Brokers issue, change, correct and cancel General Liability policies. Policyholders see what they're covered for, what they owe, and why.
+Business insurance, explained in plain language. A policy administration platform for the Corgi work trial, **Track 1 · Policy administration**. Brokers issue, change, correct and cancel General Liability policies. Policyholders see what they're covered for, what they owe, and why.
 
+- **Live app: https://corgi-production-8107a1f1.up.railway.app**
+- Sandbox evidence (Stripe, Resend): [`docs/evidence/`](docs/evidence/README.md)
 - Brief: [`ASSIGNMENT.md`](ASSIGNMENT.md) · Decisions and assumptions: [`DECISIONS.md`](DECISIONS.md)
 - Screen designs: [`design/plainly/`](design/plainly/README.md)
 - Product and specs: [`playbook/products/policy-admin/`](playbook/products/policy-admin/mission.md)
@@ -11,6 +13,8 @@ All people, businesses and money in this app are fictional. Payments use Stripe 
 ## Demo accounts
 
 Every demo account uses the password `plainly-demo-2026` (a test credential for fictional people). The sign-in page lists them too, with a button that fills the form.
+
+**To pay, use Stripe's test card `4242 4242 4242 4242`** with any future expiry date and any CVC. To see a declined payment, use `4000 0000 0000 0002`. These are Stripe test-mode cards, and no real money moves.
 
 | Role | Email | Who |
 |---|---|---|
@@ -26,6 +30,32 @@ Sam's list also has two owners who haven't signed up yet: Brightside Dog Groomin
 To try the owner's first visit: sign in as Sam, create a customer with any email, sign out, then choose **Create your account** on the sign-in page and use that email. Owners can't sign up until their broker has entered their email ([why](DECISIONS.md)).
 
 Sign-in is real: BCrypt password hashes and server-side sessions. What's simplified is that sign-up has no email confirmation, there's no password reset or rate limiting, and the demo broker login above works on every deploy. See `DECISIONS.md`.
+
+## Integrations: what's live and what's simulated
+
+| Service | Status | What it does here |
+|---|---|---|
+| **Stripe** (test mode) | Live | Collects premium by card (PaymentIntents with Stripe Elements), records declined cards, and sends return premiums and correction refunds back to the card. A payment or refund changes status only when a signed Stripe webhook says so, and each event id is processed once (`processed_stripe_events`), so every payment line on the ledger names the Stripe event behind it. |
+| **Resend** (sandbox) | Live, with the recipient swapped | Sends three emails: policy issued, payment receipt and refund receipt. Each is claimed once in `sent_emails` and sent with an idempotency key. Resend's sandbox delivers only to the account owner, so every email goes to one test inbox (`RESEND_TEST_TO`) and states which owner it was for. |
+
+Simulated or simplified on purpose:
+
+- **Email recipients.** The content, timing and once-only rule are real; only the address is swapped for the test inbox. Going live means verifying a domain ([why](DECISIONS.md)).
+- **Pricing.** There's no rating engine or carrier. General liability is a flat $1,200.00 a year and product liability $730.00 a year ($2.00 a day), so every pro-rata amount can be checked by hand.
+- **Sign-up** has no email confirmation, and the demo broker's password is public on every deploy, which is acceptable only because all data is fictional.
+- **Demo data.** The seeded customers' policies and changes are made through the real services, but no payments are seeded: a payment must come from a real Stripe test event, so pay with a [test card](#paying-with-stripe-test-mode).
+
+## What's simplified, and what I'd build next
+
+The full reasoning for each is in [`DECISIONS.md`](DECISIONS.md).
+
+- **One product:** General Liability, with product liability as its only optional coverage. It can be added once and removed once per policy; its effective date can be corrected any number of times.
+- **Cancellation is pro-rata with no short-rate penalty.** The unused days are returned in full and any unpaid premium is taken off the refund first. Real policies cancelled by the insured often keep a short-rate penalty or a minimum earned premium. This is the main thing I left out of the money rules.
+- **One timezone:** every policy runs on America/New_York calendar days. A carrier would use the insured's location.
+- **Premium is due on receipt:** no installments, billing schedule, grace period or notice of cancellation for non-payment.
+- **Left out:** claims, renewals, broker commissions, taxes and fees, self-serve quote and buy, password reset and sign-in rate limiting.
+
+Next, in order: short-rate and minimum earned premium on cancellation, renewals (a new policy period priced from the last one), installment billing with a non-payment cancellation flow, then claims.
 
 ## Run locally
 

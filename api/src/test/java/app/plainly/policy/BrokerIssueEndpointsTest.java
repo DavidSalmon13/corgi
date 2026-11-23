@@ -162,4 +162,15 @@ class BrokerIssueEndpointsTest {
                 .andExpect(content().string(matchesPattern(
                         "(?s).*\"fields\":\\{\"legalName\".*\"businessDescription\".*\"ownerName\".*\"ownerEmail\".*\"startDate\".*")));
     }
+
+    // covers input-validation AC2, AC4, T4: in customer mode too; an unknown customer would be a 404 from the service
+    @Test
+    void customerModeChecksTheDateBeforeTheServiceRuns() throws Exception {
+        for (String path : new String[] {"/policies/preview", "/policies"}) {
+            mvc.perform(json("/api/broker/customers/" + Long.MAX_VALUE + path, "{\"startDate\":\"2026-13-45\"}"))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
+                    .andExpect(jsonPath("$.fields.startDate").value(IssuePolicyService.NO_START));
+        }
+    }
 }

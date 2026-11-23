@@ -365,3 +365,7 @@ With several policies, "the" cover is ambiguous, and an alias would have to gues
 ## 2026-11-23: The overview's total due adds positive balances only
 
 `totalDueCents` on `GET /api/me/policies` is the sum of the balances above zero. A cancelled policy with a refund on its way has a negative balance until the refund settles, and adding it in would show $0.00 due in the worked example while the new policy really is unpaid. It would also suggest the refund pays the new policy, which it doesn't (see "Money never moves between policies"). Refunds on their way show on their own policy's card instead.
+
+## 2026-11-23: The owner email is checked at the edge with the service's pattern, not `@Email`
+
+Hibernate's `@Email` disagrees with `IssuePolicyService` both ways: it accepts `maya@juniperandrye` (no dot in the domain), which the service rejects, and it rejects `" lee@example.com "`, which the service trims and accepts (the web form sends the email as typed). Using `@Email` would either let a bad address reach the service or refuse one the broker typed with a stray space. `IssueRequest.ownerEmail` uses `@Pattern` built from the service's own `EMAIL_SHAPE`, with optional spaces around it, so the edge and the service accept exactly the same addresses and say the same "Enter an email like name@business.com.". The services' literal field messages became named constants so the annotations can reuse them.

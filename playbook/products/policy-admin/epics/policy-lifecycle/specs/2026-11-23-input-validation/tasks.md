@@ -12,7 +12,7 @@
 - [x] T3 Handle `MethodArgumentNotValidException` in `ApiErrorHandler` → same 422 body, fields in record order; share the "N things to fix" wording with `ValidationException`
 
 ## Request records (controllers only)
-- [ ] T4 `BrokerIssueController`: annotate `IssueRequest` / `PreviewRequest`, typed `LocalDate`, `@Valid`; delete `date()`
+- [x] T4 `BrokerIssueController`: annotate `IssueRequest` / `PreviewRequest`, typed `LocalDate`, `@Valid`; delete `date()`
 - [ ] T5 `AddCoverageController`: typed `CoverKind` (unknown → null) + `LocalDate`, `@Valid`; delete `date()` / `coverKind()`
 - [ ] T6 `CorrectionController` and `CancellationController`: typed `LocalDate`, `@NotBlank @Size` reason, `@Valid`; delete `date()`
 - [ ] T6.1 `AuthController.SignUpRequest`: `@NotBlank` email/password, `@Valid` (sign-in untouched)

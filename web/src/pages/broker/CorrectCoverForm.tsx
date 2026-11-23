@@ -35,6 +35,7 @@ import {
   type ChangeSavedState,
   type FormErrors,
 } from './changeForm';
+import { EffectiveDateSlider } from './EffectiveDateSlider';
 
 type Field = 'startDate' | 'reason' | 'policy';
 
@@ -60,6 +61,9 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
   const who = firstName(p.customer.ownerName);
 
   const [startDate, setStartDate] = useState('');
+  // The day under the handle while it is dragged. The field shows it, but only the committed startDate is priced.
+  const [draft, setDraft] = useState<string | null>(null);
+  const shownDate = draft ?? startDate;
   const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<FormErrors<Field> | null>(null);
   const [failedSaves, setFailedSaves] = useState(0);
@@ -82,7 +86,7 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
   const previewFailed = preview.isError && !previewFields;
   const plan = startDate && !preview.isError ? preview.data : undefined;
   // True while the panel may not yet match the date, so the broker can't save numbers they haven't seen.
-  const repricing = startDate !== '' && (pricedStart !== startDate || preview.isFetching);
+  const repricing = draft !== null || (startDate !== '' && (pricedStart !== startDate || preview.isFetching));
   const cantSave = repricing || previewFailed;
 
   const request: CorrectRequest = { startDate, reason };
@@ -126,6 +130,12 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
   const clearError = (f: Field) =>
     setErrors((e) => (e && e.fields[f] ? { ...e, fields: { ...e.fields, [f]: undefined } } : e));
 
+  const pickStart = (date: string) => {
+    setDraft(null);
+    setStartDate(date);
+    clearError('startDate');
+  };
+
   const submit = () => {
     if (cantSave || save.isPending) return;
     // Without a price or a usable reason there's nothing to confirm: let the server say what to fix, under the field.
@@ -164,6 +174,18 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
               </span>
             </div>
           </div>
+          <EffectiveDateSlider
+            start={p.start}
+            end={p.end}
+            currentFrom={cover.from}
+            value={shownDate}
+            min={p.start}
+            max={lastEffectiveDate(p.end)}
+            invalid={!!startError && draft === null}
+            onMove={setDraft}
+            onCommit={pickStart}
+            onCancel={() => setDraft(null)}
+          />
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex min-w-0 flex-[1_1_160px] flex-col gap-1.5">
               <span className="text-sm font-semibold" id="oldStart-label">
@@ -197,16 +219,13 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
               <input
                 id="startDate"
                 type="date"
-                value={startDate}
+                value={shownDate}
                 min={p.start}
                 max={lastEffectiveDate(p.end)}
                 aria-invalid={!!startError}
                 aria-describedby={startError ? 'startDate-error' : undefined}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  clearError('startDate');
-                }}
-                className={`${INPUT} tabular-nums ${startError ? 'border-bad' : startDate ? 'border-accent' : 'border-line'}`}
+                onChange={(e) => pickStart(e.target.value)}
+                className={`${INPUT} tabular-nums ${startError ? 'border-bad' : shownDate ? 'border-accent' : 'border-line'}`}
               />
               <FieldError id="startDate-error" message={startError} />
             </div>

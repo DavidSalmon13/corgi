@@ -1,9 +1,9 @@
 # Correct a start date
 
 > Epic: ../../epic.md
-> Status: done
+> Status: in-progress
 > Branch: feat/policy-lifecycle/correct-effective-date
-> Covers: /api/broker/policies/{id}/corrections, /api/broker/policies/{id}/corrections/preview, /api/broker/refunds/{id}/retry, api/src/main/java/**/policy/Correct*.java, api/src/main/java/**/billing/Refund*.java, api/src/main/resources/db/migration/V8__corrections_and_refunds.sql, web/src/lib/correctCopy.ts, web/src/pages/broker/CorrectCoverForm.tsx
+> Covers: /api/broker/policies/{id}/corrections, /api/broker/policies/{id}/corrections/preview, /api/broker/refunds/{id}/retry, api/src/main/java/**/policy/Correct*.java, api/src/main/java/**/billing/Refund*.java, api/src/main/resources/db/migration/V8__corrections_and_refunds.sql, web/src/lib/correctCopy.ts, web/src/pages/broker/CorrectCoverForm.tsx, web/src/pages/broker/EffectiveDateSlider.tsx, web/src/lib/dateSlider.ts
 
 ## Overview
 
@@ -51,6 +51,7 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 
    Their cover list and timeline show one extra cover, starting on the corrected date.
 14. AC14: All new copy is plain language. jargon.test passes: no "effective date", "pro-rata", "endorsement" or "reversal" in customer-facing text unless it is explained.
+15. AC15 (experimental): Above the date fields, a bar spans the policy period with a dashed outline where the extra cover starts now and a handle for the corrected **effective date**. Dragging the handle (or tapping the bar) picks a day; the date field and the handle always show the same value, so the broker can drag roughly and type the exact day. The handle snaps to whole days, stays within the same limits as the field (policy start to the day before the end), and the shaded stretch reads "Pro-rata: 328 of 365 days · 7 more than now". The preview is priced when the handle is let go, not on every move. The handle is a keyboard slider: arrows move one day, Page Up/Down one month, Home/End to the limits, and a screen reader hears the date and day count.
 
 ## Technical Approach
 
@@ -95,6 +96,7 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
   - `ChangePolicyPage` gets tabs.
   - New `CorrectCoverForm` (debounced preview, `useQuery` like `AddCoverForm`, a confirm dialog, 422 field mapping).
   - New `lib/correctCopy.ts`.
+  - New `EffectiveDateSlider` (AC15): pointer-captured drag over the policy period, `role="slider"` handle; pure day maths (position → snapped day, keyboard steps, day-count line) in `lib/dateSlider.ts`. `CorrectCoverForm` keeps one `startDate`; a drag holds a local draft and commits it on release, so the debounced preview fires once.
   - `PolicyWorkspace`: Correct action, failed-refund alert with retry, timeline "was" label.
   - `HomePage`: refund-on-its-way state.
   - `ledgerRows`: refund refs.
@@ -126,3 +128,4 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 | 2026-11-22 | david-schwartzman | change | Status set to in-progress: all 16 tasks done, QA PASS WITH NOTES, PR opened against dev | — |
 | 2026-11-22 | david-schwartzman | change | AC10: only a definite Stripe refusal fails a refund; an unclear send stays pending and is resent with the same key (code + security review HIGH) | T17, T18 |
 | 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #48) | — |
+| 2026-11-24 | david-schwartzman | change | AC15 (experimental): drag the corrected effective date on a coverage bar as well as typing it; Status back to in-progress — UX improvement, kept or dropped after PR review | — |

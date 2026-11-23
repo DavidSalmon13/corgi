@@ -21,7 +21,7 @@ A broker can run a General Liability policy from start to finish: issue it, add 
 | 2026-11-22-real-sign-in | done | feat/policy-lifecycle/real-sign-in · [#23](https://github.com/DavidSalmon13/corgi/pull/23)–[#34](https://github.com/DavidSalmon13/corgi/pull/34) |
 | 2026-11-22-collect-premium | done | feat/policy-lifecycle/collect-premium · [#35](https://github.com/DavidSalmon13/corgi/pull/35)–[#41](https://github.com/DavidSalmon13/corgi/pull/41) |
 | 2026-11-22-add-coverage | done | feat/policy-lifecycle/add-coverage · [#42](https://github.com/DavidSalmon13/corgi/pull/42)–[#46](https://github.com/DavidSalmon13/corgi/pull/46) |
-| 2026-11-22-correct-effective-date | done | feat/policy-lifecycle/correct-effective-date · [#48](https://github.com/DavidSalmon13/corgi/pull/48) |
+| 2026-11-22-correct-effective-date | in-progress | feat/policy-lifecycle/correct-effective-date · [#48](https://github.com/DavidSalmon13/corgi/pull/48) · feat/policy-lifecycle/drag-effective-date · [#100](https://github.com/DavidSalmon13/corgi/pull/100) |
 | 2026-11-22-cancel-refund | done | feat/policy-lifecycle/cancel-refund · [#50](https://github.com/DavidSalmon13/corgi/pull/50) |
 | 2026-11-23-remove-cover | shaped | feat/policy-lifecycle/remove-cover · [#78](https://github.com/DavidSalmon13/corgi/pull/78), [#72](https://github.com/DavidSalmon13/corgi/pull/72)–[#77](https://github.com/DavidSalmon13/corgi/pull/77), [#79](https://github.com/DavidSalmon13/corgi/pull/79) |
 | 2026-11-23-more-policies | shaped | feat/policy-lifecycle/more-policies · [#82](https://github.com/DavidSalmon13/corgi/pull/82)–[#91](https://github.com/DavidSalmon13/corgi/pull/91) |

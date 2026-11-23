@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { ApiError, signIn, useSession } from '../api/client';
 import type { SignedInUser } from '../api/types';
 import { AuthField } from '../components/AuthField';
@@ -22,13 +22,24 @@ export function signInProblem(e: unknown): string {
   return "We couldn't reach Plainly. Check your connection and try again.";
 }
 
+/**
+ * The details to fill in when the landing page's "Try as …" link opened sign-in with `?demo=<email>`. Only the
+ * seeded demo accounts count; any other value is ignored, and nothing is submitted for the person.
+ */
+export function demoPrefill(search: string): { email: string; password: string } | null {
+  const email = new URLSearchParams(search).get('demo');
+  const account = DEMO_ACCOUNTS.find((a) => a.email === email);
+  return account ? { email: account.email, password: DEMO_PASSWORD } : null;
+}
+
 /** Sign in with email and password. Brokers' accounts are made for them; owners sign up first. */
 export function SignIn() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const session = useSession();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { search } = useLocation();
+  const [email, setEmail] = useState(() => demoPrefill(search)?.email ?? '');
+  const [password, setPassword] = useState(() => demoPrefill(search)?.password ?? '');
   const alertRef = useRef<HTMLParagraphElement>(null);
 
   const submit = useMutation({

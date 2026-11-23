@@ -1,6 +1,6 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { BrokerShell } from './components/BrokerShell';
-import { HomeRedirect, RequireRole } from './components/RouteGuards';
+import { Home, RequireRole } from './components/RouteGuards';
 import { SignOutButton } from './components/SignOutButton';
 import { ChangePolicyPage } from './pages/broker/ChangePolicyPage';
 import { HistoryPage } from './pages/broker/HistoryPage';
@@ -29,7 +29,7 @@ function Soon() {
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/" element={<Home />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
       <Route
@@ -69,7 +69,7 @@ export function App() {
         <Route path="statement" element={<LegacyRedirect page="statement" />} />
         <Route path="timeline" element={<LegacyRedirect page="timeline" />} />
       </Route>
-      <Route path="*" element={<HomeRedirect />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

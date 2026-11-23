@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { SignedInUser, SignInRequest, SignUpRequest } from './types';
+import type { PublicCoverage, SignedInUser, SignInRequest, SignUpRequest } from './types';
 
 export class ApiError extends Error {
   constructor(
@@ -34,6 +34,16 @@ export async function fetchSession(): Promise<SignedInUser | null> {
 
 export function useSession() {
   return useQuery({ queryKey: ['session'], queryFn: fetchSession, staleTime: Infinity });
+}
+
+/** The covers we offer and their annual premiums. Public: works with no session (the landing page). */
+export function usePublicCoverages() {
+  return useQuery({
+    queryKey: ['public', 'coverages'],
+    queryFn: () => api<PublicCoverage[]>('/api/public/coverages'),
+    staleTime: Infinity,
+    retry: 1,
+  });
 }
 
 export function signIn(body: SignInRequest): Promise<SignedInUser> {

@@ -51,6 +51,14 @@ export type LedgerLine = {
   stripeRefundId?: string | null;
 };
 
+/** catalog.Coverage: one cover we offer, from the public GET /api/public/coverages. No customer data. */
+export type PublicCoverage = {
+  kind: CoverKind;
+  label: string;
+  role: 'BASE' | 'ENDORSEMENT';
+  annualPremiumCents: number;
+};
+
 /** policy.PolicyViews.Coverage */
 export type Coverage = {
   id: number;

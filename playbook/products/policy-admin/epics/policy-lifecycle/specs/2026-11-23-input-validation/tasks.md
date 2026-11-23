@@ -8,7 +8,7 @@
 - [x] T1 Add failing endpoint tests for AC2–AC5: garbage date, unknown kind, blank + too-long fields, field order, and the service not being called — in BrokerIssueEndpointsTest, AddCoverageEndpointsTest, CorrectionEndpointsTest, CancellationEndpointsTest, AuthTest
 
 ## Boundary plumbing (common/)
-- [ ] T2 Add `common/LenientDate` deserializer (blank/unreadable → null)
+- [x] T2 Add `common/LenientDate` deserializer (blank/unreadable → null)
 - [ ] T3 Handle `MethodArgumentNotValidException` in `ApiErrorHandler` → same 422 body, fields in record order; share the "N things to fix" wording with `ValidationException`
 
 ## Request records (controllers only)

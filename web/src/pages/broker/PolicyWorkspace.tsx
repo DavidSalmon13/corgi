@@ -114,6 +114,23 @@ function SavedBanner({ saved, onClose }: { saved: ChangeSavedState; onClose: () 
   );
 }
 
+/** Some of a "Retry all" didn't go through: how many, out of how many sent. */
+class RetryFailed extends Error {
+  constructor(
+    readonly failed: number,
+    readonly sent: number,
+  ) {
+    super(`${failed} of ${sent} refund retries failed`);
+  }
+}
+
+function retryErrorText(e: unknown): string {
+  if (e instanceof RetryFailed && e.failed < e.sent) {
+    return `${e.sent - e.failed} of ${e.sent} retries were sent; ${e.failed} couldn't be. The list below is up to date, so try again for any still shown.`;
+  }
+  return "We couldn't send the retry. Try again in a moment.";
+}
+
 /**
  * Every refund Stripe couldn't send, in one banner: a cancellation can split its refund over several payments, and
  * one alert per payment buried the policy. Retrying sends a new attempt for each (its own idempotency key, so a
@@ -122,8 +139,15 @@ function SavedBanner({ saved, onClose }: { saved: ChangeSavedState; onClose: () 
 function FailedRefunds({ refunds, p }: { refunds: RefundView[]; p: PolicyDetail }) {
   const queryClient = useQueryClient();
   const retry = useMutation({
-    mutationFn: () =>
-      Promise.all(refunds.map((r) => api<RefundRetried>(`/api/broker/refunds/${r.id}/retry`, { method: 'POST' }))),
+    // Every retry is sent even if one fails (e.g. another tab already retried it), and the banner says how many didn't go.
+    mutationFn: async () => {
+      const results = await Promise.allSettled(
+        refunds.map((r) => api<RefundRetried>(`/api/broker/refunds/${r.id}/retry`, { method: 'POST' })),
+      );
+      const failed = results.filter((x) => x.status === 'rejected').length;
+      if (failed > 0) throw new RetryFailed(failed, results.length);
+      return results;
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['policy', String(p.policyId)] }),
   });
   const copy = failedRefundsBanner(refunds, p.transactions, p.customer.ownerName);
@@ -148,9 +172,7 @@ function FailedRefunds({ refunds, p }: { refunds: RefundView[]; p: PolicyDetail 
           </li>
         ))}
       </ul>
-      {retry.isError && (
-        <span className="text-sm font-semibold">We couldn't reach the server to retry. Try again in a moment.</span>
-      )}
+      {retry.isError && <span className="text-sm font-semibold">{retryErrorText(retry.error)}</span>}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => retry.mutate()} disabled={retry.isPending} className={`${ACTION_MAIN} disabled:opacity-60`}>
           {retry.isPending ? 'Sending…' : copy.retryLabel}

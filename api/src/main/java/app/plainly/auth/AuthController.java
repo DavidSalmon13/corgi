@@ -1,6 +1,8 @@
 package app.plainly.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +38,14 @@ class AuthController {
 
     record SignInRequest(String email, String password) {}
 
-    record SignUpRequest(String email, String password, String confirmPassword) {}
+    /**
+     * Checked before the service runs (input-validation spec): an email and a password are there. Their length, the
+     * match with confirmPassword and whether the email has a policy stay in {@link AccountService#signUp}.
+     */
+    record SignUpRequest(
+            @NotBlank(message = AccountService.NO_EMAIL) String email,
+            @NotBlank(message = AccountService.SHORT_PASSWORD) String password,
+            String confirmPassword) {}
 
     @PostMapping("/signin")
     ResponseEntity<?> signIn(@RequestBody SignInRequest body, HttpServletRequest request) {
@@ -47,7 +56,7 @@ class AuthController {
 
     /** Validation problems come back as 422 field errors through ApiErrorHandler. */
     @PostMapping("/signup")
-    ResponseEntity<SignedInUser> signUp(@RequestBody SignUpRequest body, HttpServletRequest request) {
+    ResponseEntity<SignedInUser> signUp(@Valid @RequestBody SignUpRequest body, HttpServletRequest request) {
         return startSession(accounts.signUp(body.email(), body.password(), body.confirmPassword()), request);
     }
 

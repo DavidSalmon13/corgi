@@ -259,3 +259,7 @@ On P3 a refund Stripe failed still reads "Refund on its way", and a declined car
 ## 2026-11-23: P1's way into the timeline is the "See your cover timeline" row in the cover card, not a row in More
 
 T7 planned a "Cover timeline" row in the More card. P1's design (and AC1) puts "See your cover timeline" as the last row of the "What you're covered for" card instead, directly above More, so a second row in More would have repeated the same link one card lower. The bars themselves also open P2 on tap; they are left out of the tab order so keyboard and screen-reader users meet the link once, as the row.
+
+## 2026-11-23: The cover timeline takes its money from the statement, and counts only lines still in force
+
+P2 is not a second calculation. `TimelineService` has no repository and no SQL: it reads the policy from `PolicyService` and the statement from `StatementService`, so every amount on the timeline is a statement row to the cent, and its "how we got this" drawer is that row's. A cover's "Charged by the day" is the sum of its CHARGE and CREDIT rows that are settled (not pending) and not undone. An undone line and its undo cancel out, so the corrected line is what counts. A cancellation credit is subtracted, so a cancelled cover shows what was kept. Rows are matched to a cover by the ledger line's own `coverage_id` (from `PolicyService`'s ledger view), not by comparing dates, so `Statement.Row` needed no new field. Payments and refunds are left out: they move money but don't change what the cover cost.

@@ -38,7 +38,7 @@
   - StatementPage scrolls to #correction-PTX-… and opens that card.
 
 ## Docs
-- [ ] T8 DECISIONS.md: the timeline reuses StatementService for its money (one calculation), and "charged by the day" counts only in-force settled lines.
+- [x] T8 DECISIONS.md: the timeline reuses StatementService for its money (one calculation), and "charged by the day" counts only in-force settled lines.
 
 ## Verification
 - [ ] T9 Run both suites with coverage on the changed files (testing skill)

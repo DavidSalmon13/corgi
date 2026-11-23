@@ -13,6 +13,12 @@ export type TimelineCover = {
   to: IsoDate;
   /** Written inside the bar on the full timeline, e.g. "from Oct 8 · was Oct 15" after a correction. */
   barLabel?: string;
+  /** `select` only: where the cover started before a correction, drawn as a dashed outline above its band. */
+  ghostFrom?: IsoDate;
+  /** `select` only: the caption inside that outline, e.g. "Before the fix: from Oct 15". */
+  ghostLabel?: string;
+  /** `select` only: what a screen reader says for the band's button, e.g. "Extra cover, Oct 8, 2026 to Sep 1, 2027". */
+  accessibleLabel?: string;
 };
 
 type Props = {
@@ -22,9 +28,16 @@ type Props = {
   covers: TimelineCover[];
   /** Cover stops on this date; the rest of the period is hatched. */
   cancelledFrom?: IsoDate;
-  /** `full` is the broker workspace (B3); `compact` is the policyholder home (P1). */
-  variant?: 'full' | 'compact';
+  /** `full` is the broker workspace (B3); `compact` is the policyholder home (P1); `select` is P2, with tappable bands. */
+  variant?: 'full' | 'compact' | 'select';
+  /** `select` only: the band drawn as chosen. */
+  selectedId?: number | string;
+  /** `select` only: called when a band is tapped or chosen with Enter or Space. */
+  onSelect?: (id: number | string) => void;
 };
+
+/** The ring around the chosen band, as in P2. */
+const RING = '0 0 0 3px var(--pl-card), 0 0 0 5px var(--pl-ink)';
 
 const HATCH = { backgroundImage: 'repeating-linear-gradient(135deg, var(--pl-line) 0 2px, transparent 2px 7px)' };
 
@@ -52,13 +65,92 @@ function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate })
  * One bar per cover across the cover period, with a marker for today. On a cancelled policy each bar stops on the
  * cancel day and the unused days after it are striped.
  */
-export function CoverTimeline({ start, end, today, covers: given, cancelledFrom, variant = 'full' }: Props) {
+export function CoverTimeline({
+  start,
+  end,
+  today,
+  covers: given,
+  cancelledFrom,
+  variant = 'full',
+  selectedId,
+  onSelect,
+}: Props) {
   const covers = cancelledFrom
     ? given.map((c) => ({ ...c, to: c.to > cancelledFrom ? cancelledFrom : c.to, from: c.from > cancelledFrom ? cancelledFrom : c.from }))
     : given;
   const todayPct = positionPct(start, end, today);
   const showToday = today >= start && today <= end;
   const hatchLeft = cancelledFrom ? positionPct(start, end, cancelledFrom) : null;
+
+  if (variant === 'select') {
+    return (
+      <div>
+        <div className="mb-2 flex justify-between text-[13px] font-semibold tabular-nums">
+          <span>{formatDate(start)}</span>
+          <span>{formatDate(end)}</span>
+        </div>
+        <div aria-hidden="true" className="relative h-[18px]">
+          {monthTicks(start, end).map((t, i) => (
+            <span key={`${t.label}-${i}`} className="absolute top-0 -translate-x-px text-xs text-ink-2" style={{ left: pct(t.pct) }}>
+              {t.label.charAt(0)}
+            </span>
+          ))}
+        </div>
+        <div className="relative flex flex-col gap-2.5 pt-1.5 pb-1">
+          {covers.map((c) => {
+            const s = spanPct(start, end, c.from, c.to);
+            const ghost = c.ghostFrom ? spanPct(start, end, c.ghostFrom, given.find((g) => g.id === c.id)?.to ?? end) : null;
+            const chosen = c.id === selectedId;
+            return (
+              <div key={c.id} className="contents">
+                {ghost && (
+                  <div aria-hidden="true" className="relative h-[22px]">
+                    <div
+                      className="absolute inset-y-0 rounded-lg border-[1.5px] border-dashed border-ink-2 opacity-70"
+                      style={{ left: pct(ghost.left), width: pct(ghost.width) }}
+                    />
+                    <span className="absolute top-0.5 text-xs text-ink-2" style={{ left: `calc(${pct(ghost.left)} + 8px)` }}>
+                      {c.ghostLabel}
+                    </span>
+                  </div>
+                )}
+                <div className="relative h-11 rounded-[10px] bg-track">
+                  {hatchLeft != null && (
+                    <div aria-hidden="true" className="absolute inset-y-0 right-0 rounded-r-[10px]" style={{ left: pct(hatchLeft), ...HATCH }} />
+                  )}
+                  <button
+                    type="button"
+                    aria-pressed={chosen}
+                    aria-label={c.accessibleLabel}
+                    onClick={() => onSelect?.(c.id)}
+                    className={`absolute inset-y-0 flex cursor-pointer items-center overflow-hidden whitespace-nowrap rounded-[10px] px-2.5 text-left text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink ${
+                      c.kind === 'BASE' ? 'bg-cover-base text-bg' : 'bg-accent text-on-accent'
+                    }`}
+                    style={{ left: pct(s.left), width: pct(s.width), boxShadow: chosen ? RING : 'none' }}
+                  >
+                    {c.label}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {showToday && (
+            <div aria-hidden="true" className="absolute -top-1 -bottom-1 w-0.5 rounded-sm bg-ink" style={{ left: pct(todayPct) }} />
+          )}
+        </div>
+        {showToday && (
+          <div className="relative h-[34px]">
+            <span
+              className="absolute top-1.5 -translate-x-1/2 whitespace-nowrap text-[13px] font-bold"
+              style={{ left: pct(Math.min(85, Math.max(15, todayPct))) }}
+            >
+              Today, {formatShortDate(today)}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (variant === 'compact') {
     return (

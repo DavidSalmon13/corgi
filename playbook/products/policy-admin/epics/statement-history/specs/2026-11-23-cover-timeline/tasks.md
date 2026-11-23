@@ -21,7 +21,7 @@
   - "Charged by the day";
   - the cancelled end;
   - the striped note.
-- [ ] T5 CoverTimeline variant 'select':
+- [x] T5 CoverTimeline variant 'select':
   - band buttons with selectedId/onSelect and aria-pressed;
   - a ghost row for previousStart;
   - the hatch after cancellation;

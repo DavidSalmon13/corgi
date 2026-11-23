@@ -209,9 +209,14 @@ export function PolicyWorkspace() {
       </section>
 
       <section aria-labelledby="timeline-h" className={CARD}>
-        <h2 id="timeline-h" className="m-0 mb-2.5 text-lg font-bold">
-          Cover timeline
-        </h2>
+        <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="timeline-h" className="m-0 text-lg font-bold">
+            Cover timeline
+          </h2>
+          <Link to={`/broker/policies/${p.policyId}/history`} className="text-[15px] font-semibold">
+            History ›
+          </Link>
+        </div>
         <CoverTimeline
           start={p.start}
           end={p.end}

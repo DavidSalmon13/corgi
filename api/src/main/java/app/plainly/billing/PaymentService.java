@@ -51,9 +51,12 @@ public class PaymentService {
     /** A payment as P1 shows it. */
     public record PaymentSummary(String status, long amountCents, String cardLast4, Instant createdAt) {}
 
-    /** A payment sent to the bank, as the statement traces it: our id, Stripe's intent, the card and where it stands. */
+    /**
+     * A payment sent to the bank, as the statement traces it: our id, Stripe's intent, the card and where it stands;
+     * {@code failureReason} is the bank's words when it said no, else null.
+     */
     public record Sent(String displayId, String intentId, String status, long amountCents, String cardLast4,
-            Instant createdAt) {}
+            Instant createdAt, String failureReason) {}
 
     /**
      * Opens (or reopens) a payment for the balance due. The policy row is locked so two tabs can't open two

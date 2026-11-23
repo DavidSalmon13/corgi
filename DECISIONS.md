@@ -235,3 +235,19 @@ The tech plan had a separate request per ledger line for its explanation. Instea
 ## 2026-11-22: Money on its way is on the statement but outside the balance
 
 A card payment still with the bank and a refund Stripe hasn't confirmed both appear as statement rows ("Waiting for your bank", "Refund on its way"), so the customer sees the money they've sent or are owed. But they don't change the running balance, because they aren't on the ledger: a payment is posted only when Stripe's webhook says it succeeded, and a refund only when Stripe says it was sent. The running balance therefore always ends at the ledger balance to the cent, and a payment that then fails never has to be taken back off the statement. Each pending row's drawer shows the balance before → after it would make once confirmed, and says it isn't counted yet.
+
+## 2026-11-23: B5 payment and refund cards also carry their own ID in the title
+
+The B5 design titles a payment "Payment, card ending 4242" with no ID. History's titles add the payment's or refund's own ID ("Payment, card ending 4242 · PAY-0001", "Refund failed, card ending 4242 · RF-0001"), the same way change cards end with their PTX-…, because the broker uses History to quote IDs to support and a payment's PAY-… is otherwise on no reference list. The detail line shows the Stripe refs in full (pi_…, re_…, evt_…) rather than the design's truncated "pi_3Q…", so they can be copied into Stripe.
+
+## 2026-11-23: On B5, a correction's net isn't a button; its two line amounts are
+
+"How we got this" explains one ledger line, and a correction card's "+$14.00 net" is the sum of two (the undo and the corrected line). So on a card with one line the headline amount opens that line's drawer, while on a correction the "−$642.00" and "+$656.00" inside the detail sentence are the buttons, as are the LE-… chips. The net is explained by the sentence it sits above, and every number in it opens its own line.
+
+## 2026-11-23: The broker's history groups the statement's rows on the server
+
+B5 History is not a second calculation. `HistoryService` takes the rows and traces `StatementService` already builds for the policyholder and groups them by the action behind each one: the change (PTX-…), the payment (PAY-…) or the refund (RF-…). A card's amount is the sum of its rows, so the broker and the policyholder can't see different numbers, and the settled cards add up to the ledger balance to the cent. Grouping happens on the server so the web page only lays the cards out; the per-card words live in `historyCopy.ts`, which is unit-tested.
+
+## 2026-11-23: The broker sees the real state of money that went wrong; the policyholder's wording stays soft
+
+On P3 a refund Stripe failed still reads "Refund on its way", and a declined card reads "Didn't go through", because the customer can't act on Stripe's internals and the broker is already retrying. The broker can act, so B5 says "Refund failed" with Stripe's failure reason and a link to retry on B3, and shows the decline reason Stripe gave (read from `payments.failure_reason` through `PaymentRepository`). The "How we got this" drawer stays the same for both roles apart from the voice: same maths, cause and references, about "the customer" instead of "you".

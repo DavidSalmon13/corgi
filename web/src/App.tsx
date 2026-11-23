@@ -3,6 +3,7 @@ import { BrokerShell } from './components/BrokerShell';
 import { HomeRedirect, RequireRole } from './components/RouteGuards';
 import { SignOutButton } from './components/SignOutButton';
 import { ChangePolicyPage } from './pages/broker/ChangePolicyPage';
+import { HistoryPage } from './pages/broker/HistoryPage';
 import { NewPolicyPage } from './pages/broker/NewPolicyPage';
 import { PoliciesPage } from './pages/broker/PoliciesPage';
 import { PolicyWorkspace } from './pages/broker/PolicyWorkspace';
@@ -41,6 +42,7 @@ export function App() {
         <Route path="policies/new" element={<NewPolicyPage />} />
         <Route path="policies/:id" element={<PolicyWorkspace />} />
         <Route path="policies/:id/change" element={<ChangePolicyPage />} />
+        <Route path="policies/:id/history" element={<HistoryPage />} />
         <Route path="*" element={<Soon />} />
       </Route>
       <Route

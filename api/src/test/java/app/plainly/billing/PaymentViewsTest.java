@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import app.plainly.AuthTestSupport;
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.PaymentTestData;
 import app.plainly.PaymentTestData.Owner;
 import app.plainly.PaymentTestData.Started;
@@ -50,7 +51,7 @@ class PaymentViewsTest {
     void beforePayingTheOwnerSeesWhatsDueAndThatPaymentsAreOn() throws Exception {
         Owner owner = owner("Before Paying Bakery LLC");
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(BASE_DUE_CENTS))
                 .andExpect(jsonPath("$.paymentsEnabled").value(true))
                 .andExpect(jsonPath("$.payment").doesNotExist());
@@ -61,7 +62,7 @@ class PaymentViewsTest {
         Owner owner = owner("Unsubmitted Bakery LLC");
         PaymentTestData.startPayment(mvc, jdbc, owner);
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.payment").doesNotExist());
     }
 
@@ -71,7 +72,7 @@ class PaymentViewsTest {
         Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
         deliver(StripeTestSupport.intentProcessing(StripeTestSupport.newEventId(), p.intentId(), p.amountCents()));
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(BASE_DUE_CENTS))
                 .andExpect(jsonPath("$.payment.status").value("PROCESSING"))
                 .andExpect(jsonPath("$.payment.amountCents").value(BASE_DUE_CENTS));
@@ -83,7 +84,7 @@ class PaymentViewsTest {
         Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
         deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "0002", "Your card was declined."));
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(BASE_DUE_CENTS))
                 .andExpect(jsonPath("$.payment.status").value("FAILED"))
                 .andExpect(jsonPath("$.payment.cardLast4").value("0002"));
@@ -113,7 +114,7 @@ class PaymentViewsTest {
         Started p = PaymentTestData.startPayment(mvc, jdbc, owner);
         deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "4242", "pm_v"));
 
-        mvc.perform(get("/api/me/cover").cookie(owner.session()))
+        mvc.perform(get(MePaths.cover(owner.policyId())).cookie(owner.session()))
                 .andExpect(jsonPath("$.amountDueCents").value(0))
                 .andExpect(jsonPath("$.dueReason").value("NOTHING_DUE"))
                 .andExpect(jsonPath("$.payment.status").value("SUCCEEDED"))

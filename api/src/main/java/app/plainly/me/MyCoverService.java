@@ -4,7 +4,6 @@ import app.plainly.auth.SignedInUser;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.RefundListing;
 import app.plainly.billing.StripeGateway;
-import app.plainly.common.NotFoundException;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerLine;
 import app.plainly.policy.CancelPolicyPlan;
@@ -27,11 +26,14 @@ import org.springframework.stereotype.Service;
 public class MyCoverService {
 
     private final PolicyService policies;
+    private final MyPoliciesService myPolicies;
     private final PaymentService payments;
     private final StripeGateway stripe;
 
-    public MyCoverService(PolicyService policies, PaymentService payments, StripeGateway stripe) {
+    public MyCoverService(PolicyService policies, MyPoliciesService myPolicies, PaymentService payments,
+            StripeGateway stripe) {
         this.policies = policies;
+        this.myPolicies = myPolicies;
         this.payments = payments;
         this.stripe = stripe;
     }
@@ -113,9 +115,9 @@ public class MyCoverService {
             /** False when Stripe isn't set up, so the pay button can say so instead of opening the card form. */
             boolean paymentsEnabled) {}
 
-    public MyCover cover(SignedInUser me) {
-        PolicyViews.Detail p = policies.latestForCustomer(me.customerId())
-                .orElseThrow(() -> new NotFoundException("You don't have a policy yet."));
+    /** P1 for one of the signed-in owner's policies; 404 when it isn't theirs (AC9). */
+    public MyCover cover(SignedInUser me, long policyId) {
+        PolicyViews.Detail p = policies.detail(myPolicies.ownedPolicy(me, policyId));
         long due = Math.max(0, p.balanceCents());
         PolicyViews.Transaction latest = p.transactions().isEmpty() ? null : p.transactions().getLast();
         boolean onlyIssued = p.transactions().stream().allMatch(t -> t.type().equals("ISSUE"));
@@ -187,7 +189,8 @@ public class MyCoverService {
      * retries it and the customer is still owed the money (B3 design: "Maya still sees 'We owe you $14.00' until it
      * goes through"). A refund split across cards names the card that gets the most.
      */
-    private static RefundWaiting refundWaiting(List<RefundListing> refunds) {
+    /** Refunds not yet settled, added up, and the card most of it goes back to; null when none is pending. */
+    static RefundWaiting refundWaiting(List<RefundListing> refunds) {
         List<RefundListing> pending = refunds.stream().filter(r -> !"SUCCEEDED".equals(r.status())).toList();
         if (pending.isEmpty()) {
             return null;

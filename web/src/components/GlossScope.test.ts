@@ -56,8 +56,17 @@ describe('GlossRegistry: only the first mention of a term on screen carries the 
     const phoneList = el(2);
     r.add('endorsement', hiddenTable);
     r.add('endorsement', phoneList);
-    expect(r.isFirst('endorsement', hiddenTable)).toBe(false);
     expect(r.isFirst('endorsement', phoneList)).toBe(true);
+  });
+
+  it('keeps document order inside a closed dialog, so its first mention is already marked when it opens', () => {
+    const r = new GlossRegistry();
+    const first = el(1, true);
+    const second = el(2, true);
+    r.add('returnPremium', first);
+    r.add('returnPremium', second);
+    expect(r.isFirst('returnPremium', first)).toBe(true);
+    expect(r.isFirst('returnPremium', second)).toBe(false);
   });
 
   it('tells every mention to re-check on refresh, so a resize can move the mark', () => {

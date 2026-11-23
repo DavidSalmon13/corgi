@@ -5,8 +5,8 @@ import { createContext, useEffect, useState, type ReactNode } from 'react';
  * explanation; the first one in document order shows the mark and the rest stay plain (still tappable, with the same
  * explanation). A whole page shares one scope, and a dialog opens its own, since the page behind it is inert.
  *
- * Only mentions the user can see compete: one under `display: none` (the ledger's desktop table on a phone, its phone
- * list on a desktop) neither takes the mark nor blocks it, and the scope re-checks when the window is resized.
+ * A shown mention ignores copies under `display: none` (the ledger's desktop table on a phone, its phone list on a
+ * desktop), and the scope re-checks when the window is resized, since that switches which layout is shown.
  */
 export class GlossRegistry {
   private readonly terms = new Map<string, Set<HTMLElement>>();
@@ -30,13 +30,18 @@ export class GlossRegistry {
     this.emit();
   }
 
-  /** True when `el` is shown and is the first shown occurrence of `key` in the document. */
+  /**
+   * True when `el` is the first mention of `key`. A shown mention ignores hidden ones, so it isn't robbed by a copy
+   * under `display: none`. A hidden mention just goes by document order: its mark can't be seen, and a whole hidden
+   * group (a closed `<dialog>`, which has its own scope) keeps the right answer when it opens, with no re-check needed.
+   */
   isFirst(key: string, el: HTMLElement): boolean {
-    if (!shown(el)) return false;
     const set = this.terms.get(key);
     if (!set) return true;
+    const elShown = shown(el);
     for (const other of set) {
-      if (other !== el && shown(other) && other.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) return false;
+      if (other === el || (elShown && !shown(other))) continue;
+      if (other.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) return false;
     }
     return true;
   }

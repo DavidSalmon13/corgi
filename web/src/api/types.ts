@@ -61,6 +61,8 @@ export type Coverage = {
   to: IsoDate;
   /** When a correction replaced this cover: the start it had before. Null when it was never corrected. */
   previousStart?: IsoDate | null;
+  /** When product liability was removed: the day it stopped, at the start of that day. Null while it runs. */
+  endedOn?: IsoDate | null;
 };
 
 /** policy.IssuePlan: what issuing would charge, from POST /api/broker/policies/preview. */
@@ -118,7 +120,14 @@ export type CoverAdded = {
 /** 422 body from ApiErrorHandler. */
 export type ValidationBody = { error: 'validation'; message: string; fields: Record<string, string> };
 
-export type DueReason = 'FIRST_YEAR' | 'EXTRA_COVER' | 'CORRECTION' | 'CANCELLATION' | 'CHANGE' | 'NOTHING_DUE';
+export type DueReason =
+  | 'FIRST_YEAR'
+  | 'EXTRA_COVER'
+  | 'CORRECTION'
+  | 'CANCELLATION'
+  | 'COVER_REMOVED'
+  | 'CHANGE'
+  | 'NOTHING_DUE';
 
 /** me.MyCoverController.MyCover, from GET /api/me/cover. */
 export type MyCover = {
@@ -295,7 +304,7 @@ export type CancelCredit = {
 };
 
 /** The policy change that left money owing before the cancellation. */
-export type KeptBackFor = 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT';
+export type KeptBackFor = 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'REMOVE_COVERAGE';
 
 /** policy.CancelPolicyPlan: the credits, what they pay off, and any refund, before anything is saved. */
 export type CancelPlan = {
@@ -328,6 +337,43 @@ export type Cancelled = {
   cancelDate: IsoDate;
   transactionDisplayId: string;
   creditDisplayIds: string[];
+  balanceCents: number;
+  refundTotalCents: number;
+  refunds: { displayId: string; paymentId: number; amountCents: number }[];
+};
+
+export type RemoveCoverRequest = { endDate: string; reason: string };
+
+/**
+ * policy.RemoveCoverPlan: removing product liability, priced before anything is saved. One credit for its unused
+ * days, what that pays off, and any return premium to cards.
+ */
+export type RemoveCoverPlan = {
+  policyId: number;
+  coverageId: number;
+  endDate: IsoDate;
+  coverFrom: IsoDate;
+  policyEnd: IsoDate;
+  credit: CancelCredit;
+  /** The credit, negative. */
+  creditCents: number;
+  /** Negative: we already owed the customer. */
+  balanceBeforeCents: number;
+  keptBackCents: number;
+  keptBackFor: KeptBackFor | null;
+  balanceAfterCents: number;
+  stillOwedCents: number;
+  /** Latest payment first. */
+  refunds: PlannedRefund[];
+  refundTotalCents: number;
+};
+
+/** policy.RemoveCoverService.Removed, the 201 body. */
+export type CoverRemoved = {
+  policyId: number;
+  endDate: IsoDate;
+  transactionDisplayId: string;
+  creditDisplayId: string;
   balanceCents: number;
   refundTotalCents: number;
   refunds: { displayId: string; paymentId: number; amountCents: number }[];
@@ -373,7 +419,7 @@ export type StatementMaths = {
 
 /** What caused a row: the policy change (null type for a payment) and who made it. */
 export type StatementCause = {
-  transactionType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | string | null;
+  transactionType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | 'REMOVE_COVERAGE' | string | null;
   effectiveDate: IsoDate | null;
   recordedOn: IsoDate | null;
   actorName: string | null;
@@ -443,8 +489,8 @@ export type HistoryAction = {
   /** PTX-… for a change, PAY-… for a payment, RF-… for a refund. */
   id: string;
   kind: HistoryActionKind;
-  /** ISSUE, ADD_COVERAGE, CORRECT or CANCEL for a change; null otherwise. */
-  changeType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | string | null;
+  /** ISSUE, ADD_COVERAGE, CORRECT, CANCEL or REMOVE_COVERAGE for a change; null otherwise. */
+  changeType: 'ISSUE' | 'ADD_COVERAGE' | 'CORRECT' | 'CANCEL' | 'REMOVE_COVERAGE' | string | null;
   date: IsoDate;
   actorName: string | null;
   /** The sum of the rows (a correction's net). Positive means the customer owes more. */
@@ -486,12 +532,14 @@ export type TimelineCover = {
   /** The cover's dates before any cancellation. */
   from: IsoDate;
   to: IsoDate;
+  /** The day a removal stopped this cover (start of that day), else null. */
+  endedOn?: IsoDate | null;
   /** The start a correction replaced, else null. */
   previousStart: IsoDate | null;
   annualCents: number;
   /** Only when the yearly price divides into whole cents a day. */
   perDayCents: number | null;
-  /** From `from` to `to`, or to the cancellation day. */
+  /** From `from` to `to`, the cancellation day or `endedOn`, whichever comes first. */
   daysKept: number;
   /** The sum of `rows`: this cover's settled lines still in force on the statement. */
   chargedCents: number;

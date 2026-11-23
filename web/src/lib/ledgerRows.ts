@@ -1,6 +1,7 @@
-import type { LedgerLine } from '../api/types';
+import type { LedgerLine, PolicyTransaction } from '../api/types';
 import { formatDate } from './dates';
 import { formatCents } from './money';
+import { removalCreditTitle } from './removeCoverCopy';
 
 export type Tone = 'ink' | 'good' | 'wait' | 'bad';
 
@@ -41,17 +42,32 @@ function calculation(l: LedgerLine): { calc: string; calcTone: Tone } {
   }
 }
 
-/** Ledger lines (oldest first) to display rows. Lines from a correcting transaction are flagged together. */
-export function toLedgerRows(lines: LedgerLine[]): LedgerRow[] {
+/**
+ * A cancellation's return premium as posted. Lines posted before the standard terms read "Base cover, unused days",
+ * which still needs its "refunded". A removal's credit is named as a removal.
+ */
+function title(l: LedgerLine, removals: Set<string>): string {
+  if (l.type !== 'CREDIT') return l.description;
+  if (l.policyTransactionDisplayId && removals.has(l.policyTransactionDisplayId)) return removalCreditTitle(l.description);
+  return l.description.endsWith('unused days') ? `${l.description} refunded` : l.description;
+}
+
+/**
+ * Ledger lines (oldest first) to display rows. Lines from a correcting transaction are flagged together.
+ * {@code transactions}: the policy's changes, so a removal's credit is titled as one, not as a refund.
+ */
+export function toLedgerRows(
+  lines: LedgerLine[],
+  transactions: Pick<PolicyTransaction, 'displayId' | 'type'>[] = [],
+): LedgerRow[] {
+  const removals = new Set(transactions.filter((t) => t.type === 'REMOVE_COVERAGE').map((t) => t.displayId));
   const correctingTx = new Set(
     lines.filter((l) => l.type === 'REVERSAL' && l.policyTransactionDisplayId).map((l) => l.policyTransactionDisplayId),
   );
   return lines.map((l) => ({
     key: l.displayId,
     date: formatDate(l.entryDate),
-    // A cancellation's return premium. Lines posted before the standard terms read "Base cover, unused days", which
-    // still needs its "refunded"; newer ones ("General liability return premium") are complete as they are.
-    title: l.type === 'CREDIT' && l.description.endsWith('unused days') ? `${l.description} refunded` : l.description,
+    title: title(l, removals),
     note: l.reversedByDisplayId
       ? `Reversed by ${l.reversedByDisplayId}`
       : l.type === 'PAYMENT' && l.amountCents === 0

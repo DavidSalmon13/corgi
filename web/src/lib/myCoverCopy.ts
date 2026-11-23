@@ -15,6 +15,10 @@ export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | nul
       return 'We corrected the effective date of your product liability endorsement.';
     case 'CANCELLATION':
       return 'For the days you were covered before your policy was cancelled.';
+    case 'COVER_REMOVED':
+      return latestChangeFrom
+        ? `For the days your product liability covered, because it was removed from ${formatShortDate(latestChangeFrom)}.`
+        : 'For the days your product liability covered, because it was removed.';
     case 'CHANGE':
       return 'A mid-term change left a balance to pay.';
     case 'NOTHING_DUE':

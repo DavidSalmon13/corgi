@@ -33,9 +33,11 @@ export function timelineAnswer(term: TimelineTerm, covers: TimelineCover[]): str
   return `You’re covered for the full policy period, ${formatDate(term.start)} to ${formatDate(term.end)}.`;
 }
 
-/** "Sep 1, 2027", or "Dec 1, 2026 (cancelled)" when the policy stopped early. */
+/** "Sep 1, 2027", or "Dec 1, 2026 (cancelled)" / "(removed)" when the policy or this cover stopped early. */
 export function endsText(cover: TimelineCover, term: TimelineTerm): string {
-  if (term.cancelledOn && term.cancelledOn < cover.to) return `${formatDate(term.cancelledOn)} (cancelled)`;
+  const removedOn = cover.endedOn && cover.endedOn < cover.to ? cover.endedOn : null;
+  if (term.cancelledOn && term.cancelledOn < (removedOn ?? cover.to)) return `${formatDate(term.cancelledOn)} (cancelled)`;
+  if (removedOn) return `${formatDate(removedOn)} (removed)`;
   return formatDate(cover.to);
 }
 
@@ -45,10 +47,10 @@ export function priceText(cover: TimelineCover): string {
   return cover.perDayCents == null ? year : `${year} (${formatCents(cover.perDayCents)} a day)`;
 }
 
-/** "328 days · $656.00", or "91 days kept · $299.18" after a cancellation. */
+/** "328 days · $656.00", or "91 days kept · $299.18" after a cancellation or a removal. */
 export function chargedText(cover: TimelineCover, term: TimelineTerm): string {
   const days = `${cover.daysKept} ${cover.daysKept === 1 ? 'day' : 'days'}`;
-  return `${days}${term.cancelledOn ? ' kept' : ''} · ${formatCents(cover.chargedCents)}`;
+  return `${days}${term.cancelledOn || cover.endedOn ? ' kept' : ''} · ${formatCents(cover.chargedCents)}`;
 }
 
 /** The caption under the "today" line. */

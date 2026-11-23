@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { GlossContext } from './GlossScope';
 
 type Props = {
   /** The plain-language explanation, e.g. "The dates your policy runs." */
@@ -7,14 +8,32 @@ type Props = {
 };
 
 /**
- * An insurance word with its meaning one tap away. A small "?" after the word marks it; hover shows the native
- * title on desktop, and a tap, Enter or Space opens a small bubble so it works on phones and keyboards too.
- * The explanation usually comes from `GLOSSARY` (lib/glossary.ts).
+ * An insurance word with its meaning one tap away. A small "?" after the word marks its first mention on the page
+ * (see `GlossScope`); later mentions keep the same explanation on hover and tap, without the mark, so a page isn't
+ * peppered with "?". Hover shows the native title on desktop, and a tap, Enter or Space opens a small bubble so it
+ * works on phones and keyboards too. The explanation usually comes from `GLOSSARY` (lib/glossary.ts).
  */
 export function Term({ explain, children }: Props) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const ref = useRef<HTMLSpanElement>(null);
+  const scope = useContext(GlossContext);
+  // Outside a scope (tests, stray renders) every mention is marked, as before.
+  const [marked, setMarked] = useState(true);
+
+  // Layout effect, so a repeat mention drops its "?" before the first paint instead of flickering.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!scope || !el) return;
+    const update = () => setMarked(scope.isFirst(explain, el));
+    const unsubscribe = scope.subscribe(update);
+    scope.add(explain, el);
+    update();
+    return () => {
+      unsubscribe();
+      scope.remove(explain, el);
+    };
+  }, [scope, explain]);
 
   useEffect(() => {
     if (!open) return;
@@ -35,7 +54,8 @@ export function Term({ explain, children }: Props) {
     <span ref={ref} className="relative inline">
       <abbr
         title={explain}
-        tabIndex={0}
+        // The first mention is the keyboard stop; repeats still open on click or tap.
+        tabIndex={marked ? 0 : -1}
         role="button"
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
@@ -52,15 +72,17 @@ export function Term({ explain, children }: Props) {
             setOpen((o) => !o);
           }
         }}
-        className="cursor-help no-underline"
+        className={`cursor-help no-underline ${marked ? 'whitespace-nowrap' : ''}`}
       >
         {children}
+        {marked && (
         <span
           aria-hidden="true"
           className="ml-[0.25em] inline-flex h-[1.15em] w-[1.15em] items-center justify-center rounded-full border border-line bg-bg align-[0.12em] text-[0.68em] font-bold leading-none text-ink-2"
         >
           ?
         </span>
+        )}
       </abbr>
       {open && (
         <span

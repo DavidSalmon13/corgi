@@ -73,12 +73,12 @@ function howFar(days: number): string {
   return `${days} ${days === 1 ? 'day' : 'days'}`;
 }
 
-/** "On Nov 5 we moved your product liability endorsement's effective date a week earlier, from Oct 15 to Oct 8." */
+/** "On Nov 5 we moved the effective date of your product liability endorsement a week earlier, from Oct 15 to Oct 8." */
 export function correctionSentence(c: StatementCorrection, kind: CoverKind): string {
   const which = kind === 'BASE' ? 'general liability' : 'product liability endorsement';
   const direction = c.dayDelta >= 0 ? 'earlier' : 'later';
   return (
-    `On ${formatShortDate(c.recordedOn)} we moved your ${which}’s effective date ${howFar(Math.abs(c.dayDelta))} ${direction}, ` +
+    `On ${formatShortDate(c.recordedOn)} we moved the effective date of your ${which} ${howFar(Math.abs(c.dayDelta))} ${direction}, ` +
     `from ${formatShortDate(c.oldStart)} to ${formatShortDate(c.newStart)}.`
   );
 }

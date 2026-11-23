@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { GlossScope } from '../../components/GlossScope';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../../api/client';
@@ -326,7 +327,7 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
                 <Glossed>{`${previewProblem} We'll show what changes here, before anything is saved.`}</Glossed>
               ) : (
                 <Glossed>
-                  {"Pick the endorsement's real effective date and we'll show what changes here, before anything is saved."}
+                  {"Pick the real effective date of the endorsement and we'll show what changes here, before anything is saved."}
                 </Glossed>
               )}
             </p>
@@ -348,38 +349,40 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
         onClose={() => setConfirming(false)}
         className="m-auto w-[calc(100%-32px)] max-w-[480px] rounded-2xl bg-card p-6 text-ink shadow-[0_20px_50px_rgba(0,0,0,.25)] backdrop:bg-[rgba(21,24,31,.45)] md:p-7"
       >
-        {plan && summary && (
-          <div className="flex flex-col gap-4">
-            <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
-              Save this correction?
-            </h2>
-            <p className="m-0 text-base leading-normal">
-              <Glossed>{summary.sentence}</Glossed>
-            </p>
-            <div className="rounded-control bg-bg px-3.5 py-3 text-[15px] leading-relaxed text-ink-2 tabular-nums">
-              {summary.amounts.split(' · ').map((part, i) => (
-                <span key={part}>
-                  {i > 0 && ' · '}
-                  <span className="whitespace-nowrap">
-                    <Glossed>{part}</Glossed>
+        <GlossScope>
+          {plan && summary && (
+            <div className="flex flex-col gap-4">
+              <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
+                Save this correction?
+              </h2>
+              <p className="m-0 text-base leading-normal">
+                <Glossed>{summary.sentence}</Glossed>
+              </p>
+              <div className="rounded-control bg-bg px-3.5 py-3 text-[15px] leading-relaxed text-ink-2 tabular-nums">
+                {summary.amounts.split(' · ').map((part, i) => (
+                  <span key={part}>
+                    {i > 0 && ' · '}
+                    <span className="whitespace-nowrap">
+                      <Glossed>{part}</Glossed>
+                    </span>
                   </span>
-                </span>
-              ))}
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                <button type="button" onClick={() => save.mutate()} disabled={save.isPending} className={BTN}>
+                  {save.isPending
+                    ? 'Saving…'
+                    : plan.refundTotalCents > 0
+                      ? `Yes, save and refund ${formatCents(plan.refundTotalCents)}`
+                      : `Yes, save and tell ${who ?? 'the customer'}`}
+                </button>
+                <button type="button" onClick={() => setConfirming(false)} className={BTN2}>
+                  Go back
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => save.mutate()} disabled={save.isPending} className={BTN}>
-                {save.isPending
-                  ? 'Saving…'
-                  : plan.refundTotalCents > 0
-                    ? `Yes, save and refund ${formatCents(plan.refundTotalCents)}`
-                    : `Yes, save and tell ${who ?? 'the customer'}`}
-              </button>
-              <button type="button" onClick={() => setConfirming(false)} className={BTN2}>
-                Go back
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </GlossScope>
       </dialog>
     </>
   );

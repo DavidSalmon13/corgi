@@ -126,16 +126,16 @@ describe('the timeline drawing', () => {
 describe('correctionSentence', () => {
   it('says when and how far the start moved, in words', () => {
     expect(correctionSentence(CORRECTION, 'PRODUCT_LIABILITY')).toBe(
-      'On Nov 5 we moved your product liability endorsement’s effective date a week earlier, from Oct 15 to Oct 8.',
+      'On Nov 5 we moved the effective date of your product liability endorsement a week earlier, from Oct 15 to Oct 8.',
     );
   });
 
   it('counts days when it is not a week, and says later when cover starts later', () => {
     expect(correctionSentence({ ...CORRECTION, oldStart: '2026-10-08', newStart: '2026-10-22', dayDelta: -14 }, 'PRODUCT_LIABILITY')).toBe(
-      'On Nov 5 we moved your product liability endorsement’s effective date 14 days later, from Oct 8 to Oct 22.',
+      'On Nov 5 we moved the effective date of your product liability endorsement 14 days later, from Oct 8 to Oct 22.',
     );
     expect(correctionSentence({ ...CORRECTION, newStart: '2026-10-14', dayDelta: 1 }, 'BASE')).toBe(
-      'On Nov 5 we moved your general liability’s effective date 1 day earlier, from Oct 15 to Oct 14.',
+      'On Nov 5 we moved the effective date of your general liability 1 day earlier, from Oct 15 to Oct 14.',
     );
   });
 

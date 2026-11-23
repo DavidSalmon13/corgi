@@ -16,7 +16,7 @@ export const HERO_LEAD =
 export const PREVIEW = {
   label: 'Your cover · Juniper & Rye Bakery',
   owe: '$14.00',
-  why: "Your broker moved your product liability endorsement's start a week earlier.",
+  why: 'Your broker moved the start of your product liability endorsement a week earlier.',
   how: 'How we got this: 7 days × $2.00',
 } as const;
 

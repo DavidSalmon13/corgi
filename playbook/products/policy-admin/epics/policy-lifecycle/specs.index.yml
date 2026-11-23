@@ -81,3 +81,14 @@ specs:
       - web/src/pages/SignIn.tsx
       - web/src/pages/SignUp.tsx
       - web/src/api/client.ts
+  - folder: 2026-11-23-remove-cover
+    slug: remove-cover
+    status: shaped
+    branch: feat/policy-lifecycle/remove-cover
+    covers:
+      - /api/broker/policies/{id}/cover-removal
+      - /api/broker/policies/{id}/cover-removal/preview
+      - api/src/main/java/**/policy/RemoveCover*.java
+      - api/src/main/resources/db/migration/V12__cover_removal.sql
+      - web/src/pages/broker/RemoveCoverForm.tsx
+      - web/src/lib/removeCoverCopy.ts

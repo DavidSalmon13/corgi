@@ -19,15 +19,12 @@ Every demo account uses the password `plainly-demo-2026` (a test credential for 
 | Role | Email | Who |
 |---|---|---|
 | Broker | `sam@plainly.test` | Sam Reyes, who issues and manages policies |
-| Policyholder | `maya@juniperandrye.test` | Maya Okafor, owner of Juniper & Rye Bakery LLC, with a policy Sam issued |
 | Policyholder | `tomas@herreracycle.test` | Tomás Herrera, Herrera Cycle Works LLC: a mid-term endorsement adding product liability |
 | Policyholder | `priya@saffronlane.test` | Priya Raman, Saffron Lane Candle Co.: an endorsement whose effective date was corrected (reversal and rebill) |
 | Policyholder | `lena@kowalskiprint.test` | Lena Kowalski, Kowalski Print Studio: a cancelled policy with a pro-rata return premium |
 | Policyholder | `daniel@achebetailoring.test` | Daniel Achebe, Achebe Tailoring: a cancelled policy and its rewrite, so two policies |
 
-Sam's list also has two owners who haven't signed up yet: Brightside Dog Grooming LLC (product liability removed mid-term, with a return premium) and Marigold Tea House (a policy starting in two weeks). Their emails, `owen@brightsidegrooming.test` and `grace@marigoldtea.test`, can be used to try **Create your account**. Seed dates are counted back from the day the API first starts on a database, and no payments are seeded: every payment must trace to a Stripe event, so pay with a [test card](#paying-with-stripe-test-mode) to see one.
-
-To try the owner's first visit: sign in as Sam, create a customer with any email, sign out, then choose **Create your account** on the sign-in page and use that email. Owners can't sign up until their broker has entered their email ([why](DECISIONS.md)).
+No payments are seeded: every payment must trace to a real Stripe test event. Owners can't sign up until their broker has entered their email ([why](DECISIONS.md)).
 
 Sign-in is real: BCrypt password hashes and server-side sessions. What's simplified is that sign-up has no email confirmation, there's no password reset or rate limiting, and the demo broker login above works on every deploy. See `DECISIONS.md`.
 
@@ -43,7 +40,7 @@ Simulated or simplified on purpose:
 - **Email recipients.** The content, timing and once-only rule are real; only the address is swapped for the test inbox. Going live means verifying a domain ([why](DECISIONS.md)).
 - **Pricing.** There's no rating engine or carrier. General liability is a flat $1,200.00 a year and product liability $730.00 a year ($2.00 a day), so every pro-rata amount can be checked by hand.
 - **Sign-up** has no email confirmation, and the demo broker's password is public on every deploy, which is acceptable only because all data is fictional.
-- **Demo data.** The seeded customers' policies and changes are made through the real services, but no payments are seeded: a payment must come from a real Stripe test event, so pay with a [test card](#paying-with-stripe-test-mode).
+- **Demo data.** The seeded customers' policies and changes are made through the real services, but no payments are seeded: a payment must come from a real Stripe test event.
 
 ## What's simplified, and what I'd build next
 
@@ -99,7 +96,8 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
      --events payment_intent.processing,payment_intent.payment_failed,payment_intent.canceled,charge.succeeded,charge.failed,refund.created,refund.updated,refund.failed \
      --forward-to localhost:8080/api/stripe/webhook
    ```
-4. Sign in as Maya (her first year is due), choose **Pay**, and use a [Stripe test card](https://docs.stripe.com/testing) with any future expiry and any CVC:
+
+Test cards ([Stripe docs](https://docs.stripe.com/testing)), with any future expiry and any CVC:
 
 | Card number | What happens |
 |---|---|
@@ -107,29 +105,3 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
 | `4000 0000 0000 0002` | Declined: "Didn't go through", and a $0.00 attempt on the ledger. |
 
 Payments switch on only when all three `STRIPE_*` values are set and the keys are test-mode keys (`sk_test_…`, `pk_test_…`). Without them the app still runs, and the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.succeeded`, `charge.failed`, `refund.created`, `refund.updated`, `refund.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.
-
-## Demo: remove product liability mid-term
-
-A mid-term endorsement that takes product liability off a policy from a chosen day. It needs Stripe set up as above, with `stripe listen` running, because the return premium goes back to the card and is marked settled only by Stripe's signed webhook.
-
-1. **Issue with product liability.** Sign in as Sam, choose **New customer and policy**, and enter a fictional business with an owner email you'll use in step 5 (say `lena@northwindprint.test`). Set the start date to **Sep 1, 2026** and check **Product liability**. The policy period is Sep 1, 2026 → Sep 1, 2027 (365 days): $1,200.00 general liability plus $730.00 product liability, $1,930.00 due.
-2. **Pay.** Sign out, choose **Create your account** with that email, then **Pay** the $1,930.00 with card `4242 4242 4242 4242`. Once the webhook arrives, the balance is $0.00.
-3. **Remove from Dec 1.** Sign in as Sam, open the policy (B3) and choose **Remove product liability**. B4 opens on the **Remove** tab. Pick **Dec 1, 2026** as the effective date and give a reason, such as "Stopped selling bottled sauces." Before anything is saved, the preview shows:
-   - Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00 (274 unused days, pro-rata, no short-rate penalty)
-   - Return premium to card ending 4242 · Sent through Stripe when you confirm · $548.00
-   - the sentence the customer will see, with your reason word for word
-4. **Confirm.** Choose **Remove product liability and refund $548.00**, then confirm. B3 shows the endorsement and credit ids, the product liability bar stops on Dec 1 with the rest striped, and the ledger has one CREDIT of −$548.00. **How we got this** names the REMOVE_COVERAGE transaction. A few seconds later Stripe's `refund.updated` webhook posts the REFUND line, and the refund shows as sent. Add endorsement, Correct and Remove now each say product liability was removed on Dec 1, 2026.
-5. **The customer's view.** Sign in as the owner. P1 says product liability ends on Dec 1, 2026, shows your note, and says $548.00 is on its way to the card ending 4242 (then that it was refunded). P2's product liability bar ends on Dec 1, and P3 lists "Product liability removed, return premium", with the arithmetic in its **How we got this** drawer. With Resend set up, the refund receipt email gives the removal as the reason.
-
-If the policy is cancelled later, the cancellation credits product liability only up to Dec 1, so no day is credited twice ([why](DECISIONS.md)).
-
-## Demo: rewrite a policy issued with the wrong start date
-
-A bound policy's dates are never edited. The standard fix is to cancel it flat (on its start date, for all of its premium back) and rewrite it, which issues a corrected policy linked to the old one ([why](DECISIONS.md)). This demo needs Stripe set up as above, with `stripe listen` running, because the refund goes back to the card.
-
-1. **Issue it wrong, and pay.** Sign in as Sam, choose **New customer and policy**, and enter a fictional business with an owner email you'll use below (say `ravi@harborlight.test`). Set the start date to **Sep 1, 2026**, though the customer asked for Oct 1, and issue it: $1,200.00 due on GL-2026-…. Sign out, choose **Create your account** with that email, and **Pay** the $1,200.00 with card `4242 4242 4242 4242`.
-2. **Cancel it flat.** Sign in as Sam, open the policy (B3) and choose **Cancel**. Pick **Sep 1, 2026**, the start date, as the effective date. The preview shows a flat cancellation: no day was covered, so the whole $1,200.00 is return premium, refunded to the card ending 4242.
-3. **Rewrite it.** Back on B3, the cancelled policy's main action is now **Rewrite this policy**. It opens B2 for the same customer, read-only, with the note "Replaces GL-… (cancelled Sep 1, 2026)" and its extra cover already set. Set the start date to **Oct 1, 2026** and issue it. The new policy runs Oct 1, 2026 → Oct 1, 2027 and is $1,200.00 due.
-4. **The link, both ways.** B3 of the new policy says it replaces the old one, and the old one's B3 says "Replaced by GL-…". Each is a link. In the policy list (B1), the old policy reads "Cancelled · replaced by GL-…". **New policy for this customer** on any B3 issues another policy without entering the customer again.
-5. **The owner's overview.** Sign in as the owner. With two policies, `/me` shows **Your policies**: $1,200.00 due across your policies, the new policy's card ($1,200.00 due), and the old one's card ($1,200.00 refund on its way to the card ending 4242). The refund isn't taken off the new policy's balance, and the page says so. Each card opens that policy's own home, statement, timeline and Pay, with an **All policies** link back.
-6. **Pay the new one.** Open the new policy and **Pay** its $1,200.00. Only that policy's balance changes. The paid screen says "Nothing more is due on GL-…", and the overview's total drops to $0.00 once the payment settles.

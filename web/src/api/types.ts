@@ -468,3 +468,36 @@ export type History = {
   actions: HistoryAction[];
   today: IsoDate;
 };
+
+// --- timeline.MyTimelineController, from GET /api/me/timeline (P2) ---
+
+export type TimelineTerm = {
+  start: IsoDate;
+  /** Always the original term end. */
+  end: IsoDate;
+  /** The day all cover stopped, or null. */
+  cancelledOn: IsoDate | null;
+  today: IsoDate;
+};
+
+export type TimelineCover = {
+  id: number;
+  kind: CoverKind;
+  /** The cover's dates before any cancellation. */
+  from: IsoDate;
+  to: IsoDate;
+  /** The start a correction replaced, else null. */
+  previousStart: IsoDate | null;
+  annualCents: number;
+  /** Only when the yearly price divides into whole cents a day. */
+  perDayCents: number | null;
+  /** From `from` to `to`, or to the cancellation day. */
+  daysKept: number;
+  /** The sum of `rows`: this cover's settled lines still in force on the statement. */
+  chargedCents: number;
+  rows: StatementRow[];
+  /** The latest correction of this cover, else null. */
+  correction: StatementCorrection | null;
+};
+
+export type Timeline = { term: TimelineTerm; covers: TimelineCover[] };

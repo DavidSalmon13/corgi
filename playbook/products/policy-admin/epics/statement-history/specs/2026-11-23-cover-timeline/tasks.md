@@ -14,7 +14,7 @@
 - [x] T3 MyTimelineController GET /api/me/timeline; TimelineEndpointTest with 200 for a policyholder, 403 for a broker and 404 with no policy (controller).
 
 ## Web
-- [ ] T4 Timeline types in api/types.ts + lib/timelineCopy.ts, with timelineCopy.test.ts written first. It covers:
+- [x] T4 Timeline types in api/types.ts + lib/timelineCopy.ts, with timelineCopy.test.ts written first. It covers:
   - the answer for each state;
   - cover names and what each pays for;
   - the correction sentence ("a week earlier");

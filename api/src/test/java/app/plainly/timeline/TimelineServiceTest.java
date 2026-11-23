@@ -20,6 +20,8 @@ import app.plainly.policy.CorrectCoverageCommand;
 import app.plainly.policy.CorrectCoverageService;
 import app.plainly.policy.CoverKind;
 import app.plainly.policy.IssuePolicyService;
+import app.plainly.policy.RemoveCoverCommand;
+import app.plainly.policy.RemoveCoverService;
 import app.plainly.statement.Statement;
 import app.plainly.statement.StatementService;
 import java.time.LocalDate;
@@ -51,6 +53,7 @@ class TimelineServiceTest {
     @Autowired AddCoverageService adder;
     @Autowired CorrectCoverageService corrector;
     @Autowired CancelPolicyService canceller;
+    @Autowired RemoveCoverService remover;
     @Autowired MockMvc mvc;
     @Autowired JdbcClient jdbc;
 
@@ -178,6 +181,42 @@ class TimelineServiceTest {
         assertThat(extra.daysKept()).isEqualTo(54);
         assertThat(extra.chargedCents()).isEqualTo(10_800L);
         assertThat(extra.rows()).extracting(Statement.Row::kind).containsExactly(EntryType.CHARGE, EntryType.CREDIT);
+    }
+
+    // --- a removed extra cover (remove-cover AC7) ---
+
+    // covers remove-cover AC7, T1
+    @Test
+    void aRemovedExtraCoverEndsOnItsRemovalDayAndKeepsOnlyTheDaysBefore() throws Exception {
+        long id = withExtraFromOct15("Removed Timeline LLC");
+        remover.remove(id, new RemoveCoverCommand(DEC_1, "No longer sells to shops."),
+                CorrectionTestData.brokerId(jdbc));
+
+        Timeline t = service.forPolicy(id);
+
+        assertThat(t.term().cancelledOn()).isNull();
+        Timeline.Cover base = cover(t, CoverKind.BASE);
+        Timeline.Cover extra = cover(t, CoverKind.PRODUCT_LIABILITY);
+        assertThat(base.daysKept()).isEqualTo(365);
+        // Oct 15 → Dec 1 is 47 days · $94.00 ($642.00 less $548.00 back)
+        assertThat(extra.daysKept()).isEqualTo(47);
+        assertThat(extra.chargedCents()).isEqualTo(9_400L);
+        assertThat(extra.rows()).extracting(Statement.Row::kind).containsExactly(EntryType.CHARGE, EntryType.CREDIT);
+    }
+
+    // covers remove-cover AC6, AC7, T1
+    @Test
+    void cancellingAfterARemovalKeepsTheExtraCoverEndedOnItsRemovalDay() throws Exception {
+        long id = withExtraFromOct15("Removed Then Cancelled Timeline LLC");
+        remover.remove(id, new RemoveCoverCommand(DEC_1, "No longer sells to shops."),
+                CorrectionTestData.brokerId(jdbc));
+        canceller.cancel(id, new CancelPolicyCommand(LocalDate.of(2027, 1, 1), "The bakery closed for good."),
+                CorrectionTestData.brokerId(jdbc));
+
+        Timeline.Cover extra = cover(service.forPolicy(id), CoverKind.PRODUCT_LIABILITY);
+
+        assertThat(extra.daysKept()).isEqualTo(47);
+        assertThat(extra.chargedCents()).isEqualTo(9_400L);
     }
 
     // --- one calculation (AC7) ---

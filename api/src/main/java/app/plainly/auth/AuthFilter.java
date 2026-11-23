@@ -16,8 +16,8 @@ import org.springframework.web.util.UrlPathHelper;
 /**
  * Who is signed in, and what they may reach (real-sign-in spec). The {@value #COOKIE} cookie holds a
  * session token, looked up through {@link SessionService}. /api/broker/** needs a broker, /api/me/** needs a
- * policyholder, and every other /api route except /api/health and /api/auth/** needs someone signed
- * in (deny by default).
+ * policyholder, and every other /api route except /api/health, /api/auth/** and /api/public/** needs
+ * someone signed in (deny by default). /api/public/** holds only what a guest may see: the covers we offer.
  *
  * <p>The guard reads the decoded path with ";params" stripped, the same path Spring MVC routes on.
  * The raw request URI would let "/api/broker;x/policies" or "/api/%62roker/policies" reach a
@@ -53,7 +53,8 @@ public class AuthFilter extends OncePerRequestFilter {
         }
         // Stripe calls the webhook with no session; its signature is checked in the controller instead.
         boolean stripeWebhook = path.equals("/api/stripe/webhook");
-        if (under(path, "/api") && !under(path, "/api/health") && !under(path, "/api/auth") && !stripeWebhook) {
+        if (under(path, "/api") && !under(path, "/api/health") && !under(path, "/api/auth") && !under(path, "/api/public")
+                && !stripeWebhook) {
             if (user.isEmpty()) {
                 reject(response, 401, "signed_out", "Sign in to see this page.");
                 return;

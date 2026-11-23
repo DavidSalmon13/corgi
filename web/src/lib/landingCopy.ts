@@ -61,11 +61,15 @@ export function offerRole(role: PublicCoverage['role']): string {
 
 const DAYS_IN_YEAR = 365;
 
-/** "$730.00" + "a year · $2.00 a day". The per-day price shows only when it is a whole number of cents. */
+/**
+ * "$730.00" + "a year · $2.00 a day in a 365-day policy period". The per-day price shows only when it is a whole
+ * number of cents, and names the 365-day period because a leap-year period makes it $1.9945… (DECISIONS.md,
+ * 2026-11-22 "The daily price appears only when it's exact").
+ */
 export function offerPrice(annualPremiumCents: number): { amount: string; per: string } {
   const amount = formatCents(annualPremiumCents);
   if (annualPremiumCents % DAYS_IN_YEAR !== 0) return { amount, per: 'a year' };
-  return { amount, per: `a year · ${formatCents(annualPremiumCents / DAYS_IN_YEAR)} a day` };
+  return { amount, per: `a year · ${formatCents(annualPremiumCents / DAYS_IN_YEAR)} a day in a ${DAYS_IN_YEAR}-day policy period` };
 }
 
 /** AC6: no buying online yet. */

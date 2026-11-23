@@ -50,8 +50,9 @@ describe('landingCopy', () => {
 
 // covers AC12, T3.2
 describe('landingCopy: what we offer', () => {
-  it('shows the per-day price only when the annual premium splits into whole cents', () => {
-    expect(offerPrice(73_000)).toEqual({ amount: '$730.00', per: 'a year · $2.00 a day' });
+  it('shows the per-day price only when exact, and says it holds for a 365-day policy period (not a leap year)', () => {
+    expect(offerPrice(73_000)).toEqual({ amount: '$730.00', per: 'a year · $2.00 a day in a 365-day policy period' });
+    expect(glossParts(offerPrice(73_000).per).some((p) => typeof p !== 'string' && p.term === 'policyPeriod')).toBe(true);
     expect(offerPrice(120_000)).toEqual({ amount: '$1,200.00', per: 'a year' });
   });
 

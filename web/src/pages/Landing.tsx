@@ -132,8 +132,10 @@ function Offer() {
                 <p className="m-0 text-[15px] leading-[1.45] text-ink-2">
                   <Glossed>{offerDescription(c.kind)}</Glossed>
                 </p>
-                <p className="m-0 mt-auto text-[22px] font-bold tabular-nums">
-                  {price.amount} <span className="text-[15px] font-medium text-ink-2">{price.per}</span>
+                <p className="m-0 mt-auto text-[22px] leading-tight font-bold tabular-nums">
+                  {price.amount} <span className="text-[15px] font-medium text-ink-2">
+                    <Glossed>{price.per}</Glossed>
+                  </span>
                 </p>
               </li>
             );

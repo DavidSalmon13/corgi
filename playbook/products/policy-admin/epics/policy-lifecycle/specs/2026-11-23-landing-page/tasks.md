@@ -3,6 +3,8 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-23-landing-page
 > Branch: feat/policy-lifecycle/landing-page
+> Reviewed: 2026-11-23 APPROVE WITH COMMENTS
+> SecurityReviewed: 2026-11-23 APPROVE WITH COMMENTS
 
 ## Design
 

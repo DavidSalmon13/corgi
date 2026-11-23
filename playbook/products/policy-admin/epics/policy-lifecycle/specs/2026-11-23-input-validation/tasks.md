@@ -9,7 +9,7 @@
 
 ## Boundary plumbing (common/)
 - [x] T2 Add `common/LenientDate` deserializer (blank/unreadable → null)
-- [ ] T3 Handle `MethodArgumentNotValidException` in `ApiErrorHandler` → same 422 body, fields in record order; share the "N things to fix" wording with `ValidationException`
+- [x] T3 Handle `MethodArgumentNotValidException` in `ApiErrorHandler` → same 422 body, fields in record order; share the "N things to fix" wording with `ValidationException`
 
 ## Request records (controllers only)
 - [ ] T4 `BrokerIssueController`: annotate `IssueRequest` / `PreviewRequest`, typed `LocalDate`, `@Valid`; delete `date()`

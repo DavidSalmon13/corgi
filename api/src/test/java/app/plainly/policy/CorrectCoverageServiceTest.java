@@ -412,6 +412,7 @@ class CorrectCoverageServiceTest {
             assertThat(undo.entryDate()).isEqualTo(TODAY);
             assertThat(undo.amountCents()).isEqualTo(-64_200);
             assertThat(undo.reversesDisplayId()).isEqualTo(original.displayId());
+            assertThat(undo.description()).isEqualTo("Reversal: Product liability endorsement from Oct 15");
             assertThat(undo.coverageId()).isEqualTo(oldCoverage);
         });
         assertThat(correction.get(1)).satisfies(rebill -> {

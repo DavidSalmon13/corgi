@@ -258,7 +258,8 @@ export function PolicyWorkspace() {
             <Term explain={GLOSSARY.ledger}>Ledger</Term>
           </h2>
           <span className="text-sm text-ink-2">
-            Every line, oldest first. Lines are never edited; corrections add an undo and a new line.
+            Every line, oldest first. Lines are never edited; corrections add a{' '}
+            <Term explain={GLOSSARY.reversal}>reversal</Term> and a <Term explain={GLOSSARY.rebill}>rebill</Term>.
           </span>
         </div>
         <LedgerTable lines={p.ledger} />

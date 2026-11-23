@@ -18,6 +18,7 @@ const SUBSTITUTES: [RegExp, string][] = [
   [/\byearly price\b/i, 'annual premium'],
   [/\bmoney record\b/i, 'ledger'],
   [/\bchange this policy\b/i, 'mid-term change'],
+  [/\b(?:an undo|undone later)\b/i, 'reversal'],
 ];
 
 /** Every term the glossary knows, as one pattern. */
@@ -108,6 +109,7 @@ describe('Glossed', () => {
       { word: 'reversed', term: 'reversal' },
       { word: 'rebill', term: 'rebill' },
     ]);
+    expect(glossParts('Reverses $730.00 × 321 ÷ 365')[0]).toEqual({ word: 'Reverses', term: 'reversal' });
   });
 
   it('leaves a sentence without terms as it is', () => {

@@ -54,7 +54,7 @@ export const TERM_PATTERNS: [GlossaryTerm, string][] = [
   ['policyPeriod', 'policy period'],
   ['endorsement', 'endorsements?'],
   ['proRata', 'pro-rata'],
-  ['reversal', 'reversals?|reversed'],
+  ['reversal', 'reversals?|reversed|reverses'],
   ['rebill', 'rebills?|rebilled'],
   ['ledger', 'ledger'],
   ['premium', 'premiums?'],

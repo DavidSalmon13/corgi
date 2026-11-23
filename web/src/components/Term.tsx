@@ -39,7 +39,13 @@ export function Term({ explain, children }: Props) {
         role="button"
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
-        onClick={() => setOpen((o) => !o)}
+        onClick={(e) => {
+          // A Term can sit inside a <label> (B2's coverage choices, field labels): without this the same tap would
+          // also tick the checkbox or focus the field.
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();

@@ -134,4 +134,15 @@ describe('toLedgerRows', () => {
       correction: false,
     });
   });
+
+  it('shows a return premium line as posted, without adding "refunded"', () => {
+    const [row] = toLedgerRows([
+      line({
+        displayId: 'LE-0010', type: 'CREDIT', entryDate: '2026-11-22', description: 'General liability return premium',
+        amountCents: -90_082, calcAnnualCents: 120_000, calcDays: 274, calcTermDays: 365,
+        coverFrom: '2026-12-01', coverTo: '2027-09-01', policyTransactionDisplayId: 'PTX-0004', balanceAfterCents: -88_682,
+      }),
+    ]);
+    expect(row.title).toBe('General liability return premium');
+  });
 });

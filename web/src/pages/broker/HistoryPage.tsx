@@ -59,7 +59,7 @@ function Chip({ row, undone, onOpen }: { row: StatementRow; undone: boolean; onO
     <button
       type="button"
       onClick={(e) => onOpen(row, e.currentTarget)}
-      aria-label={`Line ${row.id}${undone ? ', undone later' : ''}. How we got this`}
+      aria-label={`Line ${row.id}${undone ? ', reversed later' : ''}. How we got this`}
       className={`cursor-pointer whitespace-nowrap rounded-[5px] border-none bg-track px-1.5 py-px font-mono text-[12.5px] text-ink hover:bg-accent-soft ${
         undone ? 'line-through decoration-[1.5px]' : ''
       }`}

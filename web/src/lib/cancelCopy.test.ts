@@ -291,7 +291,7 @@ describe('the customer side', () => {
     expect(lines).toEqual([
       'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
       'Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00',
-      'Unpaid balance kept back · The $14.00 from the effective-date correction, still owed · +$14.00',
+      'Unpaid balance kept back · The $14.00 from the effective date correction, still owed · +$14.00',
       'Refund to card ending 4242 · No short-rate penalty · $1,434.82',
     ]);
     expect(workedOutRows(owing, 29_918).map((r) => [r.label, r.detail, r.amount].join(' · '))).toEqual([

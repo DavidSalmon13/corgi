@@ -24,7 +24,7 @@ specs:
       - web/src/lib/historyCopy.ts
   - folder: 2026-11-23-cover-timeline
     slug: cover-timeline
-    status: shaped
+    status: done
     branch: feat/statement-history/cover-timeline
     covers:
       - /me/timeline
@@ -32,3 +32,11 @@ specs:
       - api/src/main/java/**/timeline/**
       - web/src/pages/me/TimelinePage.tsx
       - web/src/lib/timelineCopy.ts
+  - folder: 2026-11-23-emails
+    slug: emails
+    status: shaped
+    branch: feat/statement-history/emails
+    covers:
+      - api/src/main/java/**/notify/**
+      - api/src/main/resources/db/migration/V10__sent_emails.sql
+      - api/src/main/resources/templates/email/**

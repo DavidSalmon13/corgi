@@ -1,7 +1,7 @@
 # Emails: policy issued, payment and refund receipts
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/statement-history/emails
 > Covers: api/src/main/java/**/notify/**, api/src/main/resources/db/migration/V10__sent_emails.sql, api/src/main/resources/templates/email/**
 
@@ -91,3 +91,4 @@ Serves: brief goal 5, story 6, and the Resend success criterion. Design: no mock
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-23 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #62-67) | — |

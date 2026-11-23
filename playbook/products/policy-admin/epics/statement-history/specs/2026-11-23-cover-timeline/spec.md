@@ -1,7 +1,7 @@
 # Cover timeline for the policyholder
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/statement-history/cover-timeline
 > Covers: /me/timeline, /api/me/timeline, api/src/main/java/**/timeline/**, web/src/pages/me/TimelinePage.tsx, web/src/lib/timelineCopy.ts
 
@@ -108,3 +108,4 @@ That amount opens the same "How we got this" drawer as the statement.
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-23 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #57-61) | — |

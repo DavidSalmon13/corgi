@@ -3,6 +3,8 @@
 > Epic: statement-history
 > Spec: 2026-11-23-cover-timeline
 > Branch: feat/statement-history/cover-timeline
+> PR: https://github.com/DavidSalmon13/corgi/pull/61
+> Reviewed: 2026-11-23 APPROVE WITH COMMENTS
 
 ## Timeline API
 - [x] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:

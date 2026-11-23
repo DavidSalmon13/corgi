@@ -198,6 +198,7 @@ export function TimelinePage() {
             label: bandLabel(c),
             from: c.from,
             to: c.to,
+            endedOn: c.endedOn ?? undefined,
             ghostFrom: c.previousStart ?? undefined,
             ghostLabel: c.previousStart ? ghostLabel(c.previousStart) : undefined,
             accessibleLabel: `${coverName(c.kind)}, ${formatDate(c.from)} to ${endsText(c, term)}`,

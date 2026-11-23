@@ -11,6 +11,7 @@ import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
 import { GLOSSARY } from '../../lib/glossary';
 import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/correctCopy';
+import { removedBarLabel } from '../../lib/removeCoverCopy';
 import { balanceNote, balanceText, policyPeriod, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
 import type { ChangeSavedState } from './ChangePolicyPage';
@@ -147,11 +148,15 @@ export function PolicyWorkspace() {
   const p = policy.data;
   const status = policyStatus(p.status, p.balanceCents, p.paymentWaiting);
   const cancelled = p.status === 'CANCELLED';
-  const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
+  const extra = p.coverages.find((c) => c.kind === 'PRODUCT_LIABILITY');
+  const removed = !!extra?.endedOn;
   // add-coverage AC1: one extra cover per policy, and none on a cancelled policy.
-  const canAddCover = p.status === 'ACTIVE' && !hasExtra;
+  const canAddCover = p.status === 'ACTIVE' && !extra;
   // correct-effective-date AC1: an active policy with extra cover can correct it (B4 explains if it's blocked).
-  const canCorrect = p.status === 'ACTIVE' && hasExtra;
+  // remove-cover AC5: not once it has been removed.
+  const canCorrect = p.status === 'ACTIVE' && !!extra && !removed;
+  // remove-cover AC1: live extra cover can be removed (B4 explains if a payment is still with the bank).
+  const canRemove = canCorrect;
   // cancel-refund AC1: an active policy can be cancelled (B4 explains if a payment is still with the bank).
   const canCancel = p.status === 'ACTIVE';
   const failedRefunds = (p.refunds ?? []).filter((r) => r.status === 'FAILED');
@@ -195,7 +200,7 @@ export function PolicyWorkspace() {
             </div>
             <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting, refundPendingCents)}</div>
           </div>
-          {(canAddCover || canCorrect || canCancel) && (
+          {(canAddCover || canCorrect || canRemove || canCancel) && (
             <div className="flex flex-wrap gap-2">
               {canAddCover && (
                 <Link to={`/broker/policies/${p.policyId}/change`} className={ACTION}>
@@ -205,6 +210,11 @@ export function PolicyWorkspace() {
               {canCorrect && (
                 <Link to={`/broker/policies/${p.policyId}/change?tab=correct`} className={ACTION_MAIN}>
                   Correct
+                </Link>
+              )}
+              {canRemove && (
+                <Link to={`/broker/policies/${p.policyId}/change?tab=remove`} className={ACTION}>
+                  Remove product liability
                 </Link>
               )}
               {canCancel && (
@@ -247,7 +257,13 @@ export function PolicyWorkspace() {
             ),
             from: c.from,
             to: c.to,
-            barLabel: c.kind === 'PRODUCT_LIABILITY' ? coverWasLabel(c.from, c.previousStart ?? null) : undefined,
+            endedOn: c.endedOn ?? undefined,
+            barLabel:
+              c.kind !== 'PRODUCT_LIABILITY'
+                ? undefined
+                : c.endedOn
+                  ? removedBarLabel(c.from, c.previousStart ?? null, c.endedOn)
+                  : coverWasLabel(c.from, c.previousStart ?? null),
           }))}
         />
       </section>
@@ -262,7 +278,7 @@ export function PolicyWorkspace() {
             <Term explain={GLOSSARY.reversal}>reversal</Term> and a <Term explain={GLOSSARY.rebill}>rebill</Term>.
           </span>
         </div>
-        <LedgerTable lines={p.ledger} />
+        <LedgerTable lines={p.ledger} transactions={p.transactions} />
       </section>
     </>
   );

@@ -11,6 +11,8 @@ export type TimelineCover = {
   detail?: ReactNode;
   from: IsoDate;
   to: IsoDate;
+  /** When this cover was removed mid-term: it stops at the start of this day and its unused days are striped. */
+  endedOn?: IsoDate;
   /** Written inside the bar on the full timeline, e.g. "from Oct 8 · was Oct 15" after a correction. */
   barLabel?: string;
   /** `select` only: where the cover started before a correction, drawn as a dashed outline above its band. */
@@ -46,6 +48,21 @@ function barColor(kind: CoverKind, variant: 'full' | 'compact'): string {
   return variant === 'full' ? 'bg-cover-base' : 'bg-ink/85';
 }
 
+/** Where a cover's bar stops: its end, or earlier when it was removed or the policy cancelled. */
+function stopsOn(c: TimelineCover, cancelledFrom?: IsoDate): IsoDate {
+  let to = c.to;
+  if (c.endedOn && c.endedOn < to) to = c.endedOn;
+  if (cancelledFrom && cancelledFrom < to) to = cancelledFrom;
+  return to;
+}
+
+/** The striped stretch of one removed cover, from its end day to where it would have run; null when there is none. */
+function removedSpan(c: TimelineCover, start: IsoDate, end: IsoDate, cancelledFrom?: IsoDate) {
+  if (!c.endedOn || c.endedOn >= c.to || (cancelledFrom && cancelledFrom <= c.endedOn)) return null;
+  const until = cancelledFrom && cancelledFrom < c.to ? cancelledFrom : c.to;
+  return spanPct(start, end, c.endedOn, until);
+}
+
 /** Plain-text version of the bars for screen readers. */
 function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate }) {
   return (
@@ -53,6 +70,7 @@ function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate })
       {covers.map((c) => (
         <li key={c.id}>
           {c.label}: {formatDate(c.from)} to {formatDate(c.to)}
+          {c.endedOn && c.endedOn <= c.to && ' (removed)'}
           {c.barLabel?.includes(' · ') && ` (${c.barLabel.split(' · ').slice(1).join(', ')})`}
         </li>
       ))}
@@ -63,7 +81,8 @@ function Summary({ covers, today }: { covers: TimelineCover[]; today: IsoDate })
 
 /**
  * One bar per cover across the cover period, with a marker for today. On a cancelled policy each bar stops on the
- * cancel day and the unused days after it are striped.
+ * cancel day and the unused days after it are striped. A removed cover stops on its end day and only its own unused
+ * days are striped.
  */
 export function CoverTimeline({
   start,
@@ -75,9 +94,12 @@ export function CoverTimeline({
   selectedId,
   onSelect,
 }: Props) {
-  const covers = cancelledFrom
-    ? given.map((c) => ({ ...c, to: c.to > cancelledFrom ? cancelledFrom : c.to, from: c.from > cancelledFrom ? cancelledFrom : c.from }))
-    : given;
+  const covers = given.map((c) => ({
+    ...c,
+    to: stopsOn(c, cancelledFrom),
+    from: cancelledFrom && c.from > cancelledFrom ? cancelledFrom : c.from,
+    removed: removedSpan(c, start, end, cancelledFrom),
+  }));
   const todayPct = positionPct(start, end, today);
   const showToday = today >= start && today <= end;
   const hatchLeft = cancelledFrom ? positionPct(start, end, cancelledFrom) : null;
@@ -117,6 +139,13 @@ export function CoverTimeline({
                 <div className="relative h-11 rounded-[10px] bg-track">
                   {hatchLeft != null && (
                     <div aria-hidden="true" className="absolute inset-y-0 right-0 rounded-r-[10px]" style={{ left: pct(hatchLeft), ...HATCH }} />
+                  )}
+                  {c.removed && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-y-0 rounded-r-[10px]"
+                      style={{ left: pct(c.removed.left), width: pct(c.removed.width), ...HATCH }}
+                    />
                   )}
                   <button
                     type="button"
@@ -166,6 +195,9 @@ export function CoverTimeline({
                   style={{ left: pct(s.left), width: pct(s.width) }}
                 />
                 {hatchLeft != null && <div className="absolute inset-y-0 right-0" style={{ left: pct(hatchLeft), ...HATCH }} />}
+                {c.removed && (
+                  <div className="absolute inset-y-0" style={{ left: pct(c.removed.left), width: pct(c.removed.width), ...HATCH }} />
+                )}
               </div>
             );
           })}
@@ -220,6 +252,12 @@ export function CoverTimeline({
               </div>
               {hatchLeft != null && (
                 <div className="absolute inset-y-0 right-0 rounded-r-lg" style={{ left: pct(hatchLeft), ...HATCH }} />
+              )}
+              {c.removed && (
+                <div
+                  className="absolute inset-y-0 rounded-r-lg"
+                  style={{ left: pct(c.removed.left), width: pct(c.removed.width), ...HATCH }}
+                />
               )}
               {showToday && (
                 <div className="absolute -inset-y-1.5 w-0.5 bg-ink" style={{ left: pct(todayPct) }} />

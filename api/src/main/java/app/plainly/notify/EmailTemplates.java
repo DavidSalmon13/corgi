@@ -17,20 +17,28 @@ import org.springframework.web.util.HtmlUtils;
 @Component
 public class EmailTemplates {
 
-    /** The policy was issued: what it covers, when, and what it costs for the year. {@code brokerName} may be null. */
+    /**
+     * The policy was issued: what it covers, when, and what it costs for the year. {@code brokerName} may be null.
+     * {@code hasAccount}: the owner can already sign in (another policy), so the email asks them to sign in rather
+     * than set up an account.
+     */
     public record PolicyIssued(String ownerName, String ownerEmail, String legalName, String policyNumber,
-            LocalDate start, LocalDate end, long priceForTheYearCents, String brokerName) {}
+            LocalDate start, LocalDate end, long priceForTheYearCents, String brokerName, long policyId,
+            boolean hasAccount) {}
 
-    /** A payment went through. {@code leftToPayCents} is the balance once it settled; below zero, we owe them. */
+    /**
+     * A payment went through on {@code policyId}. {@code leftToPayCents} is that policy's balance once it settled;
+     * below zero, we owe them.
+     */
     public record PaymentReceipt(String ownerName, String ownerEmail, long amountCents, String cardLast4,
-            LocalDate settledOn, long leftToPayCents) {}
+            LocalDate settledOn, long leftToPayCents, long policyId) {}
 
     /** Why money went back: the only two changes that give money back. */
     public enum RefundReason { CORRECTION, CANCELLATION, COVER_REMOVED }
 
     /** A refund went through: the money is on its way back to the card. */
     public record RefundReceipt(String ownerName, String ownerEmail, long amountCents, String cardLast4,
-            RefundReason reason) {}
+            RefundReason reason, long policyId) {}
 
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US);
     private static final String FOOTER = "Demo with fictional data, delivered to a test inbox.";
@@ -51,14 +59,19 @@ public class EmailTemplates {
 
     public EmailMessage policyIssued(PolicyIssued p) {
         String subject = "Your cover with Plainly starts " + day(p.start());
-        return new Email(p.ownerEmail(), subject, "Hi " + p.ownerName() + ",")
+        Email email = new Email(p.ownerEmail(), subject, "Hi " + p.ownerName() + ",")
                 .para((p.brokerName() == null ? "Your broker" : p.brokerName() + ", your broker,")
                         + " has set up cover for " + p.legalName() + ".")
                 .fact("Policy number", p.policyNumber())
                 .fact("Covered", day(p.start()) + " to " + day(p.end()))
-                .fact("Price", money(p.priceForTheYearCents()) + " for the year")
-                .para("Set up your account with this email address to see what you're covered for, what you owe "
-                        + "and why, and to pay by card.")
+                .fact("Price", money(p.priceForTheYearCents()) + " for the year");
+        if (p.hasAccount()) {
+            return email.para("Sign in to see it: what you're covered for, what you owe and why, and to pay by card.")
+                    .button("Sign in to see it", policyUrl(p.policyId()))
+                    .build();
+        }
+        return email.para("Set up your account with this email address to see what you're covered for, what you "
+                        + "owe and why, and to pay by card.")
                 .button("Set up your account", webUrl + "/signup")
                 .build();
     }
@@ -74,7 +87,7 @@ public class EmailTemplates {
                 .fact("Paid with", card(p.cardLast4()))
                 .fact("On", day(p.settledOn()))
                 .para(balance)
-                .button("See your statement", webUrl + "/me/statement")
+                .button("See your statement", policyUrl(p.policyId()) + "/statement")
                 .build();
     }
 
@@ -92,8 +105,13 @@ public class EmailTemplates {
                 .para(money(r.amountCents()) + " is on its way back to " + yourCard(r.cardLast4()) + ".")
                 .para(why)
                 .para("Banks usually take 5–10 working days to show it.")
-                .button("See your statement", webUrl + "/me/statement")
+                .button("See your statement", policyUrl(r.policyId()) + "/statement")
                 .build();
+    }
+
+    /** The policy's own page: each policy has its own cover, statement and pay page (more-policies AC10). */
+    private String policyUrl(long policyId) {
+        return webUrl + "/me/policies/" + policyId;
     }
 
     /** Integer cents as US dollars, never through floating point: 120000 → "$1,200.00". */

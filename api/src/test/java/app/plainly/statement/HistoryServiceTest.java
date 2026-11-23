@@ -15,6 +15,7 @@ import app.plainly.PaymentTestData.Owner;
 import app.plainly.PaymentTestData.Started;
 import app.plainly.StripeTestSupport;
 import app.plainly.common.NotFoundException;
+import app.plainly.common.Today;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerQueryService;
 import app.plainly.policy.AddCoverageService;
@@ -28,6 +29,7 @@ import app.plainly.statement.History.ActionKind;
 import app.plainly.statement.Statement.Ref;
 import app.plainly.statement.Statement.RefKind;
 import app.plainly.statement.Statement.Row;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -52,6 +54,7 @@ class HistoryServiceTest {
     static final LocalDate TODAY = LocalDate.of(2026, 11, 22); // plainly.today in IntegrationTest
 
     @Autowired HistoryService service;
+    @Autowired Today today;
     @Autowired StatementService statements;
     @Autowired LedgerQueryService ledger;
     @Autowired IssuePolicyService issuer;
@@ -215,7 +218,8 @@ class HistoryServiceTest {
         assertThat(a.pending()).isTrue();
         assertThat(a.status()).isEqualTo(History.Status.WAITING);
         assertThat(a.amountCents()).isEqualTo(-1_400);
-        assertThat(a.date()).isEqualTo(TODAY);
+        // Dated the day the payment was made: its real timestamp, not the pinned policy "today".
+        assertThat(a.date()).isEqualTo(today.dayOf(Instant.now()));
         assertThat(a.rows()).singleElement().satisfies(r -> assertThat(r.pending()).isTrue());
     }
 

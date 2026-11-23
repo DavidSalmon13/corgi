@@ -10,7 +10,7 @@ export type LedgerRow = {
   key: string;
   date: string;
   title: string;
-  /** Small second line, e.g. "Reversed by LE-0006". */
+  /** Small second line, e.g. "Reversed by correction · LE-0006". */
   note: string;
   /** How the amount was worked out, or what happened to the money. */
   calc: string;
@@ -19,8 +19,11 @@ export type LedgerRow = {
   balance: string;
   /** Ledger id first, then where it came from: the policy transaction, the Stripe payment, or the refund. */
   refs: string[];
-  /** The line was later undone by a reversal. It stays visible, struck through. */
-  struck: boolean;
+  /**
+   * The reversal that later cancelled this line, and the anchor of its correction (the reversal row's id in the same
+   * table). The line still counted until then, so it stays at full weight with a tag, never struck through.
+   */
+  reversedBy: { displayId: string; anchor: string } | null;
   /** The line is part of a correction (an undo and its replacement). */
   correction: boolean;
 };
@@ -64,12 +67,18 @@ export function toLedgerRows(
   const correctingTx = new Set(
     lines.filter((l) => l.type === 'REVERSAL' && l.policyTransactionDisplayId).map((l) => l.policyTransactionDisplayId),
   );
+  const byId = new Map(lines.map((l) => [l.displayId, l]));
+  const reversedBy = (l: LedgerLine): LedgerRow['reversedBy'] => {
+    if (!l.reversedByDisplayId) return null;
+    const ptx = byId.get(l.reversedByDisplayId)?.policyTransactionDisplayId;
+    return { displayId: l.reversedByDisplayId, anchor: ptx ? `correction-${ptx}` : `line-${l.reversedByDisplayId}` };
+  };
   return lines.map((l) => ({
     key: l.displayId,
     date: formatDate(l.entryDate),
     title: title(l, removals),
     note: l.reversedByDisplayId
-      ? `Reversed by ${l.reversedByDisplayId}`
+      ? `Reversed by correction · ${l.reversedByDisplayId}`
       : l.type === 'PAYMENT' && l.amountCents === 0
         ? 'No money moved'
         : '',
@@ -78,7 +87,7 @@ export function toLedgerRows(
     balance: formatCents(l.balanceAfterCents),
     refs: [l.displayId, l.policyTransactionDisplayId, l.stripePaymentIntentId, l.refundDisplayId, l.stripeRefundId]
       .filter((r): r is string => !!r),
-    struck: l.reversedByDisplayId != null,
+    reversedBy: reversedBy(l),
     correction: l.policyTransactionDisplayId != null && correctingTx.has(l.policyTransactionDisplayId),
   }));
 }

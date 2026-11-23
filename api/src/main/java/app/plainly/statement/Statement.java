@@ -12,8 +12,14 @@ import java.util.List;
  */
 public record Statement(Header header, Banner banner, List<Row> rows, List<Correction> corrections, LocalDate today) {
 
-    /** {@code balanceCents} is the ledger balance: positive is owed, negative is owed back. */
-    public record Header(String businessName, String policyNumber, long balanceCents) {}
+    /**
+     * {@code balanceCents} is the ledger balance: positive is owed, negative is owed back. {@code inceptionDate} →
+     * {@code expiryDate} is the policy term (end not counted); {@code statementDate} is the day the statement was
+     * made (today). {@code dueDate} is the posting date of the oldest line later payments and credits haven't
+     * covered, oldest first ("due on receipt"); null when nothing is owed.
+     */
+    public record Header(String businessName, String policyNumber, long balanceCents, LocalDate inceptionDate,
+            LocalDate expiryDate, LocalDate statementDate, LocalDate dueDate) {}
 
     /** The one thing that matters now, in P3's states. */
     public enum BannerState {
@@ -60,10 +66,12 @@ public record Statement(Header header, Banner banner, List<Row> rows, List<Corre
     /**
      * One CORRECT change as a single card. {@code dayDelta} is positive when cover now starts earlier (more days).
      * {@code perDayCents} is the annual price ÷ days in the term, only when that is a whole number of cents.
+     * {@code balanceAfterCents} is the running balance after the card's last line (negative is a credit), so the
+     * card shows one balance instead of one per line.
      */
     public record Correction(String transactionDisplayId, LocalDate recordedOn, LocalDate oldStart,
             LocalDate newStart, long dayDelta, long netCents, Long perDayCents, String reason, String actorName,
-            String originalLineId, String reversalLineId, String rebillLineId) {}
+            String originalLineId, String reversalLineId, String rebillLineId, long balanceAfterCents) {}
 
     /** P4 "How we got this" for one row. */
     public record Trace(EntryType kind, Maths maths, Cause cause, Money money, List<Ref> refs) {}

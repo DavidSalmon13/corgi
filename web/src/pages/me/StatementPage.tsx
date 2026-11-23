@@ -13,7 +13,17 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { formatDate } from '../../lib/dates';
 import { GLOSSARY } from '../../lib/glossary';
 import { formatCents } from '../../lib/money';
-import { bannerCopy, correctionNetMaths, correctionSummary, rowNote, rowTitle } from '../../lib/statementCopy';
+import {
+  balanceAfterCopy,
+  bannerCopy,
+  correctionNetMaths,
+  correctionSummary,
+  replacesLabel,
+  reversedBy,
+  rowNote,
+  rowTitle,
+  statementHeaderCopy,
+} from '../../lib/statementCopy';
 
 /** The torn top edge of the statement, as on the P3 receipt. */
 const PERFORATION = {
@@ -61,19 +71,20 @@ function Title({ text, corrected = false }: { text: string; corrected?: boolean 
   );
 }
 
-/** Every amount is a button that opens how we got it (AC7). Struck when the line was undone later. */
-function Amount({ row, onOpen, struck = false }: { row: StatementRow; onOpen: OpenTrace; struck?: boolean }) {
+/**
+ * Every amount is a button that opens how we got it (AC7). Muted, never struck through, when the line was reversed
+ * later or is only repeated as a reference: it still counted until its reversal (clarity AC1).
+ */
+function Amount({ row, onOpen, dim = false }: { row: StatementRow; onOpen: OpenTrace; dim?: boolean }) {
   const text = formatCents(row.amountCents, { signed: true });
-  const muted = row.pending || row.amountCents === 0;
+  const muted = dim || row.pending || row.amountCents === 0;
   return (
     <button
       type="button"
       onClick={(e) => onOpen(row, e.currentTarget)}
       aria-label={`${text}, ${rowTitle(row)}${row.pending ? ', not counted yet' : ''}. How we got this`}
-      className={`cursor-pointer border-none bg-transparent p-0 font-[inherit] text-base font-semibold tabular-nums whitespace-nowrap ${
-        struck
-          ? 'text-ink-2 line-through decoration-[1.5px]'
-          : `underline decoration-ink-2 decoration-dotted underline-offset-4 ${muted ? 'text-ink-2' : 'text-ink'}`
+      className={`cursor-pointer border-none bg-transparent p-0 font-[inherit] text-base font-semibold tabular-nums whitespace-nowrap underline decoration-ink-2 decoration-dotted underline-offset-4 ${
+        muted ? 'text-ink-2' : 'text-ink'
       }`}
     >
       {text}
@@ -108,26 +119,70 @@ function Note({ row, prefix }: { row: StatementRow; prefix?: string }) {
   );
 }
 
+/** clarity AC1: "Reversed by correction · LE-…", a link that opens and scrolls to the correction card. */
+function ReversedTag({ tag }: { tag: { tag: string; anchor: string } }) {
+  const [word, ...rest] = tag.tag.split(' · ');
+  return (
+    <Link
+      to={{ hash: `#${tag.anchor}` }}
+      className="mt-1 inline-flex min-h-6 items-center gap-1 rounded-md bg-track px-1.5 text-[12.5px] font-semibold text-accent-ink no-underline hover:bg-accent-soft"
+    >
+      {word}
+      <span className="font-normal text-ink-2">· {rest.join(' · ')}</span>
+    </Link>
+  );
+}
+
 /** The running balance under an amount; a pending row shows that it isn't counted yet (AC4). */
 function BalanceAfter({ row }: { row: StatementRow }) {
   if (row.pending) return <div className={`${META} font-semibold text-accent-ink`}>Not counted yet</div>;
   return <div className={`${META} tabular-nums`}>{formatCents(row.balanceAfterCents)}</div>;
 }
 
-function Row({ row, onOpen, first, inCard = false }: { row: StatementRow; onOpen: OpenTrace; first: boolean; inCard?: boolean }) {
-  const struck = row.undoneOn != null;
+/**
+ * One statement line. A reversed line keeps its weight, muted, with a tag to the correction that reversed it
+ * (clarity AC1). Inside a correction card the line has no balance of its own: the card shows one (clarity AC3).
+ */
+function Row({
+  row,
+  onOpen,
+  first,
+  corrections,
+  inCard = false,
+  corrected = false,
+}: {
+  row: StatementRow;
+  onOpen: OpenTrace;
+  first: boolean;
+  corrections: StatementCorrection[];
+  inCard?: boolean;
+  corrected?: boolean;
+}) {
+  const reversed = reversedBy(row, corrections);
   return (
     <div className={`flex gap-3 ${inCard ? 'px-3.5 py-3' : 'px-[18px] py-3.5'} ${first ? '' : 'border-t border-dashed border-line'}`}>
       <div className="min-w-0 flex-1">
-        <div className={`font-semibold ${struck ? 'text-ink-2 line-through decoration-[1.5px]' : ''}`}>
-          <Title text={rowTitle(row)} />
+        <div className={`font-semibold ${reversed ? 'text-ink-2' : ''}`}>
+          <Title text={rowTitle(row)} corrected={corrected} />
         </div>
         <Note row={row} />
+        {reversed && <ReversedTag tag={reversed} />}
       </div>
       <div className="text-right">
-        <Amount row={row} onOpen={onOpen} struck={struck} />
-        <BalanceAfter row={row} />
+        <Amount row={row} onOpen={onOpen} dim={reversed != null} />
+        {!inCard && <BalanceAfter row={row} />}
       </div>
+    </div>
+  );
+}
+
+/** clarity AC3: the card's one balance, after its last line; a credit says so ("$14.00 credit"). */
+function BalanceAfterCard({ cents }: { cents: number }) {
+  const [label, value] = balanceAfterCopy(cents).split(': ');
+  return (
+    <div className="flex items-baseline justify-between gap-3 px-3.5 pb-3 text-[15px]">
+      <span className="text-ink-2">{label}</span>
+      <span className={`font-semibold tabular-nums ${cents > 0 ? 'text-accent-ink' : 'text-ink'}`}>{value}</span>
     </div>
   );
 }
@@ -135,12 +190,14 @@ function Row({ row, onOpen, first, inCard = false }: { row: StatementRow; onOpen
 /** AC5/AC6: one card per date correction, holding the original, its undo, the corrected line and the broker's words. */
 function CorrectionCard({
   c,
+  corrections,
   lines,
   onOpen,
   defaultOpen,
   linkedTo = false,
 }: {
   c: StatementCorrection;
+  corrections: StatementCorrection[];
   lines: Map<string, StatementRow>;
   onOpen: OpenTrace;
   defaultOpen: boolean;
@@ -180,41 +237,26 @@ function CorrectionCard({
           <div className={META}>net change</div>
         </div>
       </div>
+      <BalanceAfterCard cents={c.balanceAfterCents} />
 
       {open && (
         <div id={detailsId}>
           {original && (
-            <div className="flex gap-3 border-t border-dashed border-line px-3.5 py-3">
+            <div className="flex gap-3 border-t border-dashed border-line bg-bg/40 px-3.5 py-3">
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-ink-2 line-through decoration-[1.5px]">
-                  <Title text={rowTitle(original)} />
-                </div>
-                <div className={`${META} tabular-nums`}>
-                  Original line
-                  {original.trace.maths.annualCents != null &&
-                    ` · ${formatCents(original.trace.maths.annualCents)} × ${original.trace.maths.days} ÷ ${original.trace.maths.termDays}`}
+                <div className="text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2">Reference</div>
+                <div className="mt-0.5 text-ink-2">
+                  <Glossed>{replacesLabel(original)}</Glossed>
                 </div>
               </div>
               <div className="text-right">
-                <Amount row={original} onOpen={onOpen} struck />
+                <Amount row={original} onOpen={onOpen} dim />
+                <div className={META}>not counted again</div>
               </div>
             </div>
           )}
-          {undo && <Row row={undo} onOpen={onOpen} first={false} inCard />}
-          {rebill && (
-            <div className="flex gap-3 border-t border-dashed border-line px-3.5 py-3">
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold">
-                  <Title text={rowTitle(rebill)} corrected />
-                </div>
-                <Note row={rebill} />
-              </div>
-              <div className="text-right">
-                <Amount row={rebill} onOpen={onOpen} />
-                <BalanceAfter row={rebill} />
-              </div>
-            </div>
-          )}
+          {undo && <Row row={undo} onOpen={onOpen} first={false} corrections={corrections} inCard />}
+          {rebill && <Row row={rebill} onOpen={onOpen} first={false} corrections={corrections} inCard corrected />}
           {undo && rebill && (
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 bg-accent-soft px-3.5 py-3">
               <span className="font-semibold">Net change</span>
@@ -340,11 +382,11 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
         <Fragment key={r.id}>
           {heading}
           {card ? (
-            <CorrectionCard c={card} lines={byId} onOpen={onOpen} defaultOpen={card.transactionDisplayId === latest}
+            <CorrectionCard c={card} corrections={s.corrections} lines={byId} onOpen={onOpen} defaultOpen={card.transactionDisplayId === latest}
               linkedTo={card.transactionDisplayId === linked}
             />
           ) : (
-            <Row row={r} onOpen={onOpen} first={Boolean(newDate)} />
+            <Row row={r} onOpen={onOpen} first={Boolean(newDate)} corrections={s.corrections} />
           )}
         </Fragment>
       );
@@ -361,6 +403,26 @@ function Lines({ s, onOpen }: { s: Statement; onOpen: OpenTrace }) {
       {items}
       <BalanceTotal cents={s.header.balanceCents} />
     </section>
+  );
+}
+
+/** clarity AC5: when the statement was made, the policy period it covers and, when money is owed, when it is due. */
+function StatementHeader({ h }: { h: Statement['header'] }) {
+  const copy = statementHeaderCopy(h);
+  return (
+    <ul className="mt-2.5 mb-0 flex list-none flex-col gap-0.5 p-0 text-sm leading-[1.45] text-ink-2 tabular-nums">
+      <li>
+        <Glossed>{copy.statementDate}</Glossed>
+      </li>
+      <li>
+        <Glossed>{copy.term}</Glossed>
+      </li>
+      {copy.due && (
+        <li className="font-semibold text-accent-ink">
+          <Glossed>{copy.due}</Glossed>
+        </li>
+      )}
+    </ul>
   );
 }
 
@@ -396,6 +458,7 @@ export function StatementPage() {
         <p className="mt-0.5 mb-0 text-[15px] text-ink-2">
           {s.header.businessName} · Policy {s.header.policyNumber}
         </p>
+        <StatementHeader h={s.header} />
       </div>
 
       <Banner s={s} />

@@ -399,3 +399,13 @@ The security review found that the owner-email `@Pattern` backtracked for second
 ## 2026-11-23: No buy button on the landing page until Phase 2
 
 Self-serve quote and buy is Phase 2. The page lists the covers and their premiums but offers no "Get a quote" or "Buy"; one quiet line under the prices says buying online isn't available yet and to ask your broker. The only calls to action are "Create your account" (for owners whose broker already issued a policy) and "Sign in".
+
+## 2026-11-23: Statement clarity: reversed lines aren't struck, money is due on receipt, refunds stay immediate
+
+**No strikethrough on a reversed line.** A line a correction later reversed was a real charge that counted in the balance until the reversal was posted. Striking it through read as "deleted" and contradicted the statement's own rule that we never edit a line. On the statement (P3), the broker's ledger and B5 History, a reversed line now keeps its weight, muted, with a "Reversed by correction · LE-…" tag that jumps to the correction. Inside a correction card the original is shown again only as a reference ("Replaces: … · posted <date> above"), with no balance and marked "not counted again". The card shows one "Balance after" in place of a balance per line, because the balance in the middle of a correction (−$678.00) read as "we owe you $678".
+
+**Due on receipt.** Plainly has no billing cycle or grace period, so what is owed is due when it is posted. The statement's due date is the posting date of the oldest line that later payments, credits and reversals haven't paid off, applied oldest first (a left-over credit pays the next charge). It is null whenever the balance isn't positive, so it appears exactly when P1 says "Due now".
+
+**Refunds stay immediate.** A correction that lowers the price is still refunded to the card straight away (see 2026-11-22 "A correction that lowers the price is refunded automatically"), even though a refund followed by a new charge for a later correction churns money through the card. Holding small credits on account is a separate feature and out of scope here.
+
+**Taxes and fees are out of scope.** The statement has no tax, surcharge or fee lines; premiums are the only charges Plainly posts.

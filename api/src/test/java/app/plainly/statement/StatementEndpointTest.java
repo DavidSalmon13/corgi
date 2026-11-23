@@ -57,6 +57,36 @@ class StatementEndpointTest {
                 .andExpect(jsonPath("$.today").value("2026-11-22"));
     }
 
+    // covers statement-clarity AC3, AC5, T3
+    @Test
+    void theStatementCarriesItsTermItsDueDateAndEachCardsBalanceAfter() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issuer, adder, "Clarity Bakery LLC");
+        corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_8,
+                CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get(MePaths.statement(paid.owner().policyId())).cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.header.inceptionDate").value("2026-09-01"))
+                .andExpect(jsonPath("$.header.expiryDate").value("2027-09-01"))
+                .andExpect(jsonPath("$.header.statementDate").value("2026-11-22"))
+                .andExpect(jsonPath("$.header.dueDate").value("2026-11-22"))
+                .andExpect(jsonPath("$.corrections[0].balanceAfterCents").value(1_400));
+    }
+
+    // covers statement-clarity AC3, AC5, T3
+    @Test
+    void aCreditCardReadsNegativeAndNothingIsDue() throws Exception {
+        Paid paid = CorrectionTestData.paidWithExtraCoverFromOct15(mvc, jdbc, issuer, adder,
+                "Clarity Credit Bakery LLC");
+        corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_22,
+                CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
+
+        mvc.perform(get(MePaths.statement(paid.owner().policyId())).cookie(paid.owner().session()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.header.dueDate").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.corrections[0].balanceAfterCents").value(-1_400));
+    }
+
     @Test
     void eachOwnerOnlySeesTheirOwnPolicy() throws Exception {
         var a = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Owner A LLC");

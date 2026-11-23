@@ -18,6 +18,6 @@ Both roles see a policy's full history and financial statement, and can open "ho
 | Spec | Status | Branch |
 |---|---|---|
 | 2026-11-22-statement | done | feat/statement-history/statement · [#51](https://github.com/DavidSalmon13/corgi/pull/51)–[#55](https://github.com/DavidSalmon13/corgi/pull/55) |
-| 2026-11-23-broker-history | shaped | feat/statement-history/broker-history · [#56](https://github.com/DavidSalmon13/corgi/pull/56) |
+| 2026-11-23-broker-history | done | feat/statement-history/broker-history · [#56](https://github.com/DavidSalmon13/corgi/pull/56) |
 | 2026-11-23-cover-timeline | done | feat/statement-history/cover-timeline · [#57](https://github.com/DavidSalmon13/corgi/pull/57)–[#61](https://github.com/DavidSalmon13/corgi/pull/61) |
-| 2026-11-23-emails | shaped | feat/statement-history/emails · [#62](https://github.com/DavidSalmon13/corgi/pull/62)–[#67](https://github.com/DavidSalmon13/corgi/pull/67) |
+| 2026-11-23-emails | done | feat/statement-history/emails · [#62](https://github.com/DavidSalmon13/corgi/pull/62)–[#67](https://github.com/DavidSalmon13/corgi/pull/67) |

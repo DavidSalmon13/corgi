@@ -15,7 +15,7 @@ specs:
       - web/src/lib/statementCopy.ts
   - folder: 2026-11-23-broker-history
     slug: broker-history
-    status: shaped
+    status: done
     branch: feat/statement-history/broker-history
     covers:
       - /broker/policies/:id/history
@@ -34,7 +34,7 @@ specs:
       - web/src/lib/timelineCopy.ts
   - folder: 2026-11-23-emails
     slug: emails
-    status: shaped
+    status: done
     branch: feat/statement-history/emails
     covers:
       - api/src/main/java/**/notify/**

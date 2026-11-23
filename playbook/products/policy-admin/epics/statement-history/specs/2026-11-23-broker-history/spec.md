@@ -1,7 +1,7 @@
 # Policy history for the broker
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/statement-history/broker-history
 > Covers: /broker/policies/:id/history, /api/broker/policies/{id}/history, web/src/pages/broker/HistoryPage.tsx, web/src/lib/historyCopy.ts
 
@@ -55,3 +55,4 @@ The broker gets B5 History: every action on a policy (issue, extra cover, date c
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-23 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #56) | — |

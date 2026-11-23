@@ -1,7 +1,7 @@
 # Correct a start date
 
 > Epic: ../../epic.md
-> Status: in-progress
+> Status: done
 > Branch: feat/policy-lifecycle/correct-effective-date
 > Covers: /api/broker/policies/{id}/corrections, /api/broker/policies/{id}/corrections/preview, /api/broker/refunds/{id}/retry, api/src/main/java/**/policy/Correct*.java, api/src/main/java/**/billing/Refund*.java, api/src/main/resources/db/migration/V8__corrections_and_refunds.sql, web/src/lib/correctCopy.ts, web/src/pages/broker/CorrectCoverForm.tsx
 
@@ -125,3 +125,4 @@ Worked example throughout: a GL policy runs Sep 1, 2026 → Sep 1, 2027 (365 day
 | 2026-11-22 | david-schwartzman | change | Layering refactor merged to dev: billing and me names confirmed (StripeWebhookService, MyCoverService, PaymentService.cancelOpenIntents extracted from start) | backend/layers |
 | 2026-11-22 | david-schwartzman | change | Status set to in-progress: all 16 tasks done, QA PASS WITH NOTES, PR opened against dev | — |
 | 2026-11-22 | david-schwartzman | change | AC10: only a definite Stripe refusal fails a refund; an unclear send stays pending and is resent with the same key (code + security review HIGH) | T17, T18 |
+| 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #48) | — |

@@ -1,7 +1,7 @@
 # Cancel a policy and refund unused days
 
 > Epic: ../../epic.md
-> Status: shaped
+> Status: done
 > Branch: feat/policy-lifecycle/cancel-refund
 > Covers: /api/broker/policies/{id}/cancellation, /api/broker/policies/{id}/cancellation/preview, api/src/main/java/**/policy/Cancel*.java, api/src/main/resources/db/migration/V9__cancellations.sql, web/src/pages/broker/CancelPolicyForm.tsx, web/src/lib/cancelCopy.ts, /me/cancellation, web/src/pages/me/CancellationPage.tsx
 
@@ -145,3 +145,4 @@ Layered controller → service → repository ([backend/layers](../../../../../.
 | Date | Author | Type | Change | Ref |
 |---|---|---|---|---|
 | 2026-11-22 | david-schwartzman | created | Initial shaping | — |
+| 2026-11-23 | david-schwartzman | change | Status set to done: all tasks done and merged into dev (PR #50) | — |

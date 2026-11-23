@@ -3,6 +3,7 @@ package app.plainly.timeline;
 import app.plainly.auth.AuthFilter;
 import app.plainly.auth.SignedInUser;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,8 +17,8 @@ class MyTimelineController {
         this.timelines = timelines;
     }
 
-    @GetMapping("/api/me/timeline")
-    Timeline timeline(@RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser me) {
-        return timelines.forOwner(me);
+    @GetMapping("/api/me/policies/{policyId}/timeline")
+    Timeline timeline(@RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser me, @PathVariable long policyId) {
+        return timelines.forPolicy(me, policyId);
     }
 }

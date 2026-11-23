@@ -51,7 +51,7 @@ class CorrectionController {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
-            return null; // reported as "Pick the day the extra cover really started."
+            return null; // reported as "Pick the endorsement's real effective date."
         }
     }
 }

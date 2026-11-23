@@ -43,7 +43,7 @@ class IssuePolicyServiceTest {
         assertThat(plan.end()).isEqualTo(LocalDate.of(2027, 9, 1));
         assertThat(plan.lines()).singleElement().satisfies(l -> {
             assertThat(l.kind()).isEqualTo(CoverKind.BASE);
-            assertThat(l.description()).isEqualTo("Base cover, full year");
+            assertThat(l.description()).isEqualTo("General liability, full year");
             assertThat(l.calc().annualCents()).isEqualTo(120_000);
             assertThat(l.calc().days()).isEqualTo(365);
             assertThat(l.calc().termDays()).isEqualTo(365);
@@ -56,7 +56,7 @@ class IssuePolicyServiceTest {
     void previewWithExtraCoverAddsAFullYearOfProductLiability() {
         IssuePlan plan = service.preview(SEP_1, true);
         assertThat(plan.lines()).extracting(IssuePlan.Line::kind).containsExactly(CoverKind.BASE, CoverKind.PRODUCT_LIABILITY);
-        assertThat(plan.lines().get(1).description()).isEqualTo("Extra cover, full year");
+        assertThat(plan.lines().get(1).description()).isEqualTo("Product liability, full year");
         assertThat(plan.lines().get(1).calc().amountCents()).isEqualTo(73_000);
         assertThat(plan.totalCents()).isEqualTo(193_000);
     }

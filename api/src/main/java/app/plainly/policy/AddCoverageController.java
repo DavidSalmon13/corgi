@@ -58,7 +58,7 @@ class AddCoverageController {
         try {
             return LocalDate.parse(value);
         } catch (DateTimeParseException e) {
-            return null; // reported as "Pick the day the extra cover should start."
+            return null; // reported as "Pick the endorsement's effective date."
         }
     }
 }

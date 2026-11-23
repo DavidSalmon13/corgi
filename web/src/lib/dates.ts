@@ -17,6 +17,11 @@ export function daysBetween(from: IsoDate, to: IsoDate): number {
   return Math.round((toUtcMs(to) - toUtcMs(from)) / DAY_MS);
 }
 
+/** The calendar day `n` days after `date` (before it when `n` is negative), e.g. the last covered day of a policy. */
+export function addDays(date: IsoDate, n: number): IsoDate {
+  return new Date(toUtcMs(date) + n * DAY_MS).toISOString().slice(0, 10);
+}
+
 /** "Sep 1, 2026" */
 export function formatDate(date: IsoDate): string {
   const d = new Date(toUtcMs(date));

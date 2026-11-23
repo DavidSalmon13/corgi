@@ -65,7 +65,7 @@ class AddCoverageServiceTest {
         AddCoveragePlan plan = service.preview(id, CoverKind.PRODUCT_LIABILITY, OCT_15);
         assertThat(plan.policyId()).isEqualTo(id);
         assertThat(plan.kind()).isEqualTo(CoverKind.PRODUCT_LIABILITY);
-        assertThat(plan.label()).isEqualTo("Extra cover from Oct 15");
+        assertThat(plan.label()).isEqualTo("Product liability endorsement from Oct 15");
         assertThat(plan.from()).isEqualTo(OCT_15);
         assertThat(plan.to()).isEqualTo(POLICY_END);
         assertThat(plan.calc().annualCents()).isEqualTo(73_000);
@@ -111,22 +111,22 @@ class AddCoverageServiceTest {
     @Test
     void aMissingStartDateIsRejected() {
         assertFieldError(() -> service.preview(policy(), CoverKind.PRODUCT_LIABILITY, null),
-                "startDate", "Pick the day the extra cover should start.");
+                "startDate", "Pick the endorsement's effective date.");
     }
 
     @Test
     void aStartBeforeThePolicyIsRejected() {
         assertFieldError(() -> service.preview(policy(), CoverKind.PRODUCT_LIABILITY, SEP_1.minusDays(1)),
-                "startDate", "Extra cover can't start before the policy does (Sep 1, 2026).");
+                "startDate", "The effective date can't be before the policy period starts (Sep 1, 2026).");
     }
 
     @Test
     void aStartOnOrAfterThePolicyEndIsRejected() {
         long id = policy();
         assertFieldError(() -> service.preview(id, CoverKind.PRODUCT_LIABILITY, POLICY_END),
-                "startDate", "Extra cover has to start before the policy ends (Sep 1, 2027).");
+                "startDate", "The effective date has to be before the policy period ends (Sep 1, 2027).");
         assertFieldError(() -> service.preview(id, CoverKind.PRODUCT_LIABILITY, POLICY_END.plusDays(10)),
-                "startDate", "Extra cover has to start before the policy ends (Sep 1, 2027).");
+                "startDate", "The effective date has to be before the policy period ends (Sep 1, 2027).");
     }
 
     @Test
@@ -141,12 +141,12 @@ class AddCoverageServiceTest {
         long id = policy();
         service.add(id, productLiabilityFrom(OCT_15), brokerId());
         assertFieldError(() -> service.preview(id, CoverKind.PRODUCT_LIABILITY, LocalDate.of(2026, 12, 1)),
-                "kind", "This policy already has product liability cover.");
+                "kind", "This policy already has product liability coverage.");
 
         long issuedWithIt = issuer.issue(new IssuePolicyCommand("Both Covers LLC", "a shop", "Bo Owner",
                 TestData.uniqueEmail("bo"), SEP_1, true), brokerId()).policyId();
         assertFieldError(() -> service.preview(issuedWithIt, CoverKind.PRODUCT_LIABILITY, OCT_15),
-                "kind", "This policy already has product liability cover.");
+                "kind", "This policy already has product liability coverage.");
     }
 
     @Test
@@ -211,7 +211,7 @@ class AddCoverageServiceTest {
             assertThat(l.displayId()).isEqualTo(added.entries().getFirst().displayId());
             assertThat(l.type()).isEqualTo(EntryType.CHARGE);
             assertThat(l.entryDate()).isEqualTo(TODAY);
-            assertThat(l.description()).isEqualTo("Extra cover from Oct 15");
+            assertThat(l.description()).isEqualTo("Product liability endorsement from Oct 15");
             assertThat(l.amountCents()).isEqualTo(64_200);
             assertThat(l.coverageId()).isEqualTo(coverageId);
             assertThat(l.calcAnnualCents()).isEqualTo(73_000L);
@@ -258,7 +258,7 @@ class AddCoverageServiceTest {
         assertThat(saved).isEqualTo(1);
         assertThat(rejected).singleElement().isInstanceOfSatisfying(ValidationException.class,
                 e -> assertThat(e.fields()).containsExactly(
-                        java.util.Map.entry("kind", "This policy already has product liability cover.")));
+                        java.util.Map.entry("kind", "This policy already has product liability coverage.")));
         assertThat(jdbc.sql("select count(*) from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY'")
                 .param(id).query(Long.class).single()).isEqualTo(1);
         assertThat(ledger.balance(id)).isEqualTo(balanceBefore + 64_200);
@@ -287,7 +287,7 @@ class AddCoverageServiceTest {
             });
             assertThatThrownBy(waiting::get).cause().isInstanceOfSatisfying(ValidationException.class,
                     e -> assertThat(e.fields()).containsExactly(
-                            java.util.Map.entry("kind", "This policy already has product liability cover.")));
+                            java.util.Map.entry("kind", "This policy already has product liability coverage.")));
         }
         assertThat(jdbc.sql("select count(*) from coverages where policy_id = ? and kind = 'PRODUCT_LIABILITY'")
                 .param(id).query(Long.class).single()).isEqualTo(1);

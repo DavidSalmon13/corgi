@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import type { MoneyStatus, StatementRow } from '../api/types';
 import { drawerCopy, type Audience } from '../lib/statementCopy';
+import { Glossed } from './Glossed';
 import { StatusPill, type PillTone } from './StatusPill';
 
 const STATUS_TONE: Record<MoneyStatus, PillTone> = {
@@ -72,7 +73,7 @@ export function HowWeGotThis({ row, onClose, returnTo, audience = 'policyholder'
             <h2 id={titleId} className="m-0 text-[22px] font-bold">
               How we got this
             </h2>
-            <p className="mt-1 mb-0 text-[15px] text-ink-2">{d.line}</p>
+            <p className="mt-1 mb-0 text-[15px] text-ink-2"><Glossed>{d.line}</Glossed></p>
           </div>
           <button
             ref={closeButton}
@@ -89,22 +90,32 @@ export function HowWeGotThis({ row, onClose, returnTo, audience = 'policyholder'
 
         <div className="mx-5 mb-[18px] flex flex-col gap-1.5 rounded-[14px] bg-accent-soft px-[18px] py-4">
           <span className="text-[34px] font-bold leading-none tracking-[-0.02em] tabular-nums text-accent-ink">{d.amount}</span>
-          <span className="text-[15px] leading-snug">{d.plain}</span>
+          <span className="text-[15px] leading-snug">
+            <Glossed>{d.plain}</Glossed>
+          </span>
         </div>
 
         <section aria-labelledby={`${titleId}-maths`} className={SECTION}>
           <h3 id={`${titleId}-maths`} className={SECTION_HEAD}>
             The maths
           </h3>
-          <div className="text-[17px] font-semibold leading-snug tabular-nums">{d.formula}</div>
-          {d.formulaNote && <div className="text-sm leading-[1.45] text-ink-2">{d.formulaNote}</div>}
+          <div className="text-[17px] font-semibold leading-snug tabular-nums">
+            <Glossed>{d.formula}</Glossed>
+          </div>
+          {d.formulaNote && (
+            <div className="text-sm leading-[1.45] text-ink-2">
+              <Glossed>{d.formulaNote}</Glossed>
+            </div>
+          )}
         </section>
 
         <section aria-labelledby={`${titleId}-cause`} className={SECTION}>
           <h3 id={`${titleId}-cause`} className={SECTION_HEAD}>
             What caused it
           </h3>
-          <div className="text-base font-semibold">{d.actionWhat}</div>
+          <div className="text-base font-semibold">
+            <Glossed>{d.actionWhat}</Glossed>
+          </div>
           <div className="text-sm text-ink-2">{d.actionWho}</div>
           {d.reason && (
             <blockquote className="mx-0 mt-0.5 mb-0 rounded-[10px] bg-bg px-3 py-2.5 text-[15px] leading-[1.45]">“{d.reason}”</blockquote>
@@ -121,7 +132,7 @@ export function HowWeGotThis({ row, onClose, returnTo, audience = 'policyholder'
               <StatusPill tone={STATUS_TONE[status]}>{d.payment.status}</StatusPill>
             </div>
           )}
-          <div className="text-sm leading-[1.45] text-ink-2">{d.payment ? d.payment.note : d.noMoney}</div>
+          <div className="text-sm leading-[1.45] text-ink-2"><Glossed>{(d.payment ? d.payment.note : d.noMoney) ?? ''}</Glossed></div>
         </section>
 
         {d.refs.length > 0 && (

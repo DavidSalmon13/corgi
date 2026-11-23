@@ -4,13 +4,13 @@ import { formatShortDate, type IsoDate } from './dates';
 import { formatCents } from './money';
 
 // What the broker reads on B4's Correct tab and B3 after a correction, and the one sentence the customer gets.
-// The customer never reads "reversal" or "effective date": the undo and the corrected line are said in days and dollars.
+// Standard terms (reversal, rebill, effective date) throughout; screens render these through `Glossed` for the "?".
 
 function firstName(ownerName: string): string | null {
   return ownerName.trim().split(/\s+/)[0] || null;
 }
 
-/** The daily price, only when the yearly price divides into whole cents ($730.00 over 365 days is $2.00). */
+/** The daily price, only when the annual premium divides into whole cents ($730.00 over 365 days is $2.00). */
 function perDayCents(annualCents: number, termDays: number): number | null {
   return annualCents % termDays === 0 ? annualCents / termDays : null;
 }
@@ -37,20 +37,20 @@ function cardPhrase(refunds: PlannedRefund[]): string {
   return `cards ending ${cards.slice(0, -1).join(', ')} and ${cards[cards.length - 1]}`;
 }
 
-/** "Extra cover · Product liability ($730.00 a year)": which cover is being corrected. */
+/** "Product liability endorsement ($730.00 annual premium)": which coverage is being corrected. */
 export function correctingWhich(annualCents: number): string {
-  return `Extra cover · Product liability (${formatCents(annualCents)} a year)`;
+  return `Product liability endorsement (${formatCents(annualCents)} annual premium)`;
 }
 
-/** "Undo: extra cover from Oct 15 · $730.00 × 321 ÷ 365 · −$642.00" */
+/** "Reversal: product liability from Oct 15 · $730.00 × 321 ÷ 365 · −$642.00" */
 export function undoLine(plan: CorrectionPlan): string {
-  return `Undo: extra cover from ${formatShortDate(plan.oldStart)} · ${calcArithmetic(plan.undo.calc)} · ${formatCents(plan.undo.amountCents)}`;
+  return `Reversal: product liability from ${formatShortDate(plan.oldStart)} · ${calcArithmetic(plan.undo.calc)} · ${formatCents(plan.undo.amountCents)}`;
 }
 
-/** "Corrected: extra cover from Oct 8 · $730.00 × 328 ÷ 365 · +$656.00" */
+/** "Rebill: product liability from Oct 8 · $730.00 × 328 ÷ 365 · +$656.00" */
 export function correctedLine(plan: CorrectionPlan): string {
   const amount = formatCents(plan.rebill.calc.amountCents, { signed: true });
-  return `Corrected: extra cover from ${formatShortDate(plan.newStart)} · ${calcArithmetic(plan.rebill.calc)} · ${amount}`;
+  return `Rebill: product liability from ${formatShortDate(plan.newStart)} · ${calcArithmetic(plan.rebill.calc)} · ${amount}`;
 }
 
 /** "+$14.00 (7 more days × $2.00)" */
@@ -65,7 +65,7 @@ export function netWhy(plan: CorrectionPlan): string {
 
 /** The sentence the customer reads about this correction. */
 export function customerWillSeeCorrection(plan: CorrectionPlan): string {
-  const why = 'because we fixed when your extra cover started.';
+  const why = 'because we corrected the effective date of your product liability endorsement.';
   if (plan.netCents > 0) return `You owe ${formatCents(plan.netCents)} ${why}`;
   if (plan.refunds.length > 0) {
     const cards = last4s(plan.refunds);
@@ -73,7 +73,7 @@ export function customerWillSeeCorrection(plan: CorrectionPlan): string {
     return `We owe you ${formatCents(plan.refundTotalCents)}. It's on its way to ${where}.`;
   }
   if (plan.netCents < 0) return `You owe ${formatCents(-plan.netCents)} less ${why}`;
-  return `What you owe stays the same; we fixed when your extra cover started.`;
+  return `What you owe stays the same; we corrected the effective date of your product liability endorsement.`;
 }
 
 /** What happens to the money when the broker saves: added to the balance, or refunded. */
@@ -101,7 +101,7 @@ export function correctSaveLabel(plan: CorrectionPlan): string {
 /** The confirm dialog: what changes, then the three amounts. */
 export function confirmSummary(plan: CorrectionPlan, ownerName: string): { sentence: string; amounts: string } {
   const who = firstName(ownerName);
-  const moved = `Product liability will start on ${formatShortDate(plan.newStart)} instead of ${formatShortDate(plan.oldStart)}.`;
+  const moved = `The product liability endorsement's effective date becomes ${formatShortDate(plan.newStart)} instead of ${formatShortDate(plan.oldStart)}.`;
   let money: string;
   if (plan.refunds.length > 0) {
     money = `${formatCents(plan.refundTotalCents)} goes back to ${cardPhrase(plan.refunds)} and ${who ?? 'the customer'} sees your reason word for word.`;
@@ -114,8 +114,8 @@ export function confirmSummary(plan: CorrectionPlan, ownerName: string): { sente
   return {
     sentence: `${moved} ${money}`,
     amounts: [
-      `Undo ${formatCents(plan.undo.amountCents)}`,
-      `Corrected ${formatCents(plan.rebill.calc.amountCents, { signed: true })}`,
+      `Reversal ${formatCents(plan.undo.amountCents)}`,
+      `Rebill ${formatCents(plan.rebill.calc.amountCents, { signed: true })}`,
       `Net ${formatCents(plan.netCents, { signed: true })}`,
     ].join(' · '),
   };
@@ -129,8 +129,8 @@ export function correctedBanner(ownerName: string, saved: Corrected, cardLast4: 
   const who = firstName(ownerName);
   const refs = [
     `Correction ${saved.transactionDisplayId}`,
-    `undo ${saved.undoDisplayId}`,
-    `corrected line ${saved.rebillDisplayId}`,
+    `reversal ${saved.undoDisplayId}`,
+    `rebill ${saved.rebillDisplayId}`,
     ...saved.refunds.map((r) => `refund ${r.displayId}`),
   ].join(' · ');
   let message: string;
@@ -161,7 +161,7 @@ export function failedRefundDetail(refund: RefundView, ownerName: string): strin
   return `${saved} ${who} still sees “We owe you ${formatCents(refund.amountCents)}” until it goes through.`;
 }
 
-/** B3 timeline: "from Oct 8 · was Oct 15", or "from Oct 8" when the cover was never corrected. */
+/** B3 timeline: "from Oct 8 · was Oct 15", or "from Oct 8" when the effective date was never corrected. */
 export function coverWasLabel(from: IsoDate, previousStart: IsoDate | null): string {
   const now = `from ${formatShortDate(from)}`;
   return previousStart ? `${now} · was ${formatShortDate(previousStart)}` : now;

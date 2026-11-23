@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { AddCoverPlan, AddCoverRequest, CoverAdded, PolicyDetail } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 import { Money } from '../../components/Money';
 import { Term } from '../../components/Term';
 import {
@@ -11,11 +12,15 @@ import {
   coverOptionLabel,
   customerWillSeeAddCover,
   defaultStart,
+  lastEffectiveDate,
+  policyPeriodLine,
   saveLabel,
   savedBanner,
   startsOnHint,
 } from '../../lib/addCoverCopy';
 import { daysBetween } from '../../lib/dates';
+import { GLOSSARY } from '../../lib/glossary';
+import { policyPeriod } from '../../lib/policyCopy';
 import { useDebounced } from '../../lib/useDebounced';
 import {
   BlockedCard,
@@ -39,13 +44,13 @@ type Tab = 'add' | 'correct' | 'cancel';
 
 const EXTRA_CENTS = 73_000;
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'add', label: 'Add cover' },
+  { id: 'add', label: 'Add endorsement' },
   { id: 'correct', label: 'Correct' },
   { id: 'cancel', label: 'Cancel' },
 ];
 
 /**
- * B4 "Change this policy": Add cover · Correct · Cancel. {@code ?tab=correct} and {@code ?tab=cancel} open those tabs
+ * B4 "Mid-term change": Add endorsement · Correct · Cancel. {@code ?tab=correct} and {@code ?tab=cancel} open those tabs
  * (B3's Correct and Cancel actions).
  */
 export function ChangePolicyPage() {
@@ -77,11 +82,11 @@ export function ChangePolicyPage() {
 function blockedReason(tab: Tab, p: PolicyDetail): string | null {
   if (p.status === 'CANCELLED') return 'This policy is cancelled.';
   const hasExtra = p.coverages.some((c) => c.kind === 'PRODUCT_LIABILITY');
-  if (tab === 'add') return hasExtra ? 'This policy already has product liability cover.' : null;
+  if (tab === 'add') return hasExtra ? 'This policy already has product liability coverage.' : null;
   if (tab === 'cancel') {
     return p.paymentWaiting ? 'A payment is waiting for the bank. Cancel once it settles.' : null;
   }
-  if (!hasExtra) return 'This policy has no extra cover to correct.';
+  if (!hasExtra) return 'This policy has no product liability endorsement to correct.';
   return p.paymentWaiting ? 'A payment is waiting for the bank. Correct this once it settles.' : null;
 }
 
@@ -99,7 +104,15 @@ function ChangePolicy({ p }: { p: PolicyDetail }) {
         <Link to={back} className="text-[15px] font-semibold no-underline">
           ‹ {p.customer.legalName} · {p.policyNumber}
         </Link>
-        <h1 className="m-0 text-[28px] font-bold tracking-[-0.015em] md:text-[32px]">Change this policy</h1>
+        <h1 className="m-0 text-[28px] font-bold tracking-[-0.015em] md:text-[32px]">
+          <Term explain={GLOSSARY.midTermChange}>Mid-term change</Term>
+        </h1>
+        <p className="m-0 text-base tabular-nums">
+          <span className="font-semibold">
+            <Term explain={GLOSSARY.policyPeriod}>Policy period</Term>
+          </span>{' '}
+          {p.cancelledOn ? policyPeriod(p.start, p.end, p.cancelledOn) : policyPeriodLine(p.start, p.end, p.today)}
+        </p>
         <p className="m-0 text-base text-ink-2">Nothing is saved until you've seen what it costs or refunds the customer.</p>
       </div>
 
@@ -205,17 +218,19 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
         <form
           id="add-cover"
           noValidate
-          aria-label="Add cover"
+          aria-label="Add endorsement"
           onSubmit={(e) => {
             e.preventDefault();
             if (!cantSave && !save.isPending) save.mutate();
           }}
           className="flex min-w-0 flex-[1_1_460px] flex-col gap-5 rounded-2xl border border-line bg-card p-5 md:p-6"
         >
-          <h2 className="m-0 text-xl font-bold">Add extra cover</h2>
+          <h2 className="m-0 text-xl font-bold">
+            Add an <Term explain={GLOSSARY.endorsement}>endorsement</Term>
+          </h2>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="kind" className="text-sm font-semibold">
-              Cover
+              Coverage
             </label>
             <select
               id="kind"
@@ -228,26 +243,28 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
               <option value="PRODUCT_LIABILITY">{coverOptionLabel(EXTRA_CENTS, termDays)}</option>
             </select>
             <span id="kind-hint" className={HINT}>
-              Pays if something the business sells hurts someone or damages their property.
+              <Term explain={GLOSSARY.productLiability}>Product liability</Term>: pays if something the business sells
+              hurts someone or damages their property.
             </span>
             <FieldError id="kind-error" message={kindError} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="startDate" className="text-sm font-semibold">
-              <Term explain="The first day the extra cover protects the customer.">Starts on</Term>
+              <Term explain={GLOSSARY.effectiveDate}>Effective date</Term>
             </label>
             <input
               id="startDate"
               type="date"
               value={startDate}
               min={p.start}
+              max={lastEffectiveDate(p.end)}
               aria-invalid={!!startError}
               aria-describedby={startError ? 'startDate-error startDate-hint' : 'startDate-hint'}
               onChange={(e) => changeStart(e.target.value)}
               className={`${INPUT} tabular-nums ${startError ? 'border-bad' : 'border-line'}`}
             />
             <span id="startDate-hint" className={HINT}>
-              {startsOnHint(p.end)}
+              <Glossed>{startsOnHint(p.start, p.end)}</Glossed>
             </span>
             <FieldError id="startDate-error" message={startError} />
           </div>
@@ -264,12 +281,12 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
               <div>
                 <div className="flex justify-between gap-4 border-t border-dashed border-line py-3">
                   <div className="min-w-0">
-                    <div className="font-semibold">{plan.label}</div>
+                    <div className="font-semibold">
+                      <Glossed>{plan.label}</Glossed>
+                    </div>
                     <div className={`${HINT} tabular-nums`}>
                       {calcArithmetic(plan.calc)} ·{' '}
-                      <Term explain="Pro-rata: the yearly price × the days covered ÷ the days in the policy year, so every day costs the same.">
-                        charged by the day
-                      </Term>
+                      <Term explain={GLOSSARY.proRata}>pro-rata</Term>
                     </div>
                   </div>
                   <Money cents={plan.totalCents} signed className="font-semibold" />
@@ -281,7 +298,9 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
               </div>
               <div className="flex flex-col gap-1.5 rounded-card bg-bg px-4 py-3.5">
                 <span className="text-xs font-semibold uppercase tracking-[.06em] text-ink-2">Customer will see</span>
-                <p className="m-0 text-[17px] font-medium leading-[1.45]">{customerWillSeeAddCover(plan.from, plan.calc)}</p>
+                <p className="m-0 text-[17px] font-medium leading-[1.45]">
+                  <Glossed>{customerWillSeeAddCover(plan.from, plan.calc)}</Glossed>
+                </p>
               </div>
             </div>
           ) : (
@@ -294,9 +313,9 @@ function AddCoverForm({ p, back }: { p: PolicyDetail; back: string }) {
                   </button>
                 </>
               ) : previewProblem && startDate ? (
-                `${previewProblem} We'll show the price here, before anything is saved.`
+                <Glossed>{`${previewProblem} We'll show the price here, before anything is saved.`}</Glossed>
               ) : (
-                "Pick a start date and we'll show the price here, before anything is saved."
+                <Glossed>{"Pick an effective date and we'll show the price here, before anything is saved."}</Glossed>
               )}
             </p>
           )}

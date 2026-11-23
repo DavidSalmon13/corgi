@@ -3,8 +3,11 @@ import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { History, HistoryAction, StatementRow } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 import { HowWeGotThis } from '../../components/HowWeGotThis';
+import { Term } from '../../components/Term';
 import { formatDate } from '../../lib/dates';
+import { GLOSSARY } from '../../lib/glossary';
 import { formatCents } from '../../lib/money';
 import { rowTitle } from '../../lib/statementCopy';
 import { actionDetail, actionMoney, actionStatus, actionTitle, actionTone, ledgerChips, type Tone } from '../../lib/historyCopy';
@@ -71,17 +74,20 @@ function Chip({ row, undone, onOpen }: { row: StatementRow; undone: boolean; onO
  * open their own lines. Amounts are matched in order; text without one stays plain.
  */
 function Detail({ a, text, onOpen }: { a: HistoryAction; text: string; onOpen: OpenTrace }) {
-  if (a.rows.length < 2) return <>{text}</>;
+  if (a.rows.length < 2) return <Glossed>{text}</Glossed>;
   const parts: ReactNode[] = [];
   let rest = text;
   for (const row of a.rows) {
     const amount = formatCents(row.amountCents, { signed: true });
     const at = rest.indexOf(amount);
     if (at < 0) continue;
-    parts.push(rest.slice(0, at), <TraceAmount key={row.id} row={row} text={amount} onOpen={onOpen} />);
+    parts.push(
+      <Glossed key={`t-${row.id}`}>{rest.slice(0, at)}</Glossed>,
+      <TraceAmount key={row.id} row={row} text={amount} onOpen={onOpen} />,
+    );
     rest = rest.slice(at + amount.length);
   }
-  parts.push(rest);
+  parts.push(<Glossed key="rest">{rest}</Glossed>);
   return <>{parts}</>;
 }
 
@@ -108,7 +114,9 @@ function ActionItem({ a, policyId, onOpen }: { a: HistoryAction; policyId: strin
           className={`flex flex-col gap-2 rounded-[14px] bg-card px-4 py-4 md:px-[18px] ${border(a, tone)}`}
         >
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className={`m-0 text-[17px] font-bold ${a.status === 'REFUND_FAILED' ? 'text-bad' : ''}`}>{actionTitle(a)}</h2>
+            <h2 className={`m-0 text-[17px] font-bold ${a.status === 'REFUND_FAILED' ? 'text-bad' : ''}`}>
+              <Glossed>{actionTitle(a)}</Glossed>
+            </h2>
             <span className={`text-[17px] font-bold tabular-nums whitespace-nowrap ${moneyColour(a)}`}>
               {a.rows.length === 1 ? <TraceAmount row={a.rows[0]} text={actionMoney(a)} onOpen={onOpen} /> : actionMoney(a)}
             </span>
@@ -133,7 +141,9 @@ function ActionItem({ a, policyId, onOpen }: { a: HistoryAction; policyId: strin
 
           {chips.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-ink-2">
-              <span>Ledger lines</span>
+              <span>
+                <Term explain={GLOSSARY.ledger}>Ledger</Term> lines
+              </span>
               {chips.map((c) => (
                 <Chip key={c.id} row={c.row} undone={c.undone} onOpen={onOpen} />
               ))}
@@ -193,7 +203,7 @@ export function HistoryPage() {
       )}
 
       <p className="m-0 text-sm leading-[1.45] text-ink-2">
-        Select any underlined amount or a ledger line to see how it was worked out. The customer sees the same numbers on
+        Select any underlined amount or a <Term explain={GLOSSARY.ledger}>ledger</Term> line to see how it was worked out. The customer sees the same numbers on
         their statement.
       </p>
 

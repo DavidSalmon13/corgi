@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { api, ApiError, useSession } from '../../api/client';
 import type { MyCover } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
+import { Glossed } from '../../components/Glossed';
 import { Mark } from '../../components/Mark';
 import { SignOutButton } from '../../components/SignOutButton';
 import { Money } from '../../components/Money';
@@ -12,6 +13,7 @@ import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { cancelledCard } from '../../lib/cancelCopy';
 import { formatDate } from '../../lib/dates';
+import { GLOSSARY } from '../../lib/glossary';
 import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from '../../lib/myCoverCopy';
 import { PAYMENTS_OFF, homeFailedCopy, homePaymentState, homeWaitingCopy, payLabel } from '../../lib/paymentCopy';
 
@@ -107,7 +109,7 @@ function CancelledCard({ c }: { c: MyCover }) {
       <span className="self-start">
         <StatusPill tone="neutral">Cancelled</StatusPill>
       </span>
-      <p className="m-0 text-[19px] font-medium leading-snug">{copy?.sentence ?? 'This cover has ended.'}</p>
+      <p className="m-0 text-[19px] font-medium leading-snug">{copy?.sentence ?? 'This coverage has ended.'}</p>
       {copy?.due && (
         <>
           <p className="m-0 text-[17px] font-semibold leading-snug text-accent-ink tabular-nums">{copy.due}</p>
@@ -145,8 +147,10 @@ function AmountCard({ c }: { c: MyCover }) {
         </span>
         <p className="m-0 text-[19px] font-medium leading-snug">{refundOnItsWay(c.refundWaiting)}</p>
         <p className="m-0 text-[15px] leading-snug text-ink-2">
-          We fixed when your extra cover started, so you'd paid for days you weren't covered. Banks take 5–10 days
-          to show a refund. <SeeWhy />
+          We corrected the <Term explain={GLOSSARY.effectiveDate}>effective date</Term> of your{' '}
+          <Term explain={GLOSSARY.productLiability}>product liability</Term>{' '}
+          <Term explain={GLOSSARY.endorsement}>endorsement</Term>, so you'd paid for days you weren't covered. Banks
+          take 5–10 days to show a refund. <SeeWhy />
         </p>
         <BrokerNote c={c} />
       </section>
@@ -200,7 +204,7 @@ function AmountCard({ c }: { c: MyCover }) {
         <Money cents={c.amountDueCents} /> <span className="text-xl font-semibold">due</span>
       </div>
       <p className="m-0 text-[17px] leading-snug">
-        {dueReasonText(c.dueReason, c.latestChangeFrom)} <SeeWhy />
+        <Glossed>{dueReasonText(c.dueReason, c.latestChangeFrom)}</Glossed> <SeeWhy />
       </p>
       {c.dueReason === 'CORRECTION' && <BrokerNote c={c} />}
       <PayAction c={c} label={payLabel(c.amountDueCents)} />
@@ -248,7 +252,7 @@ export function HomePage() {
     <>
       <div>
         <p className="m-0 text-[15px] text-ink-2">{c.business.legalName}</p>
-        <h1 className="mt-0.5 mb-0 text-[30px] font-bold tracking-[-0.015em]">Your cover</h1>
+        <h1 className="mt-0.5 mb-0 text-[30px] font-bold tracking-[-0.015em]">Your coverage</h1>
       </div>
 
       <AmountCard c={c} />
@@ -256,8 +260,8 @@ export function HomePage() {
       <section aria-label="What you're covered for" className={`${CARD} flex flex-col gap-3.5 overflow-hidden p-5 pb-0`}>
         <p className="m-0 text-[17px] leading-[1.45]">{protectionSentence(c.business.description, hasExtra, endsOn ? { endsOn, today: c.today } : null)}</p>
         <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-ink-2">
-          <Term explain={`The dates your policy runs, here ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
-            Your cover period
+          <Term explain={`${GLOSSARY.policyPeriod} Yours is ${formatDate(c.policy.start)} to ${formatDate(periodEnd)}.`}>
+            Your policy period
           </Term>
           <span className="font-semibold text-ink tabular-nums">{periodLine(c.policy.start, periodEnd)}</span>
         </div>
@@ -279,7 +283,7 @@ export function HomePage() {
             <li key={x.id} className="flex items-center gap-2.5">
               <span aria-hidden="true" className="size-2.5 flex-none rounded-[3px] bg-ink/85" />
               <span className="flex-1">
-                <Term explain="Pays if someone is hurt or their property is damaged because of your business.">Base cover</Term>
+                <Term explain={GLOSSARY.generalLiability}>General liability</Term>
               </span>
               <span className="text-ink-2 tabular-nums">{coverDates(x.from, endsOn)}</span>
             </li>
@@ -288,10 +292,7 @@ export function HomePage() {
             <li key={x.id} className="flex items-center gap-2.5">
               <span aria-hidden="true" className="size-2.5 flex-none rounded-[3px] bg-accent" />
               <span className="flex-1">
-                <Term explain="Cover added on top of your base cover. This one pays if something you sell hurts someone.">
-                  Extra cover
-                </Term>
-                : products you sell
+                <Term explain={GLOSSARY.productLiability}>Product liability</Term>
               </span>
               <span className="text-ink-2 tabular-nums">{coverDates(x.from, endsOn)}</span>
             </li>
@@ -299,7 +300,7 @@ export function HomePage() {
         </ul>
 
         <Link to="/me/timeline" className={`${NAV_ROW} -mx-5 border-t border-line`}>
-          See your cover timeline
+          See your coverage timeline
           <Chevron />
         </Link>
       </section>
@@ -314,7 +315,7 @@ export function HomePage() {
         </Link>
         <div className="flex flex-col border-t border-line px-[18px] py-3.5">
           <span className="font-semibold">Your broker, {c.broker.name}</span>
-          <span className="text-sm text-ink-2">Questions about your cover? Your broker set up this policy and can help.</span>
+          <span className="text-sm text-ink-2">Questions about your coverage? Your broker set up this policy and can help.</span>
         </div>
       </nav>
 

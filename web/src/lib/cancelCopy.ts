@@ -4,7 +4,7 @@ import { formatDate, formatShortDate, type IsoDate } from './dates';
 import { formatCents } from './money';
 
 // What the broker reads on B4's Cancel tab and B3 after cancelling, and what the customer reads on P1 and P6.
-// Said in days and dollars: the customer never reads "unearned", "short-rate" or "pro-rata".
+// Standard terms (return premium, short-rate, pro-rata) throughout; screens render these through `Glossed` for the "?".
 
 function firstName(ownerName: string): string | null {
   return ownerName.trim().split(/\s+/)[0] || null;
@@ -19,20 +19,20 @@ function hasEnded(endsOn: IsoDate, today: IsoDate): boolean {
   return endsOn <= today;
 }
 
-const COVER_NAME: Record<CoverKind, string> = { BASE: 'Base cover', PRODUCT_LIABILITY: 'Extra cover' };
+const COVER_NAME: Record<CoverKind, string> = { BASE: 'General liability', PRODUCT_LIABILITY: 'Product liability' };
 
 /** B4: which change left money owing, kept back from the credit. */
 const KEPT_BACK_B4: Record<KeptBackFor, string> = {
   ISSUE: 'First year still owed',
-  ADD_COVERAGE: 'Extra cover still owed',
+  ADD_COVERAGE: 'Endorsement still owed',
   CORRECT: 'Correction still owed',
 };
 
 /** P6: the same, as the customer knows it. */
 const KEPT_BACK_P6: Record<KeptBackFor, string> = {
   ISSUE: 'from your first year',
-  ADD_COVERAGE: 'for your extra cover',
-  CORRECT: 'from the start-date fix',
+  ADD_COVERAGE: 'for your product liability endorsement',
+  CORRECT: 'from the effective-date correction',
 };
 
 /** One line of "What Maya gets back" (B4) or "How we worked it out" (P6). {@code total} is the bottom line. */
@@ -59,7 +59,7 @@ export function coverEndsSentence(endsOn: IsoDate, today: IsoDate): string {
 }
 
 /**
- * B4's preview: one row per cover credit, what the credit keeps back to pay off what was owed, then the bottom line:
+ * B4's preview: one row of return premium per coverage, what it keeps back to pay off what was owed, then the bottom line:
  * the refund, what's still owed for the days covered, or nothing either way.
  */
 export function cancelPreviewRows(plan: CancelPlan): MoneyRow[] {
@@ -68,7 +68,7 @@ export function cancelPreviewRows(plan: CancelPlan): MoneyRow[] {
     rows.push(
       row(
         `Still owed for the ${plural(plan.usedDays, 'day')} covered`,
-        "What the credit doesn't cover",
+        "What the return premium doesn't cover",
         formatCents(plan.stillOwedCents),
         true,
       ),
@@ -89,7 +89,7 @@ export function cancelPreviewRows(plan: CancelPlan): MoneyRow[] {
       ),
     );
   } else {
-    rows.push(row('Nothing to refund or pay', 'The credit pays off what was owed', formatCents(0), true));
+    rows.push(row('Nothing to refund or pay', 'The return premium pays off what was owed', formatCents(0), true));
   }
   return rows;
 }
@@ -194,11 +194,11 @@ export function unusedDaysCaption(c: Cancellation): string {
   return `${plural(c.usedDays, 'day')} used. The striped part, ${plural(c.unusedDays, 'unused day')}, ${where}.`;
 }
 
-/** P6 "How we worked it out": each credit, what was kept back, then the money back or what's still due. */
+/** P6 "How we worked it out": each return premium, what was kept back, then the refund or what's still due. */
 export function workedOutRows(c: Cancellation, amountDueCents = 0): MoneyRow[] {
   const rows = c.credits.map((credit) =>
     row(
-      `${COVER_NAME[credit.kind]}, unused days`,
+      `${COVER_NAME[credit.kind]} return premium`,
       calcArithmetic({ annualCents: credit.annualCents, days: credit.days, termDays: c.termDays, amountCents: -credit.amountCents }),
       formatCents(credit.amountCents),
     ),
@@ -207,7 +207,7 @@ export function workedOutRows(c: Cancellation, amountDueCents = 0): MoneyRow[] {
     rows.push(
       row(
         `Still owed for the ${plural(c.usedDays, 'day')} you were covered`,
-        'No cancellation fee',
+        'No short-rate penalty',
         formatCents(amountDueCents),
         true,
       ),
@@ -220,9 +220,9 @@ export function workedOutRows(c: Cancellation, amountDueCents = 0): MoneyRow[] {
     rows.push(row('Unpaid balance kept back', `${what}, still owed`, formatCents(c.keptBackCents, { signed: true })));
   }
   if (c.refundCents > 0) {
-    rows.push(row(`Money back to ${card(c.cardLast4)}`, 'No cancellation fee', formatCents(c.refundCents), true));
+    rows.push(row(`Refund to ${card(c.cardLast4)}`, 'No short-rate penalty', formatCents(c.refundCents), true));
   } else {
-    rows.push(row('Nothing more to pay', 'No cancellation fee', formatCents(0), true));
+    rows.push(row('Nothing more to pay', 'No short-rate penalty', formatCents(0), true));
   }
   return rows;
 }

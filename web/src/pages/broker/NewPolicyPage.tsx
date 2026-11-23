@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { IssuePlan, IssueRequest, Issued, ValidationBody } from '../../api/types';
 import { Money } from '../../components/Money';
+import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
+import { GLOSSARY } from '../../lib/glossary';
 import { daysBetween, formatDate } from '../../lib/dates';
 import { customerWillSee } from '../../lib/issueCopy';
 import { formatCents } from '../../lib/money';
@@ -97,7 +99,9 @@ function CoverChoice(props: {
         <span className="block font-semibold tabular-nums sm:hidden">
           <Money cents={props.cents} /> a year
         </span>
-        <span className="block text-sm text-ink-2">{props.description}</span>
+        <span className="block text-sm text-ink-2">
+          <Glossed>{props.description}</Glossed>
+        </span>
       </span>
       <span className="hidden font-semibold tabular-nums whitespace-nowrap sm:block">
         <Money cents={props.cents} /> a year
@@ -174,7 +178,7 @@ export function NewPolicyPage() {
   const hadFieldErrors = errors ? Object.keys(errors.fields).length > 0 : false;
   const summary = !errors ? null : hadFieldErrors ? (open === 0 ? null : `${open} ${open === 1 ? 'thing' : 'things'} to fix before you can save.`) : errors.message;
   const owner = form.ownerName.trim().split(/\s+/)[0];
-  const period = plan ? `${formatDate(plan.start)} → ${formatDate(plan.end)}` : 'Starts on the date above';
+  const period = plan ? `${formatDate(plan.start)} → ${formatDate(plan.end)}` : 'Starts on the effective date above';
 
   return (
     <>
@@ -225,34 +229,38 @@ export function NewPolicyPage() {
           </fieldset>
 
           <fieldset className={CARD}>
-            <legend className={LEGEND}>The cover</legend>
+            <legend className={LEGEND}>The coverage</legend>
             <div className="flex flex-wrap gap-4">
               <TextField
                 id="startDate"
                 type="date"
-                label={<Term explain="The first day this cover protects the customer.">Starts on</Term>}
+                label={<Term explain={GLOSSARY.effectiveDate}>Effective date</Term>}
                 value={form.startDate}
                 error={fieldError('startDate') ?? previewProblem}
                 onChange={set('startDate')}
               />
               <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-1.5">
                 <span className="text-sm font-semibold">
-                  <Term explain="The dates the policy runs.">Cover period</Term>
+                  <Term explain={GLOSSARY.policyPeriod}>Policy period</Term>
                 </span>
-                <div className={`${INPUT} flex items-center border-transparent bg-track tabular-nums`}>{period}</div>
+                <div className={`${INPUT} flex items-center border-transparent bg-track tabular-nums`}>
+                  <span>
+                    <Glossed>{period}</Glossed>
+                  </span>
+                </div>
                 <span className="text-[13px] text-ink-2">One year. The end date isn't counted.</span>
               </div>
             </div>
             <CoverChoice
-              title={<Term explain="General Liability: pays if someone is hurt or their property is damaged because of the business.">Base cover</Term>}
+              title={<Term explain={GLOSSARY.generalLiability}>General liability</Term>}
               description="Pays if someone is hurt or their property is damaged because of the business. Always included."
               cents={BASE_CENTS}
               checked
               disabled
             />
             <CoverChoice
-              title="Extra cover: product liability"
-              description="Pays if something the business sells hurts someone. Can also be added later."
+              title={<Term explain={GLOSSARY.productLiability}>Product liability</Term>}
+              description="Pays if something the business sells hurts someone. Can also be added later by endorsement."
               cents={EXTRA_CENTS}
               checked={extra}
               onChange={setExtra}
@@ -262,7 +270,7 @@ export function NewPolicyPage() {
 
         <aside aria-label="Price preview" aria-live="polite" className="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5 rounded-2xl border-[1.5px] border-accent bg-card p-5 md:p-6">
           <h2 className="m-0 text-xl font-bold">
-            <Term explain="Premium: what the customer pays for a year of protection.">Price of the cover</Term>
+            <Term explain={GLOSSARY.premium}>Premium</Term>
           </h2>
           {plan ? (
             <div className={`flex flex-col gap-3.5 ${repricing ? 'opacity-70' : ''}`}>
@@ -274,11 +282,12 @@ export function NewPolicyPage() {
                 {plan.lines.map((l) => (
                   <div key={l.kind} className="flex justify-between gap-4 border-t border-dashed border-line py-3">
                     <div>
-                      <div className="font-semibold">{l.description}</div>
+                      <div className="font-semibold">
+                        <Glossed>{l.description}</Glossed>
+                      </div>
                       <div className="text-[13px] text-ink-2 tabular-nums">
-                        <Term explain="The yearly price × the days this cover runs ÷ the days in the policy year. Each day costs the same.">
-                          {formatCents(l.calc.annualCents)} × {l.calc.days} ÷ {l.calc.termDays}
-                        </Term>
+                        {formatCents(l.calc.annualCents)} × {l.calc.days} ÷ {l.calc.termDays} ·{' '}
+                        <Term explain={GLOSSARY.proRata}>pro-rata</Term>
                       </div>
                     </div>
                     <Money cents={l.calc.amountCents} signed className="font-semibold" />
@@ -292,7 +301,9 @@ export function NewPolicyPage() {
               <div className="flex flex-col gap-1.5 rounded-card bg-bg px-4 py-3.5">
                 <span className="text-xs font-semibold uppercase tracking-[.06em] text-ink-2">Customer will see</span>
                 <p className="m-0 text-base font-medium leading-normal">
-                  {customerWillSee({ start: plan.start, end: plan.end, totalCents: plan.totalCents, extra: plan.lines.some((l) => l.kind !== 'BASE') })}
+                  <Glossed>
+                    {customerWillSee({ start: plan.start, end: plan.end, totalCents: plan.totalCents, extra: plan.lines.some((l) => l.kind !== 'BASE') })}
+                  </Glossed>
                 </p>
               </div>
             </div>

@@ -23,8 +23,8 @@ export function balanceText(balanceCents: number): string {
 
 const ACTIONS: Record<string, string> = {
   ISSUE: 'Issued',
-  ADD_COVERAGE: 'Added extra cover',
-  CORRECT: 'Corrected',
+  ADD_COVERAGE: 'Endorsement added',
+  CORRECT: 'Effective date corrected',
   CANCEL: 'Cancelled',
 };
 

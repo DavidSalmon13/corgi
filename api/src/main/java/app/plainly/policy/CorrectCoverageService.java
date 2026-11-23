@@ -32,10 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class CorrectCoverageService {
 
     static final String CANCELLED = "This policy is cancelled, so its cover can't be corrected.";
-    static final String NO_EXTRA_COVER = "This policy has no extra cover to correct.";
+    static final String NO_EXTRA_COVER = "This policy has no product liability endorsement to correct.";
     static final String PAYMENT_WAITING = "A payment is waiting for the bank. Correct this once it settles.";
-    static final String SAME_START = "Extra cover already starts on that day.";
-    static final String NO_START = "Pick the day the extra cover really started.";
+    static final String SAME_START = "The endorsement already has that effective date.";
+    static final String NO_START = "Pick the endorsement's real effective date.";
     static final String NO_REASON = "Say why the start date is changing. The customer sees this.";
     static final String REASON_TOO_LONG = "Keep the reason under 500 characters.";
     static final int REASON_MAX = 500;
@@ -94,7 +94,7 @@ public class CorrectCoverageService {
                 rebill.from(), rebill.to());
         coverages.markReplaced(plan.coverageId(), newCoverage);
         List<PostedEntry> posted = poster.post(policyId, tx.id(), List.of(
-                NewEntry.reversal(recordedOn, "Undo: " + plan.undo().label(), plan.undo().entryId(),
+                NewEntry.reversal(recordedOn, "Reversal: " + plan.undo().label(), plan.undo().entryId(),
                         plan.undo().amountCents()),
                 NewEntry.charge(recordedOn, rebill.label(), newCoverage, rebill.calc(), rebill.from(), rebill.to())));
 
@@ -136,9 +136,9 @@ public class CorrectCoverageService {
         if (start == null) {
             errors.put("startDate", NO_START);
         } else if (start.isBefore(policy.start())) {
-            errors.put("startDate", "Extra cover can't start before the policy does (" + LONG.format(policy.start()) + ").");
+            errors.put("startDate", "The effective date can't be before the policy period starts (" + LONG.format(policy.start()) + ").");
         } else if (!start.isBefore(policy.end())) {
-            errors.put("startDate", "Extra cover has to start before the policy ends (" + LONG.format(policy.end()) + ").");
+            errors.put("startDate", "The effective date has to be before the policy period ends (" + LONG.format(policy.end()) + ").");
         } else if (start.equals(loaded.cover().from())) {
             errors.put("startDate", SAME_START);
         }
@@ -176,6 +176,6 @@ public class CorrectCoverageService {
     }
 
     private static String label(LocalDate start) {
-        return "Extra cover from " + SHORT.format(start);
+        return "Product liability endorsement from " + SHORT.format(start);
     }
 }

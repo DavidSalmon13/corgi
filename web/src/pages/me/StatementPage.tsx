@@ -5,9 +5,11 @@ import { api, ApiError } from '../../api/client';
 import type { Statement, StatementCorrection, StatementRow } from '../../api/types';
 import { HowWeGotThis } from '../../components/HowWeGotThis';
 import { StatusPill, type PillTone } from '../../components/StatusPill';
+import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { formatDate } from '../../lib/dates';
+import { GLOSSARY } from '../../lib/glossary';
 import { formatCents } from '../../lib/money';
 import { bannerCopy, correctionNetMaths, correctionSummary, rowNote, rowTitle } from '../../lib/statementCopy';
 
@@ -21,9 +23,6 @@ const PERFORATION = {
 const DATE_HEAD = 'px-[18px] pt-3.5 pb-0.5 text-xs font-semibold uppercase tracking-[0.06em] text-ink-2';
 const META = 'mt-0.5 text-[13px] leading-[1.35] text-ink-2';
 
-const UNDO_EXPLAIN = 'We cancel a wrong line in full instead of editing it, so you can still see it.';
-const CORRECTED_EXPLAIN = 'The right amount, charged again after an undo.';
-
 /** Opens "How we got this" for one row; the button is where focus goes back to. */
 type OpenTrace = (row: StatementRow, from: HTMLButtonElement) => void;
 
@@ -36,7 +35,7 @@ function Shell({ children }: { children: ReactNode }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Your cover
+            Your coverage
           </Link>
           <span className="text-lg font-bold tracking-[-0.01em]">Plainly</span>
         </header>
@@ -46,40 +45,14 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-/** A line's title with the cover names and "Undo" one tap from a plain explanation. */
+/** A line's title with every insurance term in it (reversal, endorsement, return premium…) one tap from its meaning. */
 function Title({ text, corrected = false }: { text: string; corrected?: boolean }) {
-  const undo = text.match(/^Undo: (.*)$/);
-  if (undo) {
-    return (
-      <>
-        <Term explain={UNDO_EXPLAIN}>Undo</Term>: {undo[1]}
-      </>
-    );
-  }
-  const cover = text.match(/^(Base cover|Extra cover)(.*)$/);
-  const body = cover ? (
-    <>
-      <Term
-        explain={
-          cover[1] === 'Base cover'
-            ? 'Pays if someone is hurt or their property is damaged because of your business.'
-            : 'Cover added on top of your base cover. This one pays if something you sell hurts someone.'
-        }
-      >
-        {cover[1]}
-      </Term>
-      {cover[2]}
-    </>
-  ) : (
-    text
-  );
   return (
     <>
-      {body}
+      <Glossed>{text}</Glossed>
       {corrected && (
         <>
-          {' '}
-          <Term explain={CORRECTED_EXPLAIN}>(corrected)</Term>
+          {' '}(<Term explain={GLOSSARY.rebill}>rebill</Term>)
         </>
       )}
     </>
@@ -126,7 +99,11 @@ function Note({ row, prefix }: { row: StatementRow; prefix?: string }) {
       </div>
     );
   }
-  return <div className={`${META} tabular-nums`}>{[prefix, note].filter(Boolean).join(' · ')}</div>;
+  return (
+    <div className={`${META} tabular-nums`}>
+      <Glossed>{[prefix, note].filter(Boolean).join(' · ')}</Glossed>
+    </div>
+  );
 }
 
 /** The running balance under an amount; a pending row shows that it isn't counted yet (AC4). */
@@ -191,7 +168,9 @@ function CorrectionCard({
       <div className="flex items-start gap-3 px-3.5 pt-3.5 pb-2.5">
         <div className="min-w-0 flex-1">
           <div className="text-xs font-semibold uppercase tracking-[0.06em] text-accent-ink">Correction</div>
-          <div className="mt-0.5 text-base font-semibold leading-tight">We fixed when your extra cover started</div>
+          <div className="mt-0.5 text-base font-semibold leading-tight">
+            <Glossed>Effective date corrected on your product liability endorsement</Glossed>
+          </div>
           <div className={`${META} tabular-nums`}>{correctionSummary(c)}</div>
         </div>
         <div className="text-right">
@@ -289,7 +268,13 @@ function Banner({ s }: { s: Statement }) {
     ) : owes ? (
       <>
         You owe <strong className="tabular-nums text-accent-ink">{formatCents(s.banner.amountCents)}</strong>
-        {copy.detail ? `. ${copy.detail}` : '.'}
+        {copy.detail ? (
+          <>
+            . <Glossed>{copy.detail}</Glossed>
+          </>
+        ) : (
+          '.'
+        )}
       </>
     ) : (
       copy.title
@@ -311,7 +296,11 @@ function Banner({ s }: { s: Statement }) {
               </StatusPill>
             </span>
           )}
-          {detail && <span className="text-sm leading-snug text-ink-2">{detail}</span>}
+          {detail && (
+            <span className="text-sm leading-snug text-ink-2">
+              <Glossed>{detail}</Glossed>
+            </span>
+          )}
         </div>
       )}
     </section>
@@ -414,8 +403,11 @@ export function StatementPage() {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 11v5M12 8h.01" />
         </svg>
-        Tap any underlined amount to see how we got it. We never edit a line: a mistake is undone in full and charged again
-        correctly, so you can always see both.
+        <span>
+          Tap any underlined amount to see how we got it. We never edit a line: a mistake gets a{' '}
+          <Term explain={GLOSSARY.reversal}>reversal</Term> and a <Term explain={GLOSSARY.rebill}>rebill</Term>, so you
+          can always see both.
+        </span>
       </p>
 
       <div className="flex items-center justify-end text-[13px] text-ink-2">

@@ -5,7 +5,9 @@ import { api, ApiError } from '../../api/client';
 import type { StatementRow, Timeline, TimelineCover, TimelineTerm } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
 import { HowWeGotThis } from '../../components/HowWeGotThis';
+import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
+import { GLOSSARY } from '../../lib/glossary';
 import { ThemeToggle } from '../../components/ThemeToggle';
 import { formatDate } from '../../lib/dates';
 import { formatCents } from '../../lib/money';
@@ -38,7 +40,7 @@ function Shell({ children }: { children: ReactNode }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Your cover
+            Your coverage
           </Link>
           <span className="text-lg font-bold tracking-[-0.01em]">Plainly</span>
         </header>
@@ -48,9 +50,9 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-/** "Base cover" / "Extra cover" on the band itself; the full name is on the detail card. */
+/** "General liability" / "Product liability" on the band itself; the full name is on the detail card. */
 function bandLabel(c: TimelineCover): string {
-  return c.kind === 'BASE' ? 'Base cover' : 'Extra cover';
+  return c.kind === 'BASE' ? 'General liability' : 'Product liability';
 }
 
 /** Base first, then extra covers by start date (AC3). */
@@ -85,7 +87,7 @@ function Charged({ cover, term, onOpen }: { cover: TimelineCover; term: Timeline
         const amount = formatCents(r.amountCents, { signed: true });
         return (
           <span key={r.id} className="text-[13px] text-ink-2">
-            {rowTitle(r)}{' '}
+            <Glossed>{rowTitle(r)}</Glossed>{' '}
             <button
               type="button"
               onClick={(e) => onOpen(r, e.currentTarget)}
@@ -107,12 +109,14 @@ function Detail({ cover, term, onOpen }: { cover: TimelineCover; term: TimelineT
     <section aria-label="Selected cover" aria-live="polite" className={`${CARD} px-[18px] pt-[18px] pb-2`}>
       <div className="flex items-center gap-2.5">
         <span aria-hidden="true" className={`size-3 flex-none rounded-[3px] ${cover.kind === 'BASE' ? 'bg-cover-base' : 'bg-accent'}`} />
-        <h2 className="m-0 text-[19px] font-bold">{coverName(cover.kind)}</h2>
+        <h2 className="m-0 text-[19px] font-bold">
+          <Glossed>{coverName(cover.kind)}</Glossed>
+        </h2>
       </div>
       <p className="mt-2 mb-3 text-[15px] leading-[1.45] text-ink-2">{coverWhat(cover.kind)}</p>
       <div className={KV}>
         <span>
-          <Term explain="Effective date: the first day this cover protects you.">Starts on</Term>
+          <Term explain={GLOSSARY.effectiveDate}>Effective date</Term>
         </span>
         <span className="font-semibold tabular-nums">{formatDate(cover.from)}</span>
       </div>
@@ -122,13 +126,13 @@ function Detail({ cover, term, onOpen }: { cover: TimelineCover; term: TimelineT
       </div>
       <div className={KV}>
         <span>
-          <Term explain="Premium: what you pay for a year of protection.">Price of your cover</Term>
+          <Term explain={GLOSSARY.annualPremium}>Annual premium</Term>
         </span>
         <span className="text-right font-semibold tabular-nums">{priceText(cover)}</span>
       </div>
       <div className={KV}>
         <span className="flex-none">
-          <Term explain="Pro-rata: you only pay for the days you’re covered, yearly price × days covered ÷ the days in the policy year.">Charged by the day</Term>
+          <Term explain={GLOSSARY.proRata}>Pro-rata charge</Term>
         </span>
         <Charged cover={cover} term={term} onOpen={onOpen} />
       </div>
@@ -147,16 +151,16 @@ export function TimelinePage() {
     retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1,
   });
 
-  if (timeline.isPending) return <Shell><p className="text-[15px] text-ink-2">Loading your cover…</p></Shell>;
+  if (timeline.isPending) return <Shell><p className="text-[15px] text-ink-2">Loading your coverage…</p></Shell>;
   if (timeline.isError) {
     const none = timeline.error instanceof ApiError && timeline.error.status === 404;
     return (
       <Shell>
-        <h1 className="m-0 text-[30px] font-bold tracking-[-0.015em]">Cover timeline</h1>
+        <h1 className="m-0 text-[30px] font-bold tracking-[-0.015em]">Coverage timeline</h1>
         <p className="m-0 text-[17px] leading-snug">
           {none
-            ? "You don't have any cover yet, so there's nothing to draw. Your broker will set up your policy for you."
-            : "We couldn't load your cover. Reload to try again."}
+            ? "You don't have any coverage yet, so there's nothing to draw. Your broker will set up your policy for you."
+            : "We couldn't load your coverage. Reload to try again."}
         </p>
       </Shell>
     );
@@ -173,8 +177,10 @@ export function TimelinePage() {
   return (
     <Shell>
       <div>
-        <h1 className="m-0 text-[30px] font-bold tracking-[-0.015em]">Cover timeline</h1>
-        <p className="mt-1.5 mb-0 text-[17px] leading-[1.4]">{timelineAnswer(term, covers)}</p>
+        <h1 className="m-0 text-[30px] font-bold tracking-[-0.015em]">Coverage timeline</h1>
+        <p className="mt-1.5 mb-0 text-[17px] leading-[1.4]">
+          <Glossed>{timelineAnswer(term, covers)}</Glossed>
+        </p>
       </div>
 
       <section aria-label="Timeline" className={`${CARD} px-4 pt-[18px] pb-4`}>
@@ -197,7 +203,7 @@ export function TimelinePage() {
             accessibleLabel: `${coverName(c.kind)}, ${formatDate(c.from)} to ${endsText(c, term)}`,
           }))}
         />
-        {term.cancelledOn && <p className="mt-0 mb-0 text-sm leading-snug text-ink-2">{stripedNote(term.cancelledOn)}</p>}
+        {term.cancelledOn && <p className="mt-0 mb-0 text-sm leading-snug text-ink-2"><Glossed>{stripedNote(term.cancelledOn)}</Glossed></p>}
       </section>
 
       {selected && <Detail cover={selected} term={term} onOpen={onOpen} />}
@@ -207,7 +213,7 @@ export function TimelinePage() {
         const reason = correctionReason(k);
         return (
           <p key={k.transactionDisplayId} className="m-0 text-[15px] leading-[1.45]">
-            {correctionSentence(k, c.kind)}
+            <Glossed>{correctionSentence(k, c.kind)}</Glossed>
             {reason && ` ${reason}`}{' '}
             <Link to={`/me/statement#correction-${k.transactionDisplayId}`} className="font-semibold text-accent-ink hover:text-ink">
               See what it changed

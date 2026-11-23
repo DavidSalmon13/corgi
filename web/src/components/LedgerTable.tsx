@@ -1,4 +1,6 @@
 import type { LedgerLine } from '../api/types';
+import { GLOSSARY } from '../lib/glossary';
+import { Glossed } from './Glossed';
 import { Term } from './Term';
 import { toLedgerRows, type LedgerRow, type Tone } from '../lib/ledgerRows';
 
@@ -28,8 +30,14 @@ function Refs({ refs }: { refs: string[] }) {
 function Title({ row }: { row: LedgerRow }) {
   return (
     <>
-      <span className={`font-semibold ${row.struck ? 'text-ink-2 line-through' : ''}`}>{row.title}</span>
-      {row.note && <span className="block text-[13px] text-ink-2">{row.note}</span>}
+      <span className={`font-semibold ${row.struck ? 'text-ink-2 line-through' : ''}`}>
+        <Glossed>{row.title}</Glossed>
+      </span>
+      {row.note && (
+        <span className="block text-[13px] text-ink-2">
+          <Glossed>{row.note}</Glossed>
+        </span>
+      )}
     </>
   );
 }
@@ -54,12 +62,12 @@ export function LedgerTable({ lines }: { lines: LedgerLine[] }) {
             <th className={TH}>Date</th>
             <th className={TH}>Line</th>
             <th className={TH}>
-              <Term explain="The yearly price × the days this cover runs ÷ the days in the policy year. Each day costs the same.">Calculation</Term>
+              <Term explain={GLOSSARY.proRata}>Pro-rata calculation</Term>
             </th>
             <th className={`${TH} text-right`}>Amount</th>
             <th className={`${TH} text-right`}>Balance</th>
             <th className={TH}>
-              <Term explain="LE is this line in the money record. PTX is the policy change it came from, so every amount can be traced back.">References</Term>
+              <Term explain="LE is this line in the ledger. PTX is the policy transaction it came from, so every amount can be traced back.">References</Term>
             </th>
           </tr>
         </thead>
@@ -70,7 +78,9 @@ export function LedgerTable({ lines }: { lines: LedgerLine[] }) {
               <td className={TD}>
                 <Title row={r} />
               </td>
-              <td className={`${TD} tabular-nums ${TONE[r.calcTone]}`}>{r.calc}</td>
+              <td className={`${TD} tabular-nums ${TONE[r.calcTone]}`}>
+                <Glossed>{r.calc}</Glossed>
+              </td>
               <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.struck ? 'line-through' : ''}`}>
                 {r.amount}
               </td>
@@ -97,7 +107,9 @@ export function LedgerTable({ lines }: { lines: LedgerLine[] }) {
               <Title row={r} />
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 text-[13px]">
-              <span className={`tabular-nums ${TONE[r.calcTone]}`}>{r.calc}</span>
+              <span className={`tabular-nums ${TONE[r.calcTone]}`}>
+                <Glossed>{r.calc}</Glossed>
+              </span>
               <span className="text-ink-2 tabular-nums">Balance {r.balance}</span>
             </div>
             <Refs refs={r.refs} />

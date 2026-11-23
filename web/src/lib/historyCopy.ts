@@ -7,8 +7,8 @@ import { formatCents } from './money';
 
 const CHANGE_TITLE: Record<string, string> = {
   ISSUE: 'Policy created',
-  ADD_COVERAGE: 'Extra cover added',
-  CORRECT: 'Start date corrected',
+  ADD_COVERAGE: 'Endorsement added',
+  CORRECT: 'Effective date corrected',
   CANCEL: 'Policy cancelled',
 };
 
@@ -16,7 +16,7 @@ function card(a: HistoryAction): string | null {
   return a.cardLast4 ? `card ending ${a.cardLast4}` : null;
 }
 
-/** "Start date corrected · PTX-0003", "Payment attempt, card ending 0002 · PAY-0002", "Refund failed, card ending 4242 · RF-0001". */
+/** "Effective date corrected · PTX-0003", "Payment attempt, card ending 0002 · PAY-0002", "Refund failed, card ending 4242 · RF-0001". */
 export function actionTitle(a: HistoryAction): string {
   switch (a.kind) {
     case 'CHANGE':
@@ -93,7 +93,7 @@ function quoted(reason: string | null, lead: string): string {
 }
 
 /**
- * "Base cover, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00." — one per line, for a card made of several lines.
+ * "General liability, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00." — one per line, for a card made of several lines.
  * The signed amount is what HistoryPage turns into a "How we got this" button, so every line stays traceable.
  */
 function eachLine(a: HistoryAction): string {
@@ -110,30 +110,30 @@ function changeDetail(a: HistoryAction): string {
   if (a.changeType === 'ISSUE' && a.rows.length > 1) {
     const m = a.rows[0].trace.maths;
     const span = m.from && m.to ? `, ${formatDate(m.from)} to ${formatDate(m.to)}` : '';
-    return `Cover for a year${span}. ${eachLine(a)}`;
+    return `Coverage for the policy period${span}. ${eachLine(a)}`;
   }
   if (a.changeType === 'ISSUE') {
     const first = a.rows[0];
     const m = first?.trace.maths;
     const span = m?.from && m.to ? `, ${formatDate(m.from)} to ${formatDate(m.to)}` : '';
     const sums = first ? calc(first) : null;
-    return `Base cover for a year${span}.${sums ? ` ${sums}.` : ''}`;
+    return `General liability for the policy period${span}.${sums ? ` ${sums}.` : ''}`;
   }
   if (a.changeType === 'CORRECT' && a.correction) {
     const c = a.correction;
     const parts = a.rows.map((r) => {
       if (r.kind === 'REVERSAL') {
         const day = r.trace.maths.from ? `${formatShortDate(r.trace.maths.from)} line` : 'Earlier line';
-        return `${day} undone in full (${formatCents(r.amountCents, { signed: true })})`;
+        return `${day} reversed in full (${formatCents(r.amountCents, { signed: true })})`;
       }
       const sums = calc(r);
       const amount = formatCents(r.amountCents, { signed: true });
-      return `corrected line added (${sums ? `${sums} = ${amount}` : amount})`;
+      return `rebill added (${sums ? `${sums} = ${amount}` : amount})`;
     });
-    return `Start moved from ${formatShortDate(c.oldStart)} to ${formatShortDate(c.newStart)}. ${parts.join(', ')}.`;
+    return `Effective date moved from ${formatShortDate(c.oldStart)} to ${formatShortDate(c.newStart)}. ${parts.join(', ')}.`;
   }
   if (a.rows.length > 1) return eachLine(a);
-  // one line of extra cover, a cancellation, or anything else: its title and its sums (the card total opens it)
+  // one line of an endorsement, a cancellation, or anything else: its title and its sums (the card total opens it)
   return a.rows.map((r) => `${r.title}.${calc(r) ? ` ${calc(r)}.` : ''}`).join(' ');
 }
 

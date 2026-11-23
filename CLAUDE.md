@@ -4,7 +4,7 @@ Corgi work trial, **Track 1 · Policy administration**. The full brief and the r
 
 ## Rules
 
-- **The frontend is graded heavily.** Keep it clean, calm and easy to understand: a policyholder must see their coverage, what they owe and why, in plain language with no insurance jargon left unexplained. Show creativity and product thinking: no generic admin-template look.
+- **The frontend is graded heavily.** Keep it clean, calm and easy to understand: a policyholder must see their coverage, what they owe and why, in plain language. Always use the standard insurance term (endorsement, premium, pro-rata, reversal…), never a home-made substitute, and give every term its "?" explanation (`Term` / `Glossed`, `web/src/lib/glossary.ts`). Show creativity and product thinking: no generic admin-template look.
 - Every amount must be traceable: ledger entry → policy transaction or payment → Stripe event. Show "how we got this" in the UI.
 - Money is integer cents in USD; the ledger is append-only (corrections reverse and rebill); webhooks are idempotent by event id.
 - Fictional customer data and test credentials only.

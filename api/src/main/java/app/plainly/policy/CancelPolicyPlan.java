@@ -64,7 +64,7 @@ public record CancelPolicyPlan(long policyId, LocalDate cancelDate, LocalDate po
             ProRata.Charge unused = ProRata.charge(cover.annualPremiumCents(), from, cover.to(), policy.start(),
                     policy.end());
             if (unused.amountCents() > 0) {
-                credits.add(new Credit(cover.id(), cover.kind(), cover.kind().label() + ", unused days", from,
+                credits.add(new Credit(cover.id(), cover.kind(), cover.kind().label() + " return premium", from,
                         cover.to(), unused));
             }
         }

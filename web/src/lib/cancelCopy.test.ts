@@ -22,7 +22,7 @@ import {
 const base = {
   coverageId: 10,
   kind: 'BASE' as const,
-  label: 'Base cover, unused days',
+  label: 'General liability return premium',
   from: '2026-12-01',
   to: '2027-09-01',
   calc: { annualCents: 120_000, days: 274, termDays: 365, amountCents: 90_082 },
@@ -31,7 +31,7 @@ const base = {
 const extra = {
   coverageId: 21,
   kind: 'PRODUCT_LIABILITY' as const,
-  label: 'Extra cover, unused days',
+  label: 'Product liability return premium',
   from: '2026-12-01',
   to: '2027-09-01',
   calc: { annualCents: 73_000, days: 274, termDays: 365, amountCents: 54_800 },
@@ -96,8 +96,8 @@ describe('cancel preview rows', () => {
 
   it('shows each cover credit, the amount kept back and the refund', () => {
     expect(lines(refunded)).toEqual([
-      'Base cover, unused days · $1,200.00 × 274 ÷ 365 · −$900.82',
-      'Extra cover, unused days · $730.00 × 274 ÷ 365 · −$548.00',
+      'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
+      'Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00',
       'Unpaid balance kept back · Correction still owed · +$14.00',
       'Refund to card ending 4242 · Sent through Stripe when you confirm · $1,434.82',
     ]);
@@ -109,23 +109,23 @@ describe('cancel preview rows', () => {
 
   it('shows what is still owed for the days covered when the credit is smaller than the balance', () => {
     expect(lines(stillOwes)).toEqual([
-      'Base cover, unused days · $1,200.00 × 274 ÷ 365 · −$900.82',
-      'Still owed for the 91 days covered · What the credit doesn\'t cover · $299.18',
+      'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
+      'Still owed for the 91 days covered · What the return premium doesn\'t cover · $299.18',
     ]);
   });
 
   it('says nothing is refunded or owed when the credit exactly pays off the balance', () => {
     expect(lines(evens)).toEqual([
-      'Base cover, unused days · $1,200.00 × 274 ÷ 365 · −$900.82',
+      'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
       'Unpaid balance kept back · First year still owed · +$900.82',
-      'Nothing to refund or pay · The credit pays off what was owed · $0.00',
+      'Nothing to refund or pay · The return premium pays off what was owed · $0.00',
     ]);
   });
 
   it('names what left the balance owing', () => {
     const keptFor = (keptBackFor: CancelPlan['keptBackFor']) =>
       cancelPreviewRows(plan({ keptBackFor })).find((r) => r.label === 'Unpaid balance kept back')?.detail;
-    expect(keptFor('ADD_COVERAGE')).toBe('Extra cover still owed');
+    expect(keptFor('ADD_COVERAGE')).toBe('Endorsement still owed');
     expect(keptFor('ISSUE')).toBe('First year still owed');
     expect(keptFor(null)).toBe('Still owed');
   });
@@ -289,14 +289,14 @@ describe('the customer side', () => {
   it('P6: shows each credit, what was kept back and the money back', () => {
     const lines = workedOutRows(pending).map((r) => [r.label, r.detail, r.amount].join(' · '));
     expect(lines).toEqual([
-      'Base cover, unused days · $1,200.00 × 274 ÷ 365 · −$900.82',
-      'Extra cover, unused days · $730.00 × 274 ÷ 365 · −$548.00',
-      'Unpaid balance kept back · The $14.00 from the start-date fix, still owed · +$14.00',
-      'Money back to card ending 4242 · No cancellation fee · $1,434.82',
+      'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
+      'Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00',
+      'Unpaid balance kept back · The $14.00 from the effective-date correction, still owed · +$14.00',
+      'Refund to card ending 4242 · No short-rate penalty · $1,434.82',
     ]);
     expect(workedOutRows(owing, 29_918).map((r) => [r.label, r.detail, r.amount].join(' · '))).toEqual([
-      'Base cover, unused days · $1,200.00 × 274 ÷ 365 · −$900.82',
-      'Still owed for the 91 days you were covered · No cancellation fee · $299.18',
+      'General liability return premium · $1,200.00 × 274 ÷ 365 · −$900.82',
+      'Still owed for the 91 days you were covered · No short-rate penalty · $299.18',
     ]);
   });
 

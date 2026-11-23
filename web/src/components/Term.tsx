@@ -7,8 +7,9 @@ type Props = {
 };
 
 /**
- * An insurance word with its meaning one tap away. Dotted underline as in the designs; hover shows the
- * native title on desktop, and a tap or keyboard focus opens a small bubble so it works on phones too.
+ * An insurance word with its meaning one tap away. A small "?" after the word marks it; hover shows the native
+ * title on desktop, and a tap, Enter or Space opens a small bubble so it works on phones and keyboards too.
+ * The explanation usually comes from `GLOSSARY` (lib/glossary.ts).
  */
 export function Term({ explain, children }: Props) {
   const [open, setOpen] = useState(false);
@@ -45,9 +46,15 @@ export function Term({ explain, children }: Props) {
             setOpen((o) => !o);
           }
         }}
-        className="cursor-help underline decoration-dotted underline-offset-[3px]"
+        className="cursor-help no-underline"
       >
         {children}
+        <span
+          aria-hidden="true"
+          className="ml-[0.25em] inline-flex h-[1.15em] w-[1.15em] items-center justify-center rounded-full border border-line bg-bg align-[0.12em] text-[0.68em] font-bold leading-none text-ink-2"
+        >
+          ?
+        </span>
       </abbr>
       {open && (
         <span

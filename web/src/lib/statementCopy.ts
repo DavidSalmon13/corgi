@@ -3,8 +3,8 @@ import { formatDate, formatShortDate } from './dates';
 import { formatCents } from './money';
 import { dueReasonText, refundOnItsWay } from './myCoverCopy';
 
-// Every sentence on P3 "Your statement" and P4 "How we got this". The customer never reads "reversal" or a
-// bookkeeping word: an undo is "an undo", the arithmetic is days × price, and every id is labelled in plain words.
+// Every sentence on P3 "Your statement" and P4 "How we got this". Standard terms (reversal, rebill, pro-rata,
+// return premium) throughout; screens render these through `Glossed`, so each one carries its "?" explanation.
 
 /** P3's banner: the one thing that matters now. */
 export function bannerCopy(banner: Statement['banner']): { title: string; detail: string } {
@@ -49,10 +49,10 @@ export function rowNote(row: StatementRow): string {
   if (row.status) return ROW_STATUS[row.status];
   const m = row.trace.maths;
   if (row.kind === 'REVERSAL') {
-    return m.from ? `Undoes the ${formatShortDate(m.from)} line in full` : 'Undoes an earlier line in full';
+    return m.from ? `Reversal of the ${formatShortDate(m.from)} line in full` : 'Reversal of an earlier line in full';
   }
   const calc = m.annualCents != null ? `${formatCents(m.annualCents)} × ${m.days} ÷ ${m.termDays}` : '';
-  const undone = row.undoneOn ? `undone ${formatShortDate(row.undoneOn)}` : '';
+  const undone = row.undoneOn ? `reversed ${formatShortDate(row.undoneOn)}` : '';
   return [calc, undone].filter(Boolean).join(' · ');
 }
 
@@ -65,7 +65,7 @@ export function correctionSummary(c: StatementCorrection): string {
   return `${formatShortDate(c.oldStart)} → ${formatShortDate(c.newStart)} · ${days}${perDay}`;
 }
 
-/** "−$642.00 + $656.00 = +$14.00": the undo plus the corrected line. */
+/** "−$642.00 + $656.00 = +$14.00": the reversal plus the rebill. */
 export function correctionNetMaths(undoCents: number, rebillCents: number): string {
   return `${formatCents(undoCents)} + ${formatCents(rebillCents)} = ${formatCents(undoCents + rebillCents, { signed: true })}`;
 }
@@ -73,7 +73,7 @@ export function correctionNetMaths(undoCents: number, rebillCents: number): stri
 const REF_LABEL: Record<RefKind, string> = {
   CHANGE: 'Change',
   LINE: 'Line',
-  UNDOES: 'Undoes',
+  UNDOES: 'Reverses',
   STRIPE_PAYMENT: 'Stripe payment',
   REFUND: 'Refund',
   STRIPE_REFUND: 'Stripe refund',
@@ -120,8 +120,8 @@ const MONEY_NOTE: Record<Audience, Record<MoneyStatus, string>> = {
 /** The sentences that change with the reader; the maths, amounts and references never do. */
 const VOICE = {
   policyholder: {
-    extraCover: 'your extra cover',
-    credit: "Money back for the days you won't be covered, because your policy ends early.",
+    extraCover: 'your product liability endorsement',
+    credit: "Return premium for the days you won't be covered, because your policy ends early.",
     undoTail: "We don't edit lines, so the original stays on your statement.",
     declined: 'Your bank said no, so no money moved.',
     waiting: 'Your payment is with your bank.',
@@ -138,8 +138,8 @@ const VOICE = {
     refsNote: 'Quote these if you ever need to ask us or your bank about this line.',
   },
   broker: {
-    extraCover: 'the extra cover',
-    credit: "Money back for the days the customer won't be covered, because the policy ends early.",
+    extraCover: 'the product liability endorsement',
+    credit: "Return premium for the days the customer won't be covered, because the policy ends early.",
     undoTail: 'Lines are never edited, so the original stays on the statement.',
     declined: "The customer's bank said no, so no money moved.",
     waiting: "The payment is with the customer's bank.",
@@ -182,13 +182,13 @@ function plainSentence(row: StatementRow, v: Voice): string {
   switch (row.kind) {
     case 'CHARGE':
       if (cause.transactionType === 'CORRECT' && cause.newStart) {
-        return `The right price for ${v.extraCover}, now that it starts on ${formatShortDate(cause.newStart)}.`;
+        return `The rebill for ${v.extraCover}, now that its effective date is ${formatShortDate(cause.newStart)}.`;
       }
-      return 'The price of this cover for the days it runs, charged by the day.';
+      return 'The premium for this coverage for the days it runs, pro-rata.';
     case 'CREDIT':
       return v.credit;
     case 'REVERSAL':
-      return `An undo of the ${m.from ? formatShortDate(m.from) + ' ' : ''}line, in full. ${v.undoTail}`;
+      return `A reversal of the ${m.from ? formatShortDate(m.from) + ' ' : ''}line, in full. ${v.undoTail}`;
     case 'PAYMENT':
       if (row.status === 'DECLINED') return v.declined;
       if (row.status === 'WAITING') return v.waiting;
@@ -204,14 +204,14 @@ function formula(row: StatementRow, v: Voice): { formula: string; note: string }
     const result = formatCents(m.resultCents, { abs: true });
     if (m.undoes) {
       return {
-        formula: `Undoes ${formatCents(m.annualCents)} × ${m.days} ÷ ${m.termDays} = ${result}`,
+        formula: `Reverses ${formatCents(m.annualCents)} × ${m.days} ÷ ${m.termDays} = ${result}`,
         note: 'The same numbers as the original line, with the sign flipped.',
       };
     }
     const span = m.from && m.to ? `, ${formatDate(m.from)} to ${formatDate(m.to)}` : '';
     return {
-      formula: `${formatCents(m.annualCents)} a year × ${m.days} days ÷ ${m.termDays} = ${result}`,
-      note: `Charged by the day${span}. The end date isn't counted. Rounded to the cent once.`,
+      formula: `${formatCents(m.annualCents)} annual premium × ${m.days} days ÷ ${m.termDays} = ${result}`,
+      note: `Pro-rata${span}. The end date isn't counted. Rounded to the cent once.`,
     };
   }
   if (m.balanceBeforeCents != null && m.balanceAfterCents != null) {
@@ -227,11 +227,11 @@ function changeWhat(cause: StatementCause, v: Voice): string {
     case 'ISSUE':
       return on ? `Policy started on ${formatDate(on)}` : 'Policy started';
     case 'ADD_COVERAGE':
-      return on ? `Extra cover added from ${formatShortDate(on)}` : 'Extra cover added';
+      return on ? `Endorsement added from ${formatShortDate(on)}` : 'Endorsement added';
     case 'CORRECT':
       return cause.oldStart && cause.newStart
-        ? `Start date corrected: ${formatShortDate(cause.oldStart)} → ${formatShortDate(cause.newStart)}`
-        : 'Start date corrected';
+        ? `Effective date corrected: ${formatShortDate(cause.oldStart)} → ${formatShortDate(cause.newStart)}`
+        : 'Effective date corrected';
     case 'CANCEL':
       return on ? `Policy cancelled from ${formatDate(on)}` : 'Policy cancelled';
     default:
@@ -242,13 +242,13 @@ function changeWhat(cause: StatementCause, v: Voice): string {
 function noMoneyNote(row: StatementRow, v: Voice): string | null {
   if (row.trace.money) return null;
   const lead = 'No money moved for this line on its own.';
-  if (row.kind === 'REVERSAL' && row.correctionId) return `${lead} It's settled together with the corrected line.`;
+  if (row.kind === 'REVERSAL' && row.correctionId) return `${lead} It's settled together with the rebill.`;
   if (row.amountCents > 0) return `${lead} ${v.addsTo}`;
   return `${lead} ${v.comesOff}`;
 }
 
 /**
- * P4 for one row: the plain reason, the maths, what caused it, the money and the references. The broker's B5 reads
+ * P4 for one row: the reason, the maths, what caused it, the money and the references. The broker's B5 reads
  * the same drawer with `audience = 'broker'`: the same numbers and references, about "the customer" instead of "you".
  */
 export function drawerCopy(row: StatementRow, audience: Audience = 'policyholder'): DrawerCopy {

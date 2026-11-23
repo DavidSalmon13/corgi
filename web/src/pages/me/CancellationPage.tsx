@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { Link, Navigate } from 'react-router';
 import { api, ApiError } from '../../api/client';
 import type { Cancellation, MyCover } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 import { StatusPill } from '../../components/StatusPill';
-import { Term } from '../../components/Term';
 import {
   cancellationTitle,
   cancelledCard,
@@ -35,7 +35,7 @@ function Shell({ children }: { children: ReactNode }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Your cover
+            Your coverage
           </Link>
           <span className="text-lg font-bold">Plainly</span>
         </header>
@@ -77,26 +77,12 @@ function DaysBar({ c, start, end, covers }: { c: Cancellation; start: string; en
           );
         })}
       </div>
-      <p className="mt-2.5 mb-0 text-sm leading-snug text-ink-2">{unusedDaysCaption(c)}</p>
+      <p className="mt-2.5 mb-0 text-sm leading-snug text-ink-2"><Glossed>{unusedDaysCaption(c)}</Glossed></p>
     </section>
   );
 }
 
-/** "Money back to card ending 4242", with "Money back" explained. */
-function RowLabel({ r }: { r: MoneyRow }) {
-  const MONEY_BACK = 'Money back';
-  if (!r.label.startsWith(MONEY_BACK)) return <>{r.label}</>;
-  return (
-    <>
-      <Term explain="The days you won't be covered for, minus anything you still owed. There's no cancellation fee.">
-        {MONEY_BACK}
-      </Term>
-      {r.label.slice(MONEY_BACK.length)}
-    </>
-  );
-}
-
-/** P6 "How we worked it out": a receipt of each credit, what was kept back, and the bottom line. */
+/** P6 "How we worked it out": a receipt of each return premium, what was kept back, and the bottom line. */
 function WorkedOut({ rows }: { rows: MoneyRow[] }) {
   return (
     <section aria-label="How we worked it out" className="overflow-hidden rounded-b-2xl border border-t-0 border-line bg-card">
@@ -109,17 +95,23 @@ function WorkedOut({ rows }: { rows: MoneyRow[] }) {
           <div key={i} className="flex items-baseline justify-between gap-3 border-t-[1.5px] border-ink px-[18px] py-4">
             <div>
               <div className="text-[17px] font-bold">
-                <RowLabel r={r} />
+                <Glossed>{r.label}</Glossed>
               </div>
-              <div className="mt-0.5 text-[13px] text-ink-2">{r.detail}</div>
+              <div className="mt-0.5 text-[13px] text-ink-2">
+                <Glossed>{r.detail}</Glossed>
+              </div>
             </div>
             <span className="text-[22px] font-bold text-accent-ink tabular-nums">{r.amount}</span>
           </div>
         ) : (
           <div key={i} className={`flex gap-3 px-[18px] py-3.5 ${i > 0 ? 'border-t border-dashed border-line' : ''}`}>
             <div className="flex-1">
-              <div className="font-semibold">{r.label}</div>
-              <div className="mt-0.5 text-[13px] text-ink-2 tabular-nums">{r.detail}</div>
+              <div className="font-semibold">
+                <Glossed>{r.label}</Glossed>
+              </div>
+              <div className="mt-0.5 text-[13px] text-ink-2 tabular-nums">
+                <Glossed>{r.detail}</Glossed>
+              </div>
             </div>
             <span className="font-semibold tabular-nums">{r.amount}</span>
           </div>
@@ -140,7 +132,7 @@ export function CancellationPage() {
   if (cover.isPending) return <Shell><p className="text-[15px] text-ink-2">Loading…</p></Shell>;
   if (cover.isError) {
     if (cover.error instanceof ApiError && cover.error.status === 404) return <Navigate to="/me" replace />;
-    return <Shell><p className="text-[17px] leading-snug">We couldn't load your cover. Reload to try again.</p></Shell>;
+    return <Shell><p className="text-[17px] leading-snug">We couldn't load your coverage. Reload to try again.</p></Shell>;
   }
 
   const c = cover.data;

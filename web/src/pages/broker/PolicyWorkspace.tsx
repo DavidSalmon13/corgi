@@ -7,14 +7,16 @@ import { CoverTimeline } from '../../components/CoverTimeline';
 import { LedgerTable } from '../../components/LedgerTable';
 import { Money } from '../../components/Money';
 import { StatusPill } from '../../components/StatusPill';
+import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
+import { GLOSSARY } from '../../lib/glossary';
 import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/correctCopy';
 import { balanceNote, balanceText, policyPeriod, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
 import type { ChangeSavedState } from './ChangePolicyPage';
 
 const COVER_NAME: Record<CoverKind, string> = {
-  BASE: 'Base cover',
+  BASE: 'General liability',
   PRODUCT_LIABILITY: 'Product liability',
 };
 
@@ -33,7 +35,7 @@ function BackLink() {
 }
 
 /**
- * The "Extra cover added. Maya now owes …" note B4 hands over in router state, with the ids the save created. It is
+ * The "Endorsement added. Maya now owes …" note B4 hands over in router state, with the ids the save created. It is
  * read once and the history entry is replaced without it, so a reload or Back doesn't announce the change twice.
  */
 function useSavedBanner(): [ChangeSavedState | null, () => void] {
@@ -58,8 +60,14 @@ function SavedBanner({ saved, onClose }: { saved: ChangeSavedState; onClose: () 
       className="flex items-center justify-between gap-3 rounded-card border border-good/30 bg-good-soft py-1 pl-4 pr-1 text-[15px] font-semibold text-good"
     >
       <span className="flex flex-col gap-0.5 py-2">
-        {saved.banner}
-        {saved.refs && <span className="text-sm font-normal tabular-nums">{saved.refs}</span>}
+        <span>
+          <Glossed>{saved.banner}</Glossed>
+        </span>
+        {saved.refs && (
+          <span className="text-sm font-normal tabular-nums">
+            <Glossed>{saved.refs}</Glossed>
+          </span>
+        )}
       </span>
       <button
         type="button"
@@ -164,9 +172,7 @@ export function PolicyWorkspace() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px] text-ink-2">
             <span className="tabular-nums">
               {p.policyNumber} ·{' '}
-              <Term explain="General Liability: pays if someone is hurt or their property is damaged because of the business.">
-                General Liability
-              </Term>
+              <Term explain={GLOSSARY.generalLiability}>General liability</Term>
             </span>
             <span>
               {p.customer.ownerName} ·{' '}
@@ -174,7 +180,10 @@ export function PolicyWorkspace() {
                 {ownerAccountLine(p.customer.ownerName, p.customer.ownerSignedUpAt)}
               </span>
             </span>
-            <span className="tabular-nums">{policyPeriod(p.start, p.end, cancelled ? p.cancelledOn : null)}</span>
+            <span className="tabular-nums">
+              <Term explain={GLOSSARY.policyPeriod}>Policy period</Term>{' '}
+              {policyPeriod(p.start, p.end, cancelled ? p.cancelledOn : null)}
+            </span>
             <StatusPill tone={status.tone}>{status.label}</StatusPill>
           </div>
         </div>
@@ -190,7 +199,7 @@ export function PolicyWorkspace() {
             <div className="flex flex-wrap gap-2">
               {canAddCover && (
                 <Link to={`/broker/policies/${p.policyId}/change`} className={ACTION}>
-                  Add cover
+                  Add endorsement
                 </Link>
               )}
               {canCorrect && (
@@ -211,7 +220,7 @@ export function PolicyWorkspace() {
       <section aria-labelledby="timeline-h" className={CARD}>
         <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="timeline-h" className="m-0 text-lg font-bold">
-            Cover timeline
+            Coverage timeline
           </h2>
           <Link to={`/broker/policies/${p.policyId}/history`} className="text-[15px] font-semibold">
             History ›
@@ -227,15 +236,13 @@ export function PolicyWorkspace() {
             kind: c.kind,
             label:
               c.kind === 'BASE' ? (
-                <Term explain="General Liability: pays if someone is hurt or their property is damaged because of the business.">
-                  {COVER_NAME[c.kind]}
-                </Term>
+                <Term explain={GLOSSARY.generalLiability}>{COVER_NAME[c.kind]}</Term>
               ) : (
-                <Term explain="Pays if something the business sells hurts someone.">{COVER_NAME[c.kind]}</Term>
+                <Term explain={GLOSSARY.productLiability}>{COVER_NAME[c.kind]}</Term>
               ),
             detail: (
               <>
-                <Money cents={c.annualPremiumCents} /> a year
+                <Money cents={c.annualPremiumCents} /> <Term explain={GLOSSARY.annualPremium}>annual premium</Term>
               </>
             ),
             from: c.from,
@@ -248,7 +255,7 @@ export function PolicyWorkspace() {
       <section aria-labelledby="ledger-h" className={CARD}>
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="ledger-h" className="m-0 text-lg font-bold">
-            <Term explain="The money record for this policy: every charge, payment and refund, in order.">Ledger</Term>
+            <Term explain={GLOSSARY.ledger}>Ledger</Term>
           </h2>
           <span className="text-sm text-ink-2">
             Every line, oldest first. Lines are never edited; corrections add an undo and a new line.

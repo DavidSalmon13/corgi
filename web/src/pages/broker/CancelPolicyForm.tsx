@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../../api/client';
 import type { CancelPlan, CancelRequest, Cancelled, PolicyDetail } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
+import { GLOSSARY } from '../../lib/glossary';
 import {
   cancelConfirm,
   cancelledBanner,
@@ -149,7 +151,7 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
           <h2 className="m-0 text-xl font-bold">Cancel the policy</h2>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="cancelDate" className="text-sm font-semibold">
-              Cover ends on
+              Cancellation date
             </label>
             <input
               id="cancelDate"
@@ -165,7 +167,8 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
               className={`${INPUT} tabular-nums ${dateError ? 'border-bad' : cancelDate ? 'border-accent' : 'border-line'}`}
             />
             <span id="cancelDate-hint" className={HINT}>
-              All cover stops at the start of this day. No cancellation fee.
+              All coverage stops at the start of this day. No{' '}
+              <Term explain={GLOSSARY.shortRate}>short-rate penalty</Term>.
             </span>
             <FieldError id="cancelDate-error" message={dateError} />
           </div>
@@ -202,11 +205,9 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
           <div>
             <h2 className="m-0 text-xl font-bold">{cancelPreviewHeading(plan ?? null, p.customer.ownerName)}</h2>
             <p className="m-0 mt-1 text-[15px] text-ink-2">
-              Every charge stays on the bill. The{' '}
-              <Term explain="The days from the cancel day to the end of the policy year. Each cover gives them back at the price it was charged: the yearly price × the unused days ÷ the days in the policy year.">
-                unused days
-              </Term>{' '}
-              come off as new lines. Nothing is edited.
+              Every charge stays on the <Term explain={GLOSSARY.ledger}>ledger</Term>. The{' '}
+              <Term explain={GLOSSARY.returnPremium}>return premium</Term> for the unused days comes off as new lines.
+              Nothing is edited.
             </p>
           </div>
           {plan ? (
@@ -219,7 +220,9 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
               </div>
               <div className="flex flex-col gap-1.5 rounded-card bg-bg px-4 py-3.5">
                 <span className="text-xs font-semibold uppercase tracking-[.06em] text-ink-2">Customer will see</span>
-                <p className="m-0 text-[17px] font-medium leading-[1.45]">{customerWillSeeCancel(plan, p.today)}</p>
+                <p className="m-0 text-[17px] font-medium leading-[1.45]">
+                  <Glossed>{customerWillSeeCancel(plan, p.today)}</Glossed>
+                </p>
                 {reason.trim() && (
                   <p className="m-0 text-[15px] leading-normal text-ink-2">Your broker's note: “{reason.trim()}”</p>
                 )}
@@ -235,9 +238,11 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
                   </button>
                 </>
               ) : previewProblem && cancelDate ? (
-                `${previewProblem} We'll show the refund here, before anything is saved.`
+                <Glossed>{`${previewProblem} We'll show the refund here, before anything is saved.`}</Glossed>
               ) : (
-                "Pick the day cover ends and we'll show each cover's unused days and the refund here, before anything is saved."
+                <Glossed>
+                  {"Pick the cancellation date and we'll show each coverage's return premium and the refund here, before anything is saved."}
+                </Glossed>
               )}
             </p>
           )}
@@ -263,7 +268,9 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
             <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
               {confirm.title}
             </h2>
-            <p className="m-0 text-base leading-normal">{confirm.sentence}</p>
+            <p className="m-0 text-base leading-normal">
+              <Glossed>{confirm.sentence}</Glossed>
+            </p>
             <div className="flex flex-wrap gap-2.5">
               <button type="button" onClick={() => save.mutate()} disabled={save.isPending} className={BTN}>
                 {save.isPending
@@ -289,16 +296,24 @@ function PreviewRow({ row }: { row: MoneyRow }) {
   return row.total ? (
     <div role="group" aria-label={label} className="flex items-baseline justify-between gap-4 border-t-[1.5px] border-ink py-3">
       <div className="min-w-0">
-        <div className="text-[17px] font-bold">{row.label}</div>
-        <div className={HINT}>{row.detail}</div>
+        <div className="text-[17px] font-bold">
+          <Glossed>{row.label}</Glossed>
+        </div>
+        <div className={HINT}>
+          <Glossed>{row.detail}</Glossed>
+        </div>
       </div>
       <span className="whitespace-nowrap text-2xl font-bold tabular-nums text-accent-ink">{row.amount}</span>
     </div>
   ) : (
     <div role="group" aria-label={label} className="flex justify-between gap-4 border-t border-dashed border-line py-3">
       <div className="min-w-0">
-        <div className="font-semibold">{row.label}</div>
-        <div className={`${HINT} tabular-nums`}>{row.detail}</div>
+        <div className="font-semibold">
+          <Glossed>{row.label}</Glossed>
+        </div>
+        <div className={`${HINT} tabular-nums`}>
+          <Glossed>{row.detail}</Glossed>
+        </div>
       </div>
       <span className="whitespace-nowrap font-semibold tabular-nums">{row.amount}</span>
     </div>

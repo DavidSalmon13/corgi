@@ -44,7 +44,7 @@ class BrokerIssueEndpointsTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.start").value("2026-09-01"))
                 .andExpect(jsonPath("$.end").value("2027-09-01"))
-                .andExpect(jsonPath("$.lines[0].description").value("Base cover, full year"))
+                .andExpect(jsonPath("$.lines[0].description").value("General liability, full year"))
                 .andExpect(jsonPath("$.lines[0].calc.annualCents").value(120000))
                 .andExpect(jsonPath("$.lines[0].calc.days").value(365))
                 .andExpect(jsonPath("$.lines[0].calc.termDays").value(365))

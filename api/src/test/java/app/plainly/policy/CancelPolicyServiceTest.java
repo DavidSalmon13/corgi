@@ -126,7 +126,7 @@ class CancelPolicyServiceTest {
         assertThat(plan.credits().get(0)).satisfies(base -> {
             assertThat(base.coverageId()).isEqualTo(coverageId(id, CoverKind.BASE));
             assertThat(base.kind()).isEqualTo(CoverKind.BASE);
-            assertThat(base.label()).isEqualTo("Base cover, unused days");
+            assertThat(base.label()).isEqualTo("General liability return premium");
             assertThat(base.from()).isEqualTo(DEC_1);
             assertThat(base.to()).isEqualTo(POLICY_END);
             assertThat(base.calc().annualCents()).isEqualTo(120_000);
@@ -136,7 +136,7 @@ class CancelPolicyServiceTest {
         });
         assertThat(plan.credits().get(1)).satisfies(extra -> {
             assertThat(extra.coverageId()).isEqualTo(coverageId(id, CoverKind.PRODUCT_LIABILITY));
-            assertThat(extra.label()).isEqualTo("Extra cover, unused days");
+            assertThat(extra.label()).isEqualTo("Product liability return premium");
             assertThat(extra.calc().annualCents()).isEqualTo(73_000);
             assertThat(extra.calc().days()).isEqualTo(274);
             assertThat(extra.amountCents()).isEqualTo(-54_800);
@@ -174,7 +174,7 @@ class CancelPolicyServiceTest {
         payInFull(owner);
         adder.add(owner.policyId(), new AddCoverageCommand(CoverKind.PRODUCT_LIABILITY, JAN_1), brokerId());
         LedgerLine extraCharge = ledger.lines(owner.policyId()).stream()
-                .filter(l -> l.type() == EntryType.CHARGE && l.description().startsWith("Extra cover"))
+                .filter(l -> l.type() == EntryType.CHARGE && l.description().startsWith("Product liability"))
                 .findFirst().orElseThrow();
 
         CancelPolicyPlan plan = service.preview(owner.policyId(), DEC_1);
@@ -362,7 +362,7 @@ class CancelPolicyServiceTest {
         assertThat(credits.get(0)).satisfies(base -> {
             assertThat(base.type()).isEqualTo(EntryType.CREDIT);
             assertThat(base.entryDate()).isEqualTo(TODAY);
-            assertThat(base.description()).isEqualTo("Base cover, unused days");
+            assertThat(base.description()).isEqualTo("General liability return premium");
             assertThat(base.amountCents()).isEqualTo(-90_082);
             assertThat(base.coverageId()).isEqualTo(coverageId(id, CoverKind.BASE));
             assertThat(base.calcAnnualCents()).isEqualTo(120_000L);
@@ -373,7 +373,7 @@ class CancelPolicyServiceTest {
         });
         assertThat(credits.get(1)).satisfies(extra -> {
             assertThat(extra.type()).isEqualTo(EntryType.CREDIT);
-            assertThat(extra.description()).isEqualTo("Extra cover, unused days");
+            assertThat(extra.description()).isEqualTo("Product liability return premium");
             assertThat(extra.amountCents()).isEqualTo(-54_800);
             assertThat(extra.coverageId()).isEqualTo(coverageId(id, CoverKind.PRODUCT_LIABILITY));
         });

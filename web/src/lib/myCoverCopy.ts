@@ -6,24 +6,24 @@ import { formatCents } from './money';
 export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | null = null): string {
   switch (reason) {
     case 'FIRST_YEAR':
-      return 'Your first year of cover.';
+      return 'Your first year of coverage.';
     case 'EXTRA_COVER':
       return latestChangeFrom
-        ? `Your new extra cover, charged by the day from ${formatShortDate(latestChangeFrom)}.`
-        : 'Your new extra cover, charged by the day.';
+        ? `Your new product liability endorsement, pro-rata from ${formatShortDate(latestChangeFrom)}.`
+        : 'Your new product liability endorsement, pro-rata.';
     case 'CORRECTION':
-      return 'We fixed when your extra cover started.';
+      return 'We corrected the effective date of your product liability endorsement.';
     case 'CANCELLATION':
       return 'For the days you were covered before your policy was cancelled.';
     case 'CHANGE':
-      return 'A change to your cover left a balance to pay.';
+      return 'A mid-term change left a balance to pay.';
     case 'NOTHING_DUE':
       return '';
   }
 }
 
 /**
- * What they're protected for, built from what the business does and whether extra cover is on. On a cancelled policy
+ * What they're protected for, built from what the business does and whether the product liability endorsement is on. On a cancelled policy
  * it also says when that cover ends, in the past tense once the day has come.
  */
 export function protectionSentence(

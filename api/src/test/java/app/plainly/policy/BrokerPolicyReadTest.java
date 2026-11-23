@@ -70,7 +70,7 @@ class BrokerPolicyReadTest {
                 .andExpect(jsonPath("$.customer.ownerName").value("Maya Okafor"))
                 .andExpect(jsonPath("$.balanceCents").value(193000))
                 .andExpect(jsonPath("$.coverages[0].kind").value("BASE"))
-                .andExpect(jsonPath("$.coverages[0].label").value("Base cover"))
+                .andExpect(jsonPath("$.coverages[0].label").value("General liability"))
                 .andExpect(jsonPath("$.coverages[0].annualPremiumCents").value(120000))
                 .andExpect(jsonPath("$.coverages[1].kind").value("PRODUCT_LIABILITY"))
                 .andExpect(jsonPath("$.coverages[1].from").value("2026-09-01"))
@@ -147,7 +147,7 @@ class BrokerPolicyReadTest {
                 .andExpect(jsonPath("$.ledger[2].reversesDisplayId").value(juniper.entries().get(1).displayId()))
                 .andExpect(jsonPath("$.ledger[2].coverageId").isNumber())
                 .andExpect(jsonPath("$.ledger[3].type").value("CHARGE"))
-                .andExpect(jsonPath("$.ledger[3].description").value("Extra cover from Oct 1"))
+                .andExpect(jsonPath("$.ledger[3].description").value("Product liability endorsement from Oct 1"))
                 .andExpect(jsonPath("$.refunds.length()").value(0));
 
         String row = "$[?(@.policyId == " + juniper.policyId() + ")]";
@@ -218,14 +218,14 @@ class BrokerPolicyReadTest {
                 .andExpect(jsonPath("$.ledger[0].reversedByDisplayId").doesNotExist())
                 .andExpect(jsonPath("$.ledger[2].displayId").value(saved.creditDisplayIds().get(0)))
                 .andExpect(jsonPath(base + ".type").value("CREDIT"))
-                .andExpect(jsonPath(base + ".description").value("Base cover, unused days"))
+                .andExpect(jsonPath(base + ".description").value("General liability return premium"))
                 .andExpect(jsonPath(base + ".amountCents").value(-90082))
                 .andExpect(jsonPath(base + ".calcAnnualCents").value(120000))
                 .andExpect(jsonPath(base + ".calcDays").value(274))
                 .andExpect(jsonPath(base + ".calcTermDays").value(365))
                 .andExpect(jsonPath(base + ".coverFrom").value("2026-12-01"))
                 .andExpect(jsonPath(base + ".policyTransactionDisplayId").value(saved.transactionDisplayId()))
-                .andExpect(jsonPath(extra + ".description").value("Extra cover, unused days"))
+                .andExpect(jsonPath(extra + ".description").value("Product liability return premium"))
                 .andExpect(jsonPath(extra + ".amountCents").value(-54800))
                 .andExpect(jsonPath("$.transactions[?(@.type == 'CANCEL')].effectiveDate").value("2026-12-01"))
                 .andExpect(jsonPath("$.transactions[?(@.type == 'CANCEL')].reason").value("Closing the bakery."));

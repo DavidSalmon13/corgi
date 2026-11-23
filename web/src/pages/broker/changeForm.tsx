@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { Link } from 'react-router';
 import { ApiError } from '../../api/client';
 import type { ValidationBody } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 
 // Pieces shared by B4's tabs (Add cover, Correct): the field styles, 422 handling, the error summary and the
 // "can't do that here" card.
@@ -42,8 +43,10 @@ export const ErrorSummary = forwardRef<HTMLDivElement, { errors: FormErrors<stri
           {listed.map(([f, m]) => (
             <li key={f}>
               {f === 'policy' ? (
-                m
+                <Glossed>{m ?? ''}</Glossed>
               ) : (
+                // A link can't hold the "?" buttons, so a field message here stays plain; the same words appear
+                // under the field itself, explained.
                 <a href={`#${f}`} className="text-bad underline">
                   {m}
                 </a>
@@ -60,7 +63,9 @@ export const ErrorSummary = forwardRef<HTMLDivElement, { errors: FormErrors<stri
 export function BlockedCard({ reason, back }: { reason: string; back: string }) {
   return (
     <div className="flex flex-col items-start gap-3 rounded-2xl border border-line bg-card p-5 md:p-6">
-      <p className="m-0 text-[17px]">{reason}</p>
+      <p className="m-0 text-[17px]">
+        <Glossed>{reason}</Glossed>
+      </p>
       <Link to={back} className={BTN2}>
         Back to policy
       </Link>
@@ -72,7 +77,7 @@ export function BlockedCard({ reason, back }: { reason: string; back: string }) 
 export function FieldError({ id, message }: { id: string; message: string | undefined }) {
   return message ? (
     <span id={id} className="text-sm font-semibold text-bad">
-      {message}
+      <Glossed>{message}</Glossed>
     </span>
   ) : null;
 }

@@ -59,7 +59,7 @@ class AddCoverageEndpointsTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.policyId").value(policyId))
                 .andExpect(jsonPath("$.kind").value("PRODUCT_LIABILITY"))
-                .andExpect(jsonPath("$.label").value("Extra cover from Oct 15"))
+                .andExpect(jsonPath("$.label").value("Product liability endorsement from Oct 15"))
                 .andExpect(jsonPath("$.from").value("2026-10-15"))
                 .andExpect(jsonPath("$.to").value("2027-09-01"))
                 .andExpect(jsonPath("$.calc.annualCents").value(73000))
@@ -84,7 +84,7 @@ class AddCoverageEndpointsTest {
         mvc.perform(get("/api/broker/policies/" + policyId).cookie(broker))
                 .andExpect(jsonPath("$.coverages[1].kind").value("PRODUCT_LIABILITY"))
                 .andExpect(jsonPath("$.coverages[1].from").value("2026-10-15"))
-                .andExpect(jsonPath("$.ledger[1].description").value("Extra cover from Oct 15"))
+                .andExpect(jsonPath("$.ledger[1].description").value("Product liability endorsement from Oct 15"))
                 .andExpect(jsonPath("$.ledger[1].calcDays").value(321))
                 .andExpect(jsonPath("$.transactions[1].type").value("ADD_COVERAGE"));
     }
@@ -95,7 +95,7 @@ class AddCoverageEndpointsTest {
             mvc.perform(json(coverages(policyId) + "/preview", "{\"kind\":\"PRODUCT_LIABILITY\",\"startDate\":" + date + "}", broker))
                     .andExpect(status().isUnprocessableContent())
                     .andExpect(jsonPath("$.error").value("validation"))
-                    .andExpect(jsonPath("$.fields.startDate").value("Pick the day the extra cover should start."));
+                    .andExpect(jsonPath("$.fields.startDate").value("Pick the endorsement's effective date."));
         }
     }
 
@@ -114,7 +114,7 @@ class AddCoverageEndpointsTest {
         mvc.perform(json(coverages(policyId), OCT_15, broker))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.message").value("1 thing to fix before you can save."))
-                .andExpect(jsonPath("$.fields.kind").value("This policy already has product liability cover."));
+                .andExpect(jsonPath("$.fields.kind").value("This policy already has product liability coverage."));
     }
 
     @Test

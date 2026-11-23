@@ -5,8 +5,8 @@ package app.plainly.policy;
  * confirmed"): $730 a year is exactly $2.00 a day, so anyone can check it by hand.
  */
 public enum CoverKind {
-    BASE(120_000, "Base cover"),
-    PRODUCT_LIABILITY(73_000, "Extra cover");
+    BASE(120_000, "General liability"),
+    PRODUCT_LIABILITY(73_000, "Product liability");
 
     private final long annualPremiumCents;
     private final String label;

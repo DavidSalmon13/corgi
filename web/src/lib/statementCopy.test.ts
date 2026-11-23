@@ -145,7 +145,7 @@ describe('statement banner', () => {
   it('says what is owed and why, with the same reason as the home screen', () => {
     expect(bannerCopy(banner({ state: 'OWES', amountCents: 1_400, dueReason: 'CORRECTION' }))).toEqual({
       title: 'You owe $14.00',
-      detail: 'We fixed when your extra cover started.',
+      detail: 'We corrected the effective date of your product liability endorsement.',
     });
   });
 
@@ -185,7 +185,7 @@ describe('statement rows', () => {
 
   it('shows the arithmetic under a charge, and when it was undone', () => {
     expect(rowNote(rebill)).toBe('$730.00 × 328 ÷ 365');
-    expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).toBe('$730.00 × 328 ÷ 365 · undone Nov 5');
+    expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).toBe('$730.00 × 328 ÷ 365 · reversed Nov 5');
   });
 
   it('marks money on its way and a declined try', () => {
@@ -199,7 +199,7 @@ describe('statement rows', () => {
   });
 
   it('says a reversal undoes a line in full', () => {
-    expect(rowNote(reversal)).toBe('Undoes the Oct 15 line in full');
+    expect(rowNote(reversal)).toBe('Reversal of the Oct 15 line in full');
   });
 });
 
@@ -226,12 +226,12 @@ describe('how we got this', () => {
     const d = drawerCopy(rebill);
     expect(d.line).toBe('Extra cover from Oct 8 · Nov 5, 2026');
     expect(d.amount).toBe('+$656.00');
-    expect(d.plain).toBe('The right price for your extra cover, now that it starts on Oct 8.');
-    expect(d.formula).toBe('$730.00 a year × 328 days ÷ 365 = $656.00');
+    expect(d.plain).toBe('The rebill for your product liability endorsement, now that its effective date is Oct 8.');
+    expect(d.formula).toBe('$730.00 annual premium × 328 days ÷ 365 = $656.00');
     expect(d.formulaNote).toBe(
-      "Charged by the day, Oct 8, 2026 to Sep 1, 2027. The end date isn't counted. Rounded to the cent once.",
+      "Pro-rata, Oct 8, 2026 to Sep 1, 2027. The end date isn't counted. Rounded to the cent once.",
     );
-    expect(d.actionWhat).toBe('Start date corrected: Oct 15 → Oct 8');
+    expect(d.actionWhat).toBe('Effective date corrected: Oct 15 → Oct 8');
     expect(d.actionWho).toBe('Sam Reyes, your broker · Nov 5, 2026');
     expect(d.reason).toBe(REASON);
     expect(d.payment).toBeNull();
@@ -244,10 +244,10 @@ describe('how we got this', () => {
   it('explains a reversal with the undone numbers and what it undoes', () => {
     const d = drawerCopy(reversal);
     expect(d.amount).toBe('−$642.00');
-    expect(d.plain).toBe("An undo of the Oct 15 line, in full. We don't edit lines, so the original stays on your statement.");
-    expect(d.formula).toBe('Undoes $730.00 × 321 ÷ 365 = $642.00');
+    expect(d.plain).toBe("A reversal of the Oct 15 line, in full. We don't edit lines, so the original stays on your statement.");
+    expect(d.formula).toBe('Reverses $730.00 × 321 ÷ 365 = $642.00');
     expect(d.formulaNote).toBe('The same numbers as the original line, with the sign flipped.');
-    expect(d.refs.map((r) => r.label)).toEqual(['Change', 'Line', 'Undoes']);
+    expect(d.refs.map((r) => r.label)).toEqual(['Change', 'Line', 'Reverses']);
   });
 
   it('explains a payment by the balance before and after, and the card', () => {
@@ -269,7 +269,7 @@ describe('how we got this', () => {
     const d = drawerCopy(refund);
     expect(d.amount).toBe('+$14.00');
     expect(d.formula).toBe('Balance −$14.00 → $0.00');
-    expect(d.actionWhat).toBe('Start date corrected: Oct 15 → Oct 22');
+    expect(d.actionWhat).toBe('Effective date corrected: Oct 15 → Oct 22');
     expect(d.payment?.status).toBe('Refund sent');
     expect(d.payment?.note).toBe('Stripe has sent it. Banks take 5–10 days to show a refund.');
     expect(d.refs.map((r) => r.label)).toEqual(['Change', 'Refund', 'Stripe refund', 'Stripe event']);
@@ -279,7 +279,7 @@ describe('how we got this', () => {
     const issue = { ...correctCause, transactionType: 'ISSUE', effectiveDate: '2026-09-01', reason: null };
     expect(drawerCopy(row({ trace: { cause: issue } })).actionWhat).toBe('Policy started on Sep 1, 2026');
     expect(drawerCopy(row({ trace: { cause: { ...issue, transactionType: 'ADD_COVERAGE', effectiveDate: '2026-10-15' } } })).actionWhat).toBe(
-      'Extra cover added from Oct 15',
+      'Endorsement added from Oct 15',
     );
     expect(drawerCopy(row({ trace: { cause: { ...issue, transactionType: 'CANCEL', effectiveDate: '2026-12-01' } } })).actionWhat).toBe(
       'Policy cancelled from Dec 1, 2026',
@@ -308,7 +308,7 @@ describe('how we got this', () => {
 describe('drawer: when no money moved for the line itself', () => {
   it('says an undo settles together with the corrected line', () => {
     expect(drawerCopy(reversal).noMoney).toBe(
-      "No money moved for this line on its own. It's settled together with the corrected line.",
+      "No money moved for this line on its own. It's settled together with the rebill.",
     );
   });
 
@@ -357,12 +357,12 @@ describe('how we got this, for the broker', () => {
 
   it('explains a change and names the broker who made it', () => {
     const d = drawerCopy(rebill, 'broker');
-    expect(d.plain).toBe('The right price for the extra cover, now that it starts on Oct 8.');
-    expect(d.actionWhat).toBe('Start date corrected: Oct 15 → Oct 8');
+    expect(d.plain).toBe('The rebill for the product liability endorsement, now that its effective date is Oct 8.');
+    expect(d.actionWhat).toBe('Effective date corrected: Oct 15 → Oct 8');
     expect(d.actionWho).toBe('Sam Reyes · Nov 5, 2026');
     expect(d.noMoney).toBe('No money moved for this line on its own. It adds to the balance, which the customer pays by card.');
     expect(drawerCopy(reversal, 'broker').plain).toBe(
-      "An undo of the Oct 15 line, in full. Lines are never edited, so the original stays on the statement.",
+      "A reversal of the Oct 15 line, in full. Lines are never edited, so the original stays on the statement.",
     );
   });
 

@@ -83,14 +83,14 @@ const saved = (o: Partial<Corrected>): Corrected => ({
 
 // covers AC2, AC3, T3 — the broker sees the undo, the corrected charge and the net change before saving
 describe('correction preview lines', () => {
-  it('names the cover being corrected with its yearly price', () => {
-    expect(correctingWhich(73_000)).toBe('Extra cover · Product liability ($730.00 a year)');
+  it('names the endorsement being corrected with its annual premium', () => {
+    expect(correctingWhich(73_000)).toBe('Product liability endorsement ($730.00 annual premium)');
   });
 
-  it('shows the undo and the corrected charge with their arithmetic', () => {
-    expect(undoLine(owesMore)).toBe('Undo: extra cover from Oct 15 · $730.00 × 321 ÷ 365 · −$642.00');
-    expect(correctedLine(owesMore)).toBe('Corrected: extra cover from Oct 8 · $730.00 × 328 ÷ 365 · +$656.00');
-    expect(correctedLine(refundDue)).toBe('Corrected: extra cover from Oct 22 · $730.00 × 314 ÷ 365 · +$628.00');
+  it('shows the reversal and the rebill with their arithmetic', () => {
+    expect(undoLine(owesMore)).toBe('Reversal: product liability from Oct 15 · $730.00 × 321 ÷ 365 · −$642.00');
+    expect(correctedLine(owesMore)).toBe('Rebill: product liability from Oct 8 · $730.00 × 328 ÷ 365 · +$656.00');
+    expect(correctedLine(refundDue)).toBe('Rebill: product liability from Oct 22 · $730.00 × 314 ÷ 365 · +$628.00');
   });
 
   it('gives the net change as days times the daily price', () => {
@@ -117,7 +117,7 @@ describe('correction preview lines', () => {
 // covers AC3, AC4, AC5, T3 — what the customer reads, and where the money goes
 describe('what the correction does to the bill', () => {
   it('tells the customer they owe more, and why', () => {
-    expect(customerWillSeeCorrection(owesMore)).toBe('You owe $14.00 because we fixed when your extra cover started.');
+    expect(customerWillSeeCorrection(owesMore)).toBe('You owe $14.00 because we corrected the effective date of your product liability endorsement.');
   });
 
   it('tells the customer a refund is on its way, and to which card', () => {
@@ -138,7 +138,7 @@ describe('what the correction does to the bill', () => {
 
   it('says the balance went down when the credit only lowers what is owed', () => {
     expect(customerWillSeeCorrection(creditKept)).toBe(
-      'You owe $14.00 less because we fixed when your extra cover started.',
+      'You owe $14.00 less because we corrected the effective date of your product liability endorsement.',
     );
   });
 
@@ -169,19 +169,19 @@ describe('what the correction does to the bill', () => {
 describe('saving a correction', () => {
   it('sums the change up in one line before saving', () => {
     expect(confirmSummary(owesMore, 'Maya Okafor')).toEqual({
-      sentence: 'Product liability will start on Oct 8 instead of Oct 15. Maya will owe $14.00 more and see your reason word for word.',
-      amounts: 'Undo −$642.00 · Corrected +$656.00 · Net +$14.00',
+      sentence: "The product liability endorsement's effective date becomes Oct 8 instead of Oct 15. Maya will owe $14.00 more and see your reason word for word.",
+      amounts: 'Reversal −$642.00 · Rebill +$656.00 · Net +$14.00',
     });
     expect(confirmSummary(refundDue, 'Maya Okafor')).toEqual({
-      sentence: 'Product liability will start on Oct 22 instead of Oct 15. $14.00 goes back to card ending 4242 and Maya sees your reason word for word.',
-      amounts: 'Undo −$642.00 · Corrected +$628.00 · Net −$14.00',
+      sentence: "The product liability endorsement's effective date becomes Oct 22 instead of Oct 15. $14.00 goes back to card ending 4242 and Maya sees your reason word for word.",
+      amounts: 'Reversal −$642.00 · Rebill +$628.00 · Net −$14.00',
     });
   });
 
   it('confirms the save once, with the ids it created', () => {
     expect(correctedBanner('Maya Okafor', saved({}), null)).toEqual({
       message: 'Saved. Maya now owes $14.00 and can see why.',
-      refs: 'Correction PTX-0003 · undo LE-0006 · corrected line LE-0007',
+      refs: 'Correction PTX-0003 · reversal LE-0006 · rebill LE-0007',
     });
     expect(
       correctedBanner('Maya Okafor', saved({
@@ -191,7 +191,7 @@ describe('saving a correction', () => {
       }), '4242'),
     ).toEqual({
       message: "Saved. $14.00 is on its way back to Maya's card ending 4242.",
-      refs: 'Correction PTX-0003 · undo LE-0006 · corrected line LE-0007 · refund RF-0001',
+      refs: 'Correction PTX-0003 · reversal LE-0006 · rebill LE-0007 · refund RF-0001',
     });
     expect(correctedBanner('Maya Okafor', saved({ netCents: -1_400, balanceCents: 62_800 }), null).message).toBe(
       'Saved. Maya now owes $628.00 and can see why.',

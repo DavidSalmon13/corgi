@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AddCoverageService {
 
     static final String CANCELLED = "This policy is cancelled, so cover can't be added.";
-    static final String ALREADY_HAS = "This policy already has product liability cover.";
+    static final String ALREADY_HAS = "This policy already has product liability coverage.";
     private static final DateTimeFormatter LONG = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US);
     private static final DateTimeFormatter SHORT = DateTimeFormatter.ofPattern("MMM d", Locale.US);
 
@@ -104,11 +104,11 @@ public class AddCoverageService {
             errors.put("kind", ALREADY_HAS);
         }
         if (start == null) {
-            errors.put("startDate", "Pick the day the extra cover should start.");
+            errors.put("startDate", "Pick the endorsement's effective date.");
         } else if (start.isBefore(policy.start())) {
-            errors.put("startDate", "Extra cover can't start before the policy does (" + LONG.format(policy.start()) + ").");
+            errors.put("startDate", "The effective date can't be before the policy period starts (" + LONG.format(policy.start()) + ").");
         } else if (!start.isBefore(policy.end())) {
-            errors.put("startDate", "Extra cover has to start before the policy ends (" + LONG.format(policy.end()) + ").");
+            errors.put("startDate", "The effective date has to be before the policy period ends (" + LONG.format(policy.end()) + ").");
         }
         if (!errors.isEmpty()) {
             throw new ValidationException(errors);
@@ -118,7 +118,7 @@ public class AddCoverageService {
     /** Yearly price × days from the start to the policy's end ÷ days in the policy year, rounded once. */
     private static AddCoveragePlan plan(PolicyTerm policy, CoverKind kind, LocalDate start) {
         ProRata.Charge calc = ProRata.charge(kind.annualPremiumCents(), start, policy.end(), policy.start(), policy.end());
-        return new AddCoveragePlan(policy.id(), kind, "Extra cover from " + SHORT.format(start), start, policy.end(),
+        return new AddCoveragePlan(policy.id(), kind, "Product liability endorsement from " + SHORT.format(start), start, policy.end(),
                 calc, calc.amountCents());
     }
 }

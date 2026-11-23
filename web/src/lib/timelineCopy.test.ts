@@ -55,18 +55,18 @@ const CORRECTION: StatementCorrection = {
 // covers AC2, T4
 describe('timelineAnswer', () => {
   it('says a base-only policy covers the full year', () => {
-    expect(timelineAnswer(TERM, [BASE])).toBe('You’re covered for a full year, Sep 1, 2026 to Sep 1, 2027.');
+    expect(timelineAnswer(TERM, [BASE])).toBe('You’re covered for the full policy period, Sep 1, 2026 to Sep 1, 2027.');
   });
 
   it('adds the extra cover and when it starts', () => {
     expect(timelineAnswer(TERM, [BASE, EXTRA])).toBe(
-      'You’re covered all year, plus extra cover for products you sell from Oct 15.',
+      'You’re covered all year, plus product liability from Oct 15.',
     );
   });
 
   it('uses the corrected start after a correction', () => {
     expect(timelineAnswer(TERM, [BASE, { ...EXTRA, from: '2026-10-08', previousStart: '2026-10-15' }])).toBe(
-      'You’re covered all year, plus extra cover for products you sell from Oct 8.',
+      'You’re covered all year, plus product liability from Oct 8.',
     );
   });
 
@@ -78,8 +78,8 @@ describe('timelineAnswer', () => {
 // covers AC6, T4
 describe('the detail card', () => {
   it('names each cover and says what it pays for', () => {
-    expect(coverName('BASE')).toBe('Base cover');
-    expect(coverName('PRODUCT_LIABILITY')).toBe('Extra cover: products you sell');
+    expect(coverName('BASE')).toBe('General liability');
+    expect(coverName('PRODUCT_LIABILITY')).toBe('Product liability');
     expect(coverWhat('BASE')).toBe('Pays if someone is hurt or their property is damaged because of your business.');
     expect(coverWhat('PRODUCT_LIABILITY')).toBe('Pays if something you sell hurts someone or damages their property.');
   });
@@ -105,11 +105,11 @@ describe('the detail card', () => {
 describe('the timeline drawing', () => {
   it('labels today and the old start', () => {
     expect(todayLabel('2026-11-22')).toBe('Today, Nov 22');
-    expect(ghostLabel('2026-10-15')).toBe('Before the fix: from Oct 15');
+    expect(ghostLabel('2026-10-15')).toBe('Effective date before the correction: Oct 15');
   });
 
   it('explains the striped days after a cancellation', () => {
-    expect(stripedNote('2026-12-01')).toBe('Striped: days after your cover ended on Dec 1. You got those back.');
+    expect(stripedNote('2026-12-01')).toBe('Striped: days after your coverage ended on Dec 1. They came back to you as return premium.');
   });
 });
 
@@ -117,16 +117,16 @@ describe('the timeline drawing', () => {
 describe('correctionSentence', () => {
   it('says when and how far the start moved, in words', () => {
     expect(correctionSentence(CORRECTION, 'PRODUCT_LIABILITY')).toBe(
-      'On Nov 5 we moved your extra cover’s start a week earlier, from Oct 15 to Oct 8.',
+      'On Nov 5 we moved your product liability endorsement’s effective date a week earlier, from Oct 15 to Oct 8.',
     );
   });
 
   it('counts days when it is not a week, and says later when cover starts later', () => {
     expect(correctionSentence({ ...CORRECTION, oldStart: '2026-10-08', newStart: '2026-10-22', dayDelta: -14 }, 'PRODUCT_LIABILITY')).toBe(
-      'On Nov 5 we moved your extra cover’s start 14 days later, from Oct 8 to Oct 22.',
+      'On Nov 5 we moved your product liability endorsement’s effective date 14 days later, from Oct 8 to Oct 22.',
     );
     expect(correctionSentence({ ...CORRECTION, newStart: '2026-10-14', dayDelta: 1 }, 'BASE')).toBe(
-      'On Nov 5 we moved your base cover’s start 1 day earlier, from Oct 15 to Oct 14.',
+      'On Nov 5 we moved your general liability’s effective date 1 day earlier, from Oct 15 to Oct 14.',
     );
   });
 

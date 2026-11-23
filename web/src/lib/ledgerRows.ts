@@ -9,7 +9,7 @@ export type LedgerRow = {
   key: string;
   date: string;
   title: string;
-  /** Small second line, e.g. "Undone by LE-0006". */
+  /** Small second line, e.g. "Reversed by LE-0006". */
   note: string;
   /** How the amount was worked out, or what happened to the money. */
   calc: string;
@@ -32,7 +32,7 @@ function calculation(l: LedgerLine): { calc: string; calcTone: Tone } {
         ? { calc: `${formatCents(l.calcAnnualCents)} × ${l.calcDays} ÷ ${l.calcTermDays}`, calcTone: 'ink' }
         : { calc: '', calcTone: 'ink' };
     case 'REVERSAL':
-      return { calc: l.reversesDisplayId ? `Undo of ${l.reversesDisplayId}` : 'Undo', calcTone: 'ink' };
+      return { calc: l.reversesDisplayId ? `Reversal of ${l.reversesDisplayId}` : 'Reversal', calcTone: 'ink' };
     case 'PAYMENT':
       // A $0.00 payment line is a declined attempt: kept on the ledger so the attempt stays visible.
       return l.amountCents === 0 ? { calc: "Didn't go through", calcTone: 'bad' } : { calc: 'Paid', calcTone: 'good' };
@@ -49,10 +49,11 @@ export function toLedgerRows(lines: LedgerLine[]): LedgerRow[] {
   return lines.map((l) => ({
     key: l.displayId,
     date: formatDate(l.entryDate),
-    // A cancellation's credit gives back a cover's unused days ("Base cover, unused days refunded").
-    title: l.type === 'CREDIT' ? `${l.description} refunded` : l.description,
+    // A cancellation's return premium. Lines posted before the standard terms read "Base cover, unused days", which
+    // still needs its "refunded"; newer ones ("General liability return premium") are complete as they are.
+    title: l.type === 'CREDIT' && l.description.endsWith('unused days') ? `${l.description} refunded` : l.description,
     note: l.reversedByDisplayId
-      ? `Undone by ${l.reversedByDisplayId}`
+      ? `Reversed by ${l.reversedByDisplayId}`
       : l.type === 'PAYMENT' && l.amountCents === 0
         ? 'No money moved'
         : '',

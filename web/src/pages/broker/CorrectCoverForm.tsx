@@ -3,9 +3,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../../api/client';
 import type { Corrected, CorrectionPlan, CorrectRequest, PolicyDetail } from '../../api/types';
+import { Glossed } from '../../components/Glossed';
 import { Money } from '../../components/Money';
 import { Term } from '../../components/Term';
-import { billHeading, calcArithmetic } from '../../lib/addCoverCopy';
+import { billHeading, calcArithmetic, lastEffectiveDate } from '../../lib/addCoverCopy';
 import {
   confirmSummary,
   correctedBanner,
@@ -19,6 +20,7 @@ import {
   undoLine,
 } from '../../lib/correctCopy';
 import { formatDate, formatShortDate } from '../../lib/dates';
+import { GLOSSARY } from '../../lib/glossary';
 import { formatCents } from '../../lib/money';
 import { useDebounced } from '../../lib/useDebounced';
 import {
@@ -143,22 +145,28 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
         <form
           id="correct-cover"
           noValidate
-          aria-label="Correct a start date"
+          aria-label="Correct the effective date"
           onSubmit={(e) => {
             e.preventDefault();
             submit();
           }}
           className="flex min-w-0 flex-[1_1_460px] flex-col gap-5 rounded-2xl border border-line bg-card p-5 md:p-6"
         >
-          <h2 className="m-0 text-xl font-bold">Correct a start date</h2>
+          <h2 className="m-0 text-xl font-bold">
+            Correct the <Term explain={GLOSSARY.effectiveDate}>effective date</Term>
+          </h2>
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold">Which cover</span>
-            <div className={`${INPUT} flex items-center border-line`}>{correctingWhich(cover.annualPremiumCents)}</div>
+            <span className="text-sm font-semibold">Coverage</span>
+            <div className={`${INPUT} flex items-center border-line`}>
+              <span>
+                <Glossed>{correctingWhich(cover.annualPremiumCents)}</Glossed>
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex min-w-0 flex-[1_1_160px] flex-col gap-1.5">
               <span className="text-sm font-semibold" id="oldStart-label">
-                Starts on now
+                <Term explain={GLOSSARY.effectiveDate}>Effective date</Term> now
               </span>
               <div
                 aria-labelledby="oldStart-label"
@@ -183,13 +191,14 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
             </svg>
             <div className="flex min-w-0 flex-[1_1_160px] flex-col gap-1.5">
               <label htmlFor="startDate" className="text-sm font-semibold">
-                Correct <Term explain="The first day the extra cover protects the customer.">start date</Term>
+                Correct <Term explain={GLOSSARY.effectiveDate}>effective date</Term>
               </label>
               <input
                 id="startDate"
                 type="date"
                 value={startDate}
                 min={p.start}
+                max={lastEffectiveDate(p.end)}
                 aria-invalid={!!startError}
                 aria-describedby={startError ? 'startDate-error' : undefined}
                 onChange={(e) => {
@@ -233,7 +242,8 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
           <div>
             <h2 className="m-0 text-xl font-bold">{billHeading(p.customer.ownerName)}</h2>
             <p className="m-0 mt-1 text-[15px] text-ink-2">
-              The {formatShortDate(cover.from)} line stays on the bill, undone in full. Nothing is edited.
+              The {formatShortDate(cover.from)} line stays on the bill and gets a{' '}
+              <Term explain={GLOSSARY.reversal}>reversal</Term>. Nothing is edited.
             </p>
           </div>
           {plan ? (
@@ -241,26 +251,26 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
               <div>
                 <PreviewRow
                   label={undoLine(plan)}
-                  title={`Undo: extra cover from ${formatShortDate(plan.oldStart)}`}
-                  how={
+                  title={
                     <>
-                      {calcArithmetic(plan.undo.calc)} ·{' '}
-                      <Term explain="We cancel the old line in full instead of editing it, so both stay on the bill.">
-                        undone in full
-                      </Term>
+                      <Term explain={GLOSSARY.reversal}>Reversal</Term>:{' '}
+                      <Glossed>{`product liability from ${formatShortDate(plan.oldStart)}`}</Glossed>
                     </>
                   }
+                  how={<>{calcArithmetic(plan.undo.calc)} · cancels the original line in full</>}
                   cents={plan.undo.amountCents}
                 />
                 <PreviewRow
                   label={correctedLine(plan)}
-                  title={`Corrected: extra cover from ${formatShortDate(plan.newStart)}`}
+                  title={
+                    <>
+                      <Term explain={GLOSSARY.rebill}>Rebill</Term>:{' '}
+                      <Glossed>{`product liability from ${formatShortDate(plan.newStart)}`}</Glossed>
+                    </>
+                  }
                   how={
                     <>
-                      {calcArithmetic(plan.rebill.calc)} ·{' '}
-                      <Term explain="The right amount, charged by the day from the corrected start: the yearly price × the days covered ÷ the days in the policy year.">
-                        charged by the day
-                      </Term>
+                      {calcArithmetic(plan.rebill.calc)} · <Term explain={GLOSSARY.proRata}>pro-rata</Term>
                     </>
                   }
                   cents={plan.rebill.calc.amountCents}
@@ -292,7 +302,9 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
               </div>
               <div className="flex flex-col gap-1.5 rounded-card bg-bg px-4 py-3.5">
                 <span className="text-xs font-semibold uppercase tracking-[.06em] text-ink-2">Customer will see</span>
-                <p className="m-0 text-[17px] font-medium leading-[1.45]">{customerWillSeeCorrection(plan)}</p>
+                <p className="m-0 text-[17px] font-medium leading-[1.45]">
+                  <Glossed>{customerWillSeeCorrection(plan)}</Glossed>
+                </p>
                 {reason.trim() && (
                   <p className="m-0 text-[15px] leading-normal text-ink-2">
                     Your broker's note: “{reason.trim()}”
@@ -311,9 +323,11 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
                   </button>
                 </>
               ) : previewProblem && startDate ? (
-                `${previewProblem} We'll show what changes here, before anything is saved.`
+                <Glossed>{`${previewProblem} We'll show what changes here, before anything is saved.`}</Glossed>
               ) : (
-                "Pick the day the extra cover really started and we'll show what changes here, before anything is saved."
+                <Glossed>
+                  {"Pick the endorsement's real effective date and we'll show what changes here, before anything is saved."}
+                </Glossed>
               )}
             </p>
           )}
@@ -339,12 +353,16 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
             <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
               Save this correction?
             </h2>
-            <p className="m-0 text-base leading-normal">{summary.sentence}</p>
+            <p className="m-0 text-base leading-normal">
+              <Glossed>{summary.sentence}</Glossed>
+            </p>
             <div className="rounded-control bg-bg px-3.5 py-3 text-[15px] leading-relaxed text-ink-2 tabular-nums">
               {summary.amounts.split(' · ').map((part, i) => (
                 <span key={part}>
                   {i > 0 && ' · '}
-                  <span className="whitespace-nowrap">{part}</span>
+                  <span className="whitespace-nowrap">
+                    <Glossed>{part}</Glossed>
+                  </span>
                 </span>
               ))}
             </div>
@@ -368,7 +386,7 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
 }
 
 /** One line of the preview: what it is, how it was worked out, and the amount. {@code label} is the full line read aloud. */
-function PreviewRow({ label, title, how, cents }: { label: string; title: string; how: ReactNode; cents: number }) {
+function PreviewRow({ label, title, how, cents }: { label: string; title: ReactNode; how: ReactNode; cents: number }) {
   return (
     <div role="group" aria-label={label} className="flex justify-between gap-4 border-t border-dashed border-line py-3">
       <div className="min-w-0">

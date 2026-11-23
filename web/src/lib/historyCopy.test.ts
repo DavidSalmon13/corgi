@@ -240,8 +240,8 @@ const refundOnItsWay = action({ ...refundFailed, status: 'REFUND_ON_ITS_WAY', fa
 describe('actionTitle', () => {
   it('names each change with its ID', () => {
     expect(actionTitle(issue)).toBe('Policy created · PTX-0001');
-    expect(actionTitle(extraCover)).toBe('Extra cover added · PTX-0002');
-    expect(actionTitle(correction)).toBe('Start date corrected · PTX-0003');
+    expect(actionTitle(extraCover)).toBe('Endorsement added · PTX-0002');
+    expect(actionTitle(correction)).toBe('Effective date corrected · PTX-0003');
     expect(actionTitle(cancel)).toBe('Policy cancelled · PTX-0004');
   });
 
@@ -280,13 +280,13 @@ describe('actionMoney', () => {
 
 describe('actionDetail', () => {
   it('shows the sums behind a charge', () => {
-    expect(actionDetail(issue)).toBe('Base cover for a year, Sep 1, 2026 to Sep 1, 2027. $1,200.00 × 365 ÷ 365.');
+    expect(actionDetail(issue)).toBe('General liability for the policy period, Sep 1, 2026 to Sep 1, 2027. $1,200.00 × 365 ÷ 365.');
     expect(actionDetail(extraCover)).toBe('Extra cover from Oct 15. $730.00 × 321 ÷ 365.');
   });
 
   it('shows a correction as the undo plus the corrected line (AC6)', () => {
     expect(actionDetail(correction)).toBe(
-      'Start moved from Oct 15 to Oct 8. Oct 15 line undone in full (−$642.00), corrected line added ($730.00 × 328 ÷ 365 = +$656.00).',
+      'Effective date moved from Oct 15 to Oct 8. Oct 15 line reversed in full (−$642.00), rebill added ($730.00 × 328 ÷ 365 = +$656.00).',
     );
   });
 
@@ -310,7 +310,7 @@ describe('actionDetail', () => {
       ],
     });
     expect(actionDetail(issueBoth)).toBe(
-      'Cover for a year, Sep 1, 2026 to Sep 1, 2027. Base cover, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00. Extra cover, full year: $730.00 × 365 ÷ 365 = +$730.00.',
+      'Coverage for the policy period, Sep 1, 2026 to Sep 1, 2027. Base cover, full year: $1,200.00 × 365 ÷ 365 = +$1,200.00. Extra cover, full year: $730.00 × 365 ÷ 365 = +$730.00.',
     );
 
     const cancelBoth = action({

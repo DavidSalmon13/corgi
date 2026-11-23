@@ -260,7 +260,7 @@ public class StatementService {
                         cause, new Money(r.cardLast4(), on, MoneyStatus.REFUND_ON_ITS_WAY),
                         refs(RefKind.CHANGE, r.policyTransactionDisplayId(), RefKind.REFUND, r.displayId(),
                                 RefKind.STRIPE_REFUND, r.stripeRefundId()));
-                rows.add(new Row(r.displayId(), EntryType.REFUND, on, "Money back to " + card, r.amountCents(),
+                rows.add(new Row(r.displayId(), EntryType.REFUND, on, "Refund to " + card, r.amountCents(),
                         balance, true, MoneyStatus.REFUND_ON_ITS_WAY, null, null, t));
             }
             return rows;

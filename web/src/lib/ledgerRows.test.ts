@@ -49,8 +49,8 @@ describe('toLedgerRows', () => {
       }),
       line({ id: 7, displayId: 'LE-0007', amountCents: 65_600, calcAnnualCents: 73_000, calcDays: 328, policyTransactionDisplayId: 'PTX-0003' }),
     ]);
-    expect(rows[0]).toMatchObject({ struck: true, note: 'Undone by LE-0006', correction: false });
-    expect(rows[1]).toMatchObject({ calc: 'Undo of LE-0003', amount: '−$642.00', balance: '−$642.00', correction: true });
+    expect(rows[0]).toMatchObject({ struck: true, note: 'Reversed by LE-0006', correction: false });
+    expect(rows[1]).toMatchObject({ calc: 'Reversal of LE-0003', amount: '−$642.00', balance: '−$642.00', correction: true });
     expect(rows[2]).toMatchObject({ calc: '$730.00 × 328 ÷ 365', correction: true });
   });
 

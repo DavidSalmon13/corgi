@@ -4,15 +4,15 @@ import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsW
 // covers AC10, T18 — the policyholder reads what they owe, why, and what they're protected for
 describe('policyholder home copy', () => {
   it('explains why money is due in plain words', () => {
-    expect(dueReasonText('FIRST_YEAR')).toBe('Your first year of cover.');
-    expect(dueReasonText('CHANGE')).toBe('A change to your cover left a balance to pay.');
+    expect(dueReasonText('FIRST_YEAR')).toBe('Your first year of coverage.');
+    expect(dueReasonText('CHANGE')).toBe('A mid-term change left a balance to pay.');
     expect(dueReasonText('NOTHING_DUE')).toBe('');
   });
 
   // covers add-coverage AC9, T3
   it('says new extra cover is why more is due, and from when', () => {
-    expect(dueReasonText('EXTRA_COVER', '2026-10-15')).toBe('Your new extra cover, charged by the day from Oct 15.');
-    expect(dueReasonText('EXTRA_COVER', null)).toBe('Your new extra cover, charged by the day.');
+    expect(dueReasonText('EXTRA_COVER', '2026-10-15')).toBe('Your new product liability endorsement, pro-rata from Oct 15.');
+    expect(dueReasonText('EXTRA_COVER', null)).toBe('Your new product liability endorsement, pro-rata.');
   });
 
   it('builds the protection sentence from what the business does', () => {
@@ -37,7 +37,7 @@ describe('policyholder home copy', () => {
 
   // covers correct-effective-date AC13, T3 — after a correction, P1 says why, or that money is coming back
   it('says a corrected start date is why more is due', () => {
-    expect(dueReasonText('CORRECTION', '2026-10-08')).toBe('We fixed when your extra cover started.');
+    expect(dueReasonText('CORRECTION', '2026-10-08')).toBe('We corrected the effective date of your product liability endorsement.');
     expect(dueReasonText('CANCELLATION')).toBe('For the days you were covered before your policy was cancelled.');
   });
 

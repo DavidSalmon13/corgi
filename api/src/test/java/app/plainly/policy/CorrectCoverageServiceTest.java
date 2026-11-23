@@ -110,7 +110,7 @@ class CorrectCoverageServiceTest {
     LedgerLine liveExtraCharge(long policyId) {
         List<LedgerLine> lines = ledger.lines(policyId);
         return lines.stream()
-                .filter(l -> l.type() == EntryType.CHARGE && l.description().startsWith("Extra cover"))
+                .filter(l -> l.type() == EntryType.CHARGE && l.description().startsWith("Product liability"))
                 .filter(l -> l.reversedByDisplayId() == null)
                 .reduce((a, b) -> b).orElseThrow();
     }
@@ -130,13 +130,13 @@ class CorrectCoverageServiceTest {
         assertThat(plan.newStart()).isEqualTo(OCT_8);
 
         assertThat(plan.undo().entryDisplayId()).isEqualTo(original.displayId());
-        assertThat(plan.undo().label()).isEqualTo("Extra cover from Oct 15");
+        assertThat(plan.undo().label()).isEqualTo("Product liability endorsement from Oct 15");
         assertThat(plan.undo().amountCents()).isEqualTo(-64_200);
         assertThat(plan.undo().calc().annualCents()).isEqualTo(73_000);
         assertThat(plan.undo().calc().days()).isEqualTo(321);
         assertThat(plan.undo().calc().termDays()).isEqualTo(365);
 
-        assertThat(plan.rebill().label()).isEqualTo("Extra cover from Oct 8");
+        assertThat(plan.rebill().label()).isEqualTo("Product liability endorsement from Oct 8");
         assertThat(plan.rebill().from()).isEqualTo(OCT_8);
         assertThat(plan.rebill().to()).isEqualTo(POLICY_END);
         assertThat(plan.rebill().calc().days()).isEqualTo(328);
@@ -271,16 +271,16 @@ class CorrectCoverageServiceTest {
     void aStartBeforeThePolicyIsRejected() throws Exception {
         long id = paidWithExtraCoverFromOct15().owner().policyId();
         assertFieldError(() -> service.preview(id, SEP_1.minusDays(1)),
-                "startDate", "Extra cover can't start before the policy does (Sep 1, 2026).");
+                "startDate", "The effective date can't be before the policy period starts (Sep 1, 2026).");
     }
 
     @Test
     void aStartOnOrAfterThePolicyEndIsRejected() throws Exception {
         long id = paidWithExtraCoverFromOct15().owner().policyId();
         assertFieldError(() -> service.preview(id, POLICY_END),
-                "startDate", "Extra cover has to start before the policy ends (Sep 1, 2027).");
+                "startDate", "The effective date has to be before the policy period ends (Sep 1, 2027).");
         assertFieldError(() -> service.preview(id, POLICY_END.plusDays(3)),
-                "startDate", "Extra cover has to start before the policy ends (Sep 1, 2027).");
+                "startDate", "The effective date has to be before the policy period ends (Sep 1, 2027).");
     }
 
     @Test
@@ -418,7 +418,7 @@ class CorrectCoverageServiceTest {
             assertThat(rebill.displayId()).isEqualTo(saved.rebillDisplayId());
             assertThat(rebill.type()).isEqualTo(EntryType.CHARGE);
             assertThat(rebill.entryDate()).isEqualTo(TODAY);
-            assertThat(rebill.description()).isEqualTo("Extra cover from Oct 8");
+            assertThat(rebill.description()).isEqualTo("Product liability endorsement from Oct 8");
             assertThat(rebill.amountCents()).isEqualTo(65_600);
             assertThat(rebill.coverageId()).isEqualTo(newCoverage);
             assertThat(rebill.calcAnnualCents()).isEqualTo(73_000L);

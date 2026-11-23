@@ -89,6 +89,15 @@ describe('the detail card', () => {
     expect(endsText(EXTRA, CANCELLED)).toBe('Dec 1, 2026 (cancelled)');
   });
 
+  // covers remove-cover AC6, AC7, T13
+  it('shows the day a removed cover stopped, or the cancel day when that came first', () => {
+    const removed = { ...EXTRA, endedOn: '2026-12-01' };
+    expect(endsText(removed, TERM)).toBe('Dec 1, 2026 (removed)');
+    expect(endsText(removed, { ...TERM, cancelledOn: '2026-11-25' })).toBe('Nov 25, 2026 (cancelled)');
+    expect(endsText(removed, { ...TERM, cancelledOn: '2027-01-10' })).toBe('Dec 1, 2026 (removed)');
+    expect(chargedText({ ...removed, daysKept: 54, chargedCents: 10_800 }, TERM)).toBe('54 days kept · $108.00');
+  });
+
   it('shows the yearly price, with the daily price when it is whole cents', () => {
     expect(priceText(EXTRA)).toBe('$730.00 a year ($2.00 a day)');
     expect(priceText(BASE)).toBe('$1,200.00 a year');

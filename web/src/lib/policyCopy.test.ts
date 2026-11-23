@@ -52,3 +52,10 @@ describe('policy copy', () => {
     expect(balanceNote(0, false, 0)).toBe('Nothing owed');
   });
 });
+
+// covers remove-cover AC7, T2 — the broker's list names a removal as the last action
+describe('last action after a removal', () => {
+  it('reads "Product liability removed"', () => {
+    expect(lastActionText({ type: 'REMOVE_COVERAGE', recordedOn: '2026-11-22' })).toBe('Product liability removed · Nov 22');
+  });
+});

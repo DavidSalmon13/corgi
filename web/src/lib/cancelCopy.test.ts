@@ -340,3 +340,49 @@ describe('what to fix before cancelling', () => {
     expect(cancelSaveProblems('2026-12-01', 'Closing the bakery.')).toBeNull();
   });
 });
+
+// covers remove-cover AC6, T2 — a cancellation after a removal credits only the coverage still running
+describe('cancelling after product liability was removed', () => {
+  const afterRemoval = plan({
+    credits: [base],
+    balanceBeforeCents: 1_400,
+    keptBackCents: 1_400,
+    keptBackFor: 'REMOVE_COVERAGE',
+    balanceAfterCents: -88_682,
+    refunds: [{ paymentId: 7, paymentDisplayId: 'PAY-0001', cardLast4: '4242', amountCents: 88_682 }],
+    creditTotalCents: -90_082,
+    refundTotalCents: 88_682,
+  });
+
+  it('lists the general liability return premium only, and names the removal as what left money owing', () => {
+    expect(cancelPreviewRows(afterRemoval).map((r) => [r.label, r.detail, r.amount])).toEqual([
+      ['General liability return premium', '$1,200.00 × 274 ÷ 365', '−$900.82'],
+      ['Unpaid balance kept back', 'Still owed after the product liability removal', '+$14.00'],
+      ['Refund to card ending 4242', 'Sent through Stripe when you confirm', '$886.82'],
+    ]);
+  });
+
+  it('tells the customer the same on P6', () => {
+    const c: Cancellation = {
+      endsOn: '2027-01-01',
+      reason: 'The bakery closed for good.',
+      usedDays: 122,
+      unusedDays: 243,
+      termDays: 365,
+      credits: [{ kind: 'BASE', annualCents: 120_000, days: 243, amountCents: -79_890 }],
+      keptBackCents: 1_400,
+      keptBackFor: 'REMOVE_COVERAGE',
+      refundCents: 78_490,
+      refundStatus: 'PENDING',
+      cardLast4: '4242',
+      settledOn: null,
+    };
+    const rows = workedOutRows(c);
+    expect(rows.map((r) => r.label)).toEqual([
+      'General liability return premium',
+      'Unpaid balance kept back',
+      'Refund to card ending 4242',
+    ]);
+    expect(rows[1].detail).toBe('The $14.00 from before your product liability was removed, still owed');
+  });
+});

@@ -10,6 +10,15 @@ describe('policy copy', () => {
     expect(policyStatus('CANCELLED', 0)).toEqual({ label: 'Cancelled', tone: 'neutral' });
   });
 
+  // covers more-policies AC4, T2 — B1 says which policy replaced a cancelled one
+  it('says a cancelled policy was replaced, and by which', () => {
+    expect(policyStatus('CANCELLED', -120_000, false, 'GL-2026-0014')).toEqual({
+      label: 'Cancelled · replaced by GL-2026-0014',
+      tone: 'neutral',
+    });
+    expect(policyStatus('CANCELLED', 0, false, null)).toEqual({ label: 'Cancelled', tone: 'neutral' });
+  });
+
   it('shows owed balances as "$X due" and anything else as the amount', () => {
     expect(balanceText(120_000)).toBe('$1,200.00 due');
     expect(balanceText(0)).toBe('$0.00');

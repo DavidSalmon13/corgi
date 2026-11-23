@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { glossParts } from '../components/Glossed';
 import { coverDates, dueReasonText, periodLine, protectionSentence, refundOnItsWay } from './myCoverCopy';
 
 // covers AC10, T18 — the policyholder reads what they owe, why, and what they're protected for
@@ -61,6 +62,27 @@ describe('policyholder home copy', () => {
   it('gives each cover an end date once the policy is cancelled', () => {
     expect(coverDates('2026-09-01', '2026-12-01')).toBe('Sep 1 – Dec 1');
     expect(coverDates('2026-12-15', '2026-12-01')).toBe('Never started');
+  });
+});
+
+// covers more-policies AC7, AC11, T2 — a flat-cancelled policy never covered them, and says so
+describe('a policy cancelled flat, on its start date', () => {
+  it("says it never covered the business, instead of when its cover ended", () => {
+    expect(protectionSentence('Bakery and café', false, { endsOn: '2026-09-01', today: '2026-11-23', startsOn: '2026-09-01' })).toBe(
+      'This policy was cancelled on its start date, Sep 1, 2026 (a flat cancellation), so it never covered your business.',
+    );
+  });
+
+  // covers more-policies AC11 (code review): P1 renders this sentence through <Glossed>, so the term gets its "?"
+  it('marks "flat cancellation" for its "?" explanation', () => {
+    const sentence = protectionSentence('Bakery and café', false, { endsOn: '2026-09-01', today: '2026-11-23', startsOn: '2026-09-01' });
+    expect(glossParts(sentence)).toContainEqual({ word: 'flat cancellation', term: 'flatCancellation' });
+  });
+
+  it('keeps the usual sentence when the cancellation came after the start', () => {
+    expect(protectionSentence('Bakery and café', false, { endsOn: '2026-12-01', today: '2026-12-02', startsOn: '2026-09-01' })).toBe(
+      'You were covered if someone was hurt or their property was damaged because of your business (bakery and café). That cover ended on Dec 1, 2026.',
+    );
   });
 });
 

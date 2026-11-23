@@ -15,7 +15,9 @@ export type GlossaryTerm =
   | 'shortRate'
   | 'ledger'
   | 'generalLiability'
-  | 'productLiability';
+  | 'productLiability'
+  | 'rewrite'
+  | 'flatCancellation';
 
 export const GLOSSARY: Record<GlossaryTerm, string> = {
   endorsement:
@@ -37,6 +39,10 @@ export const GLOSSARY: Record<GlossaryTerm, string> = {
   ledger: "The policy's money record: every charge, payment and refund, in order. Lines are never edited.",
   generalLiability: 'Pays if someone is hurt or their property is damaged because of the business.',
   productLiability: 'Pays if something the business sells hurts someone or damages their property.',
+  rewrite:
+    'A new policy issued to replace one that was cancelled, usually because it was set up wrong. The two stay linked, and each keeps its own money.',
+  flatCancellation:
+    'A cancellation from the policy\'s start date, so it never covered a day: all the premium paid comes back as return premium.',
 };
 
 /**
@@ -44,6 +50,7 @@ export const GLOSSARY: Record<GlossaryTerm, string> = {
  * Plurals and the "-d" form of reversal are matched too.
  */
 export const TERM_PATTERNS: [GlossaryTerm, string][] = [
+  ['flatCancellation', 'flat cancellations?|flat-cancelled'],
   ['returnPremium', 'return premium'],
   ['annualPremium', 'annual premiums?'],
   ['shortRate', 'short-rate(?: penalty)?'],
@@ -56,6 +63,7 @@ export const TERM_PATTERNS: [GlossaryTerm, string][] = [
   ['proRata', 'pro-rata'],
   ['reversal', 'reversals?|reversed|reverses'],
   ['rebill', 'rebills?|rebilled'],
+  ['rewrite', 'rewrites?|rewritten'],
   ['ledger', 'ledger'],
   ['premium', 'premiums?'],
 ];

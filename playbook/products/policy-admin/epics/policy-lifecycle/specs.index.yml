@@ -121,3 +121,13 @@ specs:
       - api/src/main/java/**/policy/CorrectionController.java
       - api/src/main/java/**/policy/CancellationController.java
       - api/src/main/java/**/auth/AuthController.java#SignUpRequest
+  - folder: 2026-11-23-landing-page
+    slug: landing-page
+    status: shaped
+    branch: feat/policy-lifecycle/landing-page
+    covers:
+      - /
+      - /api/public/coverages
+      - web/src/pages/LandingPage.tsx
+      - web/src/lib/landingCopy.ts
+      - api/src/main/java/**/catalog/**

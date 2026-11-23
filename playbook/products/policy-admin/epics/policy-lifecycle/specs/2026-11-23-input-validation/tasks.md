@@ -3,6 +3,8 @@
 > Epic: policy-lifecycle
 > Spec: 2026-11-23-input-validation
 > Branch: feat/policy-lifecycle/input-validation
+> Reviewed: 2026-11-23 APPROVE
+> SecurityReviewed: 2026-11-23 APPROVE WITH COMMENTS
 
 ## Failing tests first (TDD)
 - [x] T1 Add failing endpoint tests for AC2–AC5: garbage date, unknown kind, blank + too-long fields, field order, and the service not being called — in BrokerIssueEndpointsTest, AddCoverageEndpointsTest, CorrectionEndpointsTest, CancellationEndpointsTest, AuthTest

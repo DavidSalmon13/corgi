@@ -92,3 +92,20 @@ specs:
       - api/src/main/resources/db/migration/V12__cover_removal.sql
       - web/src/pages/broker/RemoveCoverForm.tsx
       - web/src/lib/removeCoverCopy.ts
+  - folder: 2026-11-23-more-policies
+    slug: more-policies
+    status: shaped
+    branch: feat/policy-lifecycle/more-policies
+    covers:
+      - /me/policies/:policyId
+      - /me/policies/:policyId/*
+      - /api/me/policies
+      - /api/me/policies/{id}/cover
+      - /api/me/policies/{id}/statement
+      - /api/me/policies/{id}/timeline
+      - /api/broker/customers/{id}/policies
+      - /api/broker/customers/{id}/policies/preview
+      - /broker/customers/:customerId/policies/new
+      - api/src/main/resources/db/migration/V13__policy_rewrites.sql
+      - web/src/pages/me/PoliciesPage.tsx
+      - web/src/lib/policiesCopy.ts

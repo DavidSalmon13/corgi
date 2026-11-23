@@ -20,7 +20,7 @@
 - [x] T3.1 Share the demo badge and footer between AuthLayout and Landing without changing SignIn/SignUp's look
 - [x] T3.2 "What we offer" section in Landing.tsx: PublicCoverage type + fetch in api/client.ts, per-kind description and price line (per-day only when exact) in landingCopy.ts with tests first, Term-wrapped terms, prices-unavailable line on failure (AC12)
 - [x] T4 Replace HomeRedirect with Home in web/src/components/RouteGuards.tsx (pending → Waiting, signed in → homeFor, guest → Landing); wire `/` in web/src/App.tsx
-- [ ] T5 SignIn.tsx: prefill a demo account from `?demo=<email>` when it is in DEMO_ACCOUNTS; ignore anything else
+- [x] T5 SignIn.tsx: prefill a demo account from `?demo=<email>` when it is in DEMO_ACCOUNTS; ignore anything else
 
 ## Docs
 

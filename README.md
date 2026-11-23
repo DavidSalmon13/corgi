@@ -60,7 +60,7 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
    ```bash
    cd api && set -a && . ../.env && set +a && ./gradlew bootRun
    stripe listen --api-key "$STRIPE_SECRET_KEY" \
-     --events payment_intent.processing,payment_intent.payment_failed,payment_intent.canceled,charge.succeeded,charge.failed \
+     --events payment_intent.processing,payment_intent.payment_failed,payment_intent.canceled,charge.succeeded,charge.failed,refund.created,refund.updated,refund.failed \
      --forward-to localhost:8080/api/stripe/webhook
    ```
 4. Sign in as Maya (her first year is due), choose **Pay**, and use a [Stripe test card](https://docs.stripe.com/testing) with any future expiry and any CVC:
@@ -70,4 +70,19 @@ Policyholders pay what they owe by card on `/me/pay`. A payment is marked paid o
 | `4242 4242 4242 4242` | Paid. The next payment offers it as "Card ending 4242 · Used last time". |
 | `4000 0000 0000 0002` | Declined: "Didn't go through", and a $0.00 attempt on the ledger. |
 
-Payments switch on only when all three `STRIPE_*` values are set and the keys are test-mode keys (`sk_test_…`, `pk_test_…`). Without them the app still runs, and the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.succeeded`, `charge.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.
+Payments switch on only when all three `STRIPE_*` values are set and the keys are test-mode keys (`sk_test_…`, `pk_test_…`). Without them the app still runs, and the pay button explains that card payments aren't set up. On a deployment, set the three `STRIPE_*` variables and add a webhook endpoint for `https://<your-host>/api/stripe/webhook` in the Stripe dashboard (events `payment_intent.processing`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.succeeded`, `charge.failed`, `refund.created`, `refund.updated`, `refund.failed`); its signing secret is the `STRIPE_WEBHOOK_SECRET` there.
+
+## Demo: remove product liability mid-term
+
+A mid-term endorsement that takes product liability off a policy from a chosen day. It needs Stripe set up as above, with `stripe listen` running, because the return premium goes back to the card and is marked settled only by Stripe's signed webhook.
+
+1. **Issue with product liability.** Sign in as Sam, choose **New customer and policy**, and enter a fictional business with an owner email you'll use in step 5 (say `lena@northwindprint.test`). Set the start date to **Sep 1, 2026** and check **Product liability**. The policy period is Sep 1, 2026 → Sep 1, 2027 (365 days): $1,200.00 general liability plus $730.00 product liability, $1,930.00 due.
+2. **Pay.** Sign out, choose **Create your account** with that email, then **Pay** the $1,930.00 with card `4242 4242 4242 4242`. Once the webhook arrives, the balance is $0.00.
+3. **Remove from Dec 1.** Sign in as Sam, open the policy (B3) and choose **Remove product liability**. B4 opens on the **Remove** tab. Pick **Dec 1, 2026** as the effective date and give a reason, such as "Stopped selling bottled sauces." Before anything is saved, the preview shows:
+   - Product liability return premium · $730.00 × 274 ÷ 365 · −$548.00 (274 unused days, pro-rata, no short-rate penalty)
+   - Return premium to card ending 4242 · Sent through Stripe when you confirm · $548.00
+   - the sentence the customer will see, with your reason word for word
+4. **Confirm.** Choose **Remove product liability and refund $548.00**, then confirm. B3 shows the endorsement and credit ids, the product liability bar stops on Dec 1 with the rest striped, and the ledger has one CREDIT of −$548.00. **How we got this** names the REMOVE_COVERAGE transaction. A few seconds later Stripe's `refund.updated` webhook posts the REFUND line, and the refund shows as sent. Add endorsement, Correct and Remove now each say product liability was removed on Dec 1, 2026.
+5. **The customer's view.** Sign in as the owner. P1 says product liability ends on Dec 1, 2026, shows your note, and says $548.00 is on its way to the card ending 4242 (then that it was refunded). P2's product liability bar ends on Dec 1, and P3 lists "Product liability removed, return premium", with the arithmetic in its **How we got this** drawer. With Resend set up, the refund receipt email gives the removal as the reason.
+
+If the policy is cancelled later, the cancellation credits product liability only up to Dec 1, so no day is credited twice ([why](DECISIONS.md)).

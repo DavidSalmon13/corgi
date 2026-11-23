@@ -63,3 +63,19 @@ describe('policyholder home copy', () => {
     expect(coverDates('2026-12-15', '2026-12-01')).toBe('Never started');
   });
 });
+
+// covers remove-cover AC7, T2 — P1 says why less is owed after product liability was removed
+describe('after product liability was removed', () => {
+  it('gives the removal as why money is still due, and from when', () => {
+    expect(dueReasonText('COVER_REMOVED', '2026-12-01')).toBe(
+      'For the days your product liability covered, because it was removed from Dec 1.',
+    );
+    expect(dueReasonText('COVER_REMOVED', null)).toBe(
+      'For the days your product liability covered, because it was removed.',
+    );
+  });
+
+  it('shows the removed coverage running up to its end day', () => {
+    expect(coverDates('2026-10-08', '2026-12-01')).toBe('Oct 8 – Dec 1');
+  });
+});

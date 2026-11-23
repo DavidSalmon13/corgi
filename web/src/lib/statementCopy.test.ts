@@ -397,3 +397,61 @@ describe('how we got this, for the broker', () => {
     expect(d.payment?.note).toBe('Shown as paid once the bank confirms.');
   });
 });
+
+// covers remove-cover AC7, T2 — P3 and B5 title a removal's credit as a removal, and "How we got this" names it
+describe('a product liability removal on the statement', () => {
+  const removalCause = {
+    ...noCause,
+    transactionType: 'REMOVE_COVERAGE',
+    effectiveDate: '2026-12-01',
+    recordedOn: '2026-11-22',
+    actorName: 'Sam Reyes',
+    reason: 'Stopped selling packaged goods to shops.',
+  };
+  const removal = row({
+    id: 'LE-0012',
+    kind: 'CREDIT',
+    date: '2026-11-22',
+    title: 'Product liability return premium',
+    amountCents: -54_800,
+    balanceAfterCents: -54_800,
+    trace: {
+      maths: { ...noMaths, annualCents: 73_000, days: 274, termDays: 365, from: '2026-12-01', to: '2027-09-01', resultCents: -54_800 },
+      cause: removalCause,
+      refs: [
+        { kind: 'CHANGE', id: 'PTX-0005' },
+        { kind: 'LINE', id: 'LE-0012' },
+      ],
+    },
+  });
+
+  it('titles the row as a removal, not a refund', () => {
+    expect(rowTitle(removal)).toBe('Product liability removed, return premium');
+    expect(rowNote(removal)).toBe('$730.00 × 274 ÷ 365');
+  });
+
+  it('explains it by the removal for the policyholder', () => {
+    const d = drawerCopy(removal);
+    expect(d.line).toBe('Product liability removed, return premium · Nov 22, 2026');
+    expect(d.plain).toBe("Return premium for the days your product liability won't cover, because it was removed.");
+    expect(d.actionWhat).toBe('Product liability removed from Dec 1, 2026');
+    expect(d.actionWho).toBe('Sam Reyes, your broker · Nov 22, 2026');
+    expect(d.reason).toBe('Stopped selling packaged goods to shops.');
+    expect(d.refs).toEqual([
+      { label: 'Change', id: 'PTX-0005' },
+      { label: 'Line', id: 'LE-0012' },
+    ]);
+  });
+
+  it('explains it about "the customer" for the broker', () => {
+    const d = drawerCopy(removal, 'broker');
+    expect(d.plain).toBe("Return premium for the days product liability won't cover the customer, because it was removed.");
+    expect(d.actionWhat).toBe('Product liability removed from Dec 1, 2026');
+  });
+
+  it("keeps a cancellation's credit explained by the policy ending early", () => {
+    const cancel = { ...removal, trace: { ...removal.trace, cause: { ...removalCause, transactionType: 'CANCEL' } } };
+    expect(rowTitle(cancel)).toBe('Product liability return premium');
+    expect(drawerCopy(cancel).plain).toBe("Return premium for the days you won't be covered, because your policy ends early.");
+  });
+});

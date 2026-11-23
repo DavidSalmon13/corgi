@@ -396,3 +396,24 @@ describe('ledgerChips', () => {
     expect(ledgerChips(waiting)).toEqual([]);
   });
 });
+
+// covers remove-cover AC7, T2 — a removal is one change card on B5, titled as a removal
+describe('a product liability removal on B5', () => {
+  const removal = action({
+    id: 'PTX-0005',
+    changeType: 'REMOVE_COVERAGE',
+    date: '2026-11-22',
+    amountCents: -54_800,
+    reason: 'Stopped selling packaged goods to shops.',
+  });
+
+  it('is titled as a removal with its id', () => {
+    expect(actionTitle(removal)).toBe('Product liability removed · PTX-0005');
+  });
+
+  it('shows the credit as a plain signed amount, in the neutral tone of a change', () => {
+    expect(actionMoney(removal)).toBe('−$548.00');
+    expect(actionTone(removal)).toBe('neutral');
+    expect(actionStatus(removal)).toBeNull();
+  });
+});

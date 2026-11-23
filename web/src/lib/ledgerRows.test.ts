@@ -146,3 +146,46 @@ describe('toLedgerRows', () => {
     expect(row.title).toBe('General liability return premium');
   });
 });
+
+// covers remove-cover AC7, T2 — a removal's credit is titled as a removal, never "refunded", and traces to its change
+describe('a product liability removal on the ledger', () => {
+  const removalCredit = line({
+    id: 12,
+    displayId: 'LE-0012',
+    entryDate: '2026-11-22',
+    type: 'CREDIT',
+    description: 'Product liability return premium',
+    amountCents: -54_800,
+    calcAnnualCents: 73_000,
+    calcDays: 274,
+    calcTermDays: 365,
+    coverFrom: '2026-12-01',
+    coverTo: '2027-09-01',
+    coverageId: 21,
+    policyTransactionDisplayId: 'PTX-0005',
+    balanceAfterCents: -54_800,
+  });
+  const transactions = [
+    { displayId: 'PTX-0001', type: 'ISSUE', effectiveDate: '2026-09-01', recordedOn: '2026-09-01' },
+    { displayId: 'PTX-0005', type: 'REMOVE_COVERAGE', effectiveDate: '2026-12-01', recordedOn: '2026-11-22' },
+  ];
+
+  it('titles the credit as a removal with its working and the removal transaction', () => {
+    const [row] = toLedgerRows([removalCredit], transactions);
+    expect(row).toMatchObject({
+      title: 'Product liability removed, return premium',
+      calc: '$730.00 × 274 ÷ 365',
+      amount: '−$548.00',
+      refs: ['LE-0012', 'PTX-0005'],
+      struck: false,
+      correction: false,
+    });
+    expect(row.title).not.toMatch(/refunded/);
+  });
+
+  it("keeps a cancellation's credit as it was posted", () => {
+    const cancel = { ...transactions[1], type: 'CANCEL' };
+    const [row] = toLedgerRows([removalCredit], [transactions[0], cancel]);
+    expect(row.title).toBe('Product liability return premium');
+  });
+});

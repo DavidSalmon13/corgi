@@ -109,3 +109,15 @@ specs:
       - api/src/main/resources/db/migration/V13__policy_rewrites.sql
       - web/src/pages/me/PoliciesPage.tsx
       - web/src/lib/policiesCopy.ts
+  - folder: 2026-11-23-input-validation
+    slug: input-validation
+    status: shaped
+    branch: feat/policy-lifecycle/input-validation
+    covers:
+      - api/src/main/java/**/common/ApiErrorHandler.java
+      - api/src/main/java/**/common/LenientDate.java
+      - api/src/main/java/**/policy/BrokerIssueController.java
+      - api/src/main/java/**/policy/AddCoverageController.java
+      - api/src/main/java/**/policy/CorrectionController.java
+      - api/src/main/java/**/policy/CancellationController.java
+      - api/src/main/java/**/auth/AuthController.java#SignUpRequest

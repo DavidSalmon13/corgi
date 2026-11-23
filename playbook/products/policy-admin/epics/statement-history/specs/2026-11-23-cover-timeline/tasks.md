@@ -42,4 +42,4 @@
 
 ## Verification
 - [x] T9 Run both suites with coverage on the changed files (testing skill)
-- [ ] T10 Run QA against AC1–AC9, incl. the Oct 15 → Oct 8 scenario, a live re-correction and a cancellation, at 390 px light and dark and on desktop (qa skill)
+- [x] T10 Run QA against AC1–AC9, incl. the Oct 15 → Oct 8 scenario, a live re-correction and a cancellation, at 390 px light and dark and on desktop (qa skill)

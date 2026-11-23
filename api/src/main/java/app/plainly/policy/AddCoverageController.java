@@ -2,10 +2,12 @@ package app.plainly.policy;
 
 import app.plainly.auth.AuthFilter;
 import app.plainly.auth.SignedInUser;
+import app.plainly.common.LenientDate;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.Arrays;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 /** B4 "Change this policy", Add cover tab: the live price and the save button. Broker only (filter). */
 @RestController
@@ -25,40 +28,31 @@ class AddCoverageController {
         this.service = service;
     }
 
-    /** Plain strings, so an unknown cover or a bad date becomes a field message, not a 400. */
-    record AddCoverageRequest(String kind, String startDate) {
+    /**
+     * Checked before the service runs (input-validation spec). A cover we don't know and an unreadable date both read
+     * as null, so each is a field message, not a 400. The service keeps the rules that need the policy: only product
+     * liability can be added, once, inside the policy period.
+     */
+    record AddCoverageRequest(
+            @NotNull(message = AddCoverageService.NO_KIND)
+                    @JsonFormat(with = JsonFormat.Feature.READ_UNKNOWN_ENUM_VALUES_AS_NULL) CoverKind kind,
+            @NotNull(message = AddCoverageService.NO_START) @JsonDeserialize(using = LenientDate.class)
+                    LocalDate startDate) {
 
         AddCoverageCommand command() {
-            return new AddCoverageCommand(coverKind(kind), date(startDate));
+            return new AddCoverageCommand(kind, startDate);
         }
     }
 
     @PostMapping("/preview")
-    AddCoveragePlan preview(@PathVariable long policyId, @RequestBody AddCoverageRequest body) {
-        AddCoverageCommand cmd = body.command();
-        return service.preview(policyId, cmd.kind(), cmd.startDate());
+    AddCoveragePlan preview(@PathVariable long policyId, @Valid @RequestBody AddCoverageRequest body) {
+        return service.preview(policyId, body.kind(), body.startDate());
     }
 
     @PostMapping
-    ResponseEntity<AddCoverageService.Added> add(@PathVariable long policyId, @RequestBody AddCoverageRequest body,
+    ResponseEntity<AddCoverageService.Added> add(@PathVariable long policyId, @Valid @RequestBody AddCoverageRequest body,
             @RequestAttribute(AuthFilter.CURRENT_USER) SignedInUser broker) {
         AddCoverageService.Added added = service.add(policyId, body.command(), broker.id());
         return ResponseEntity.created(URI.create("/api/broker/policies/" + policyId)).body(added);
-    }
-
-    /** Null for anything we don't sell; the service answers "Pick a cover to add." */
-    private static CoverKind coverKind(String value) {
-        return Arrays.stream(CoverKind.values()).filter(k -> k.name().equals(value)).findFirst().orElse(null);
-    }
-
-    private static LocalDate date(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(value);
-        } catch (DateTimeParseException e) {
-            return null; // reported as "Pick the endorsement's effective date."
-        }
     }
 }

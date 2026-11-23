@@ -24,7 +24,7 @@
 
 ## Docs
 
-- [ ] T10 DECISIONS.md: landing page for guests with a design screen, prices served from CoverKind through a public endpoint rather than typed into the page, no buy button until Phase 2
+- [x] T10 DECISIONS.md: landing page for guests with a design screen, prices served from CoverKind through a public endpoint rather than typed into the page, no buy button until Phase 2
 
 ## Verification
 

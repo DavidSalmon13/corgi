@@ -387,3 +387,15 @@ The correction, cancellation and cover-removal previews share their request reco
 ## 2026-11-23: Edge patterns check length first, and enums are read by name only
 
 The security review found that the owner-email `@Pattern` backtracked for seconds on a long run of no-break spaces: they match both the padding and the address part, and `@Size` doesn't stop `@Pattern` from running, because Hibernate evaluates every constraint on the field. The pattern now starts with a lookahead (`(?=.{0,200}\z)`) that refuses anything over `MAX_TEXT` before any backtracking. A 4,000-character attack string is rejected in under a millisecond. The code review found that Jackson reads a number as an enum by position, so `"kind":1` became product liability even with `READ_UNKNOWN_ENUM_VALUES_AS_NULL`. `CoverKind` is now read by `policy/CoverKindName`, which accepts only an exact name. Anything else is "Pick a cover to add.", so a cover can't change meaning if the enum is reordered.
+
+## 2026-11-23: Guests opening `/` see a landing page, designed first as L1
+
+`/` used to send guests straight to a bare sign-in form, which told a small-business owner (or a reviewer) nothing about what Plainly is or how they get access. It now shows a landing page built from a new design screen, `design/plainly/L1-Landing.dc.html`: what Plainly is, how someone becomes a policyholder (the broker issues, the owner signs up with that email), what the policy page shows in the standard terms, and a "Try as Maya / Sam" box that opens sign-in filled in through `?demo=`. Signed-in people still go straight to their home, and a failed session check falls back to the landing page, since it needs no account.
+
+## 2026-11-23: The landing page's prices come from `CoverKind` through a public endpoint
+
+"What we offer" reads `GET /api/public/coverages`, a thin controller over `CoverageCatalogService`, which maps `CoverKind`, the same enum the broker's charges use. Typing $1,200 and $730 into the page would have worked until the first price change, then quietly disagreed with every ledger line. The endpoint is the only `/api/public` route, returns no customer or policy data, and every other route keeps its 401. The per-day price shows only when the annual premium divides into whole cents over 365 days ($730 → $2.00); $1,200 shows its annual premium alone rather than a rounded day rate. A short intro line ("Annual premiums, the same prices your broker charges") carries the annual premium term and its "?", so each price can read "a year" exactly as the spec's example does.
+
+## 2026-11-23: No buy button on the landing page until Phase 2
+
+Self-serve quote and buy is Phase 2. The page lists the covers and their premiums but offers no "Get a quote" or "Buy"; one quiet line under the prices says buying online isn't available yet and to ask your broker. The only calls to action are "Create your account" (for owners whose broker already issued a policy) and "Sign in".

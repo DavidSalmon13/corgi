@@ -3,6 +3,7 @@ package app.plainly.billing;
 import app.plainly.common.Today;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
+import app.plainly.notify.NotifyEvents;
 import app.plainly.policy.PolicyService;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.model.Charge;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,14 +50,17 @@ class StripeWebhookService {
     private final PolicyService policies;
     private final Today today;
 
+    private final ApplicationEventPublisher notify;
+
     StripeWebhookService(ProcessedEventRepository events, PaymentRepository payments, LedgerPostingService ledger,
-            RefundService refunds, PolicyService policies, Today today) {
+            RefundService refunds, PolicyService policies, Today today, ApplicationEventPublisher notify) {
         this.events = events;
         this.payments = payments;
         this.ledger = ledger;
         this.refunds = refunds;
         this.policies = policies;
         this.today = today;
+        this.notify = notify;
     }
 
     @Transactional
@@ -103,6 +108,8 @@ class StripeWebhookService {
                 ? charge.getAmountCaptured() : charge.getAmount();
         ledger.post(payment.policyId(), null, List.of(NewEntry.payment(today.date(),
                 "Payment, " + card.describe(), -received, payment.id(), eventId)));
+        // The owner gets a receipt once this commits (emails spec AC3).
+        notify.publishEvent(new NotifyEvents.PaymentSettled(payment.id(), payment.policyId(), received, card.last4()));
     }
 
     private void failed(String eventId, Charge charge) {

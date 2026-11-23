@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import app.plainly.AuthTestSupport;
 import app.plainly.CorrectionTestData;
 import app.plainly.CorrectionTestData.Paid;
+import app.plainly.FakeEmailGateway;
 import app.plainly.FakeStripeGateway;
 import app.plainly.IntegrationTest;
 import app.plainly.StripeTestSupport;
@@ -43,6 +44,7 @@ class RefundWebhookTest {
     @Autowired AddCoverageService adder;
     @Autowired CorrectCoverageService corrector;
     @Autowired FakeStripeGateway stripe;
+    @Autowired FakeEmailGateway email;
 
     /** One refund as stored, plus the payment it goes back to. */
     record Refund(long id, String displayId, String status, int attempt, String stripeRefundId, String failureReason,
@@ -277,5 +279,46 @@ class RefundWebhookTest {
         mvc.perform(post("/api/broker/refunds/999999999/retry").cookie(AuthTestSupport.signInAsBroker(mvc)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("not_found"));
+    }
+
+    // --- emails spec: a receipt when a refund reaches the card, once ---
+
+    private List<FakeEmailGateway.Sent> refundReceipts(Refund r) {
+        String ownerEmail = jdbc.sql("""
+                select c.owner_email from policies p join customers c on c.id = p.customer_id where p.id = ?""")
+                .param(r.policyId()).query(String.class).single();
+        return email.sentTo(ownerEmail).stream()
+                .filter(sent -> sent.message().subject().endsWith("is on its way back to you")).toList();
+    }
+
+    // covers emails AC4, AC5, T9
+    @Test
+    void aSettledRefundSendsOneReceiptHoweverOftenStripeSaysSo() throws Exception {
+        Refund r = correctedWithARefund("Refund Receipt Bakery LLC");
+        assertThat(refundReceipts(r)).as("nothing is sent while the refund is only on its way").isEmpty();
+        String body = succeeded(r, StripeTestSupport.newEventId());
+
+        deliver(body);
+        deliver(body);
+        deliver(StripeTestSupport.refundEvent(StripeTestSupport.newEventId(), "refund.updated", r.stripeRefundId(),
+                r.id(), r.intentId(), r.amountCents(), "succeeded", null));
+
+        assertThat(refundReceipts(r)).singleElement().satisfies(sent -> {
+            assertThat(sent.message().subject()).isEqualTo("$14.00 is on its way back to you");
+            assertThat(sent.message().text()).contains("card ending 4242", "moved your cover's start date",
+                    "5–10 working days");
+            assertThat(sent.idempotencyKey()).matches("REFUND_RECEIPT/" + r.id() + "/[0-9a-f-]{36}");
+        });
+    }
+
+    // covers emails AC4, T9
+    @Test
+    void aFailedRefundSendsNoReceipt() throws Exception {
+        Refund r = correctedWithARefund("Refund No Receipt Bakery LLC");
+
+        deliver(StripeTestSupport.refundFailed(StripeTestSupport.newEventId(), r.stripeRefundId(), r.id(), r.intentId(),
+                r.amountCents(), "expired_or_canceled_card"));
+
+        assertThat(refundReceipts(r)).isEmpty();
     }
 }

@@ -5,6 +5,7 @@ import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
+import app.plainly.notify.NotifyEvents;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -39,10 +41,13 @@ public class RefundService {
     private final Today today;
     /** Each send runs in its own transaction, so the refund row stays locked while Stripe is asked, then commits. */
     private final TransactionTemplate ownTransaction;
+    private final ApplicationEventPublisher notify;
 
     public RefundService(RefundRepository refunds, PaymentRepository payments, StripeGateway stripe,
-            LedgerPostingService ledger, Today today, PlatformTransactionManager transactions) {
+            LedgerPostingService ledger, Today today, PlatformTransactionManager transactions,
+            ApplicationEventPublisher notify) {
         this.refunds = refunds;
+        this.notify = notify;
         this.payments = payments;
         this.stripe = stripe;
         this.ledger = ledger;
@@ -227,8 +232,9 @@ public class RefundService {
     /**
      * Stripe says refund {@code refundId} reached the card. On the PENDING → SUCCEEDED step only, a REFUND line
      * traced to the refund and to {@code eventId} takes the credit off the balance, so a second "succeeded" event
-     * posts nothing. Joins the webhook's transaction, whose caller must already hold the policy lock so a correction
-     * never reads the balance and the unsettled refunds on either side of this.
+     * posts nothing, and the owner is emailed one receipt after commit. Joins the webhook's transaction, whose caller
+     * must already hold the policy lock so a correction never reads the balance and the unsettled refunds on either
+     * side of this.
      */
     @Transactional
     public void settle(long refundId, SeenRefund seen, String eventId) {
@@ -244,6 +250,9 @@ public class RefundService {
         String card = r.cardLast4() == null ? "card" : "card ending " + r.cardLast4();
         ledger.post(r.policyId(), null, List.of(NewEntry.refund(today.date(), "Refund to " + card, r.amountCents(),
                 r.id(), eventId)));
+        // The owner gets a receipt once this commits; a refund that fails never gets here (emails spec AC4).
+        notify.publishEvent(new NotifyEvents.RefundSettled(r.id(), r.policyId(), r.amountCents(), r.cardLast4(),
+                r.causeType()));
     }
 
     /** Stripe says refund {@code refundId} didn't reach the card. A PENDING refund becomes FAILED with the reason. */

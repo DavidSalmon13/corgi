@@ -66,7 +66,7 @@ export function Landing() {
 /** AC3: the one-sentence promise, shown beside a miniature of the policyholder's cover page. */
 function Hero() {
   return (
-    <section aria-labelledby="landing-title" className="grid gap-[18px] sm:grid-cols-[1fr_300px] sm:items-center sm:gap-10">
+    <section aria-labelledby="landing-title" className="grid gap-[18px] sm:grid-cols-[1fr_320px] sm:items-center sm:gap-10">
       <div className="flex flex-col gap-[18px]">
         <DemoBadge small />
         <h1 id="landing-title" className="m-0 text-4xl leading-[1.1] font-bold tracking-[-0.025em] sm:text-5xl">
@@ -84,9 +84,9 @@ function Hero() {
 /** A still picture of P1's "you owe … and why" card: the promise shown, not told. Its terms keep their "?". */
 function Preview() {
   return (
-    <figure className="relative m-0 h-[150px]" aria-label="Example of a policy page">
+    <figure className="relative m-0 pr-[18px] pb-[14px]" aria-label="Example of a policy page">
       <div aria-hidden="true" className={`${CARD} absolute inset-[14px_0_0_18px] bg-track`} />
-      <div className={`${CARD} absolute inset-[0_18px_14px_0] flex flex-col gap-1.5`}>
+      <div className={`${CARD} relative flex min-h-[136px] flex-col gap-1.5`}>
         <span className="text-[13px] text-ink-2">{PREVIEW.label}</span>
         <span className="text-[17px] leading-[1.35]">
           You owe <b className="text-accent-ink">{PREVIEW.owe}</b>. <Glossed>{PREVIEW.why}</Glossed>

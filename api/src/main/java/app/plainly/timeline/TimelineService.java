@@ -1,9 +1,9 @@
 package app.plainly.timeline;
 
 import app.plainly.auth.SignedInUser;
-import app.plainly.common.NotFoundException;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerLine;
+import app.plainly.me.MyPoliciesService;
 import app.plainly.policy.CoverKind;
 import app.plainly.policy.PolicyService;
 import app.plainly.policy.PolicyViews;
@@ -26,10 +26,12 @@ import org.springframework.stereotype.Service;
 public class TimelineService {
 
     private final PolicyService policies;
+    private final MyPoliciesService myPolicies;
     private final StatementService statements;
 
-    public TimelineService(PolicyService policies, StatementService statements) {
+    public TimelineService(PolicyService policies, MyPoliciesService myPolicies, StatementService statements) {
         this.policies = policies;
+        this.myPolicies = myPolicies;
         this.statements = statements;
     }
 
@@ -38,10 +40,9 @@ public class TimelineService {
         return build(policies.detail(policyId));
     }
 
-    /** P2 for the signed-in owner: the timeline of their own (latest) policy, never anyone else's. */
-    public Timeline forOwner(SignedInUser me) {
-        return build(policies.latestForCustomer(me.customerId())
-                .orElseThrow(() -> new NotFoundException("You don't have a policy yet.")));
+    /** P2 for one of the signed-in owner's policies; 404 when it isn't theirs (AC9). */
+    public Timeline forPolicy(SignedInUser me, long policyId) {
+        return forPolicy(myPolicies.ownedPolicy(me, policyId));
     }
 
     private Timeline build(PolicyViews.Detail p) {

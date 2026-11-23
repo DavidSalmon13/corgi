@@ -9,6 +9,7 @@ import app.plainly.CorrectionTestData;
 import app.plainly.CorrectionTestData.Paid;
 import app.plainly.PaymentTestData;
 import app.plainly.IntegrationTest;
+import app.plainly.MePaths;
 import app.plainly.policy.AddCoverageService;
 import app.plainly.policy.CorrectCoverageCommand;
 import app.plainly.policy.CorrectCoverageService;
@@ -19,8 +20,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** GET /api/me/statement: the signed-in owner's own statement, and nobody else's. */
-// covers AC1, AC2, AC5, AC7, T4
+/** GET /api/me/policies/{id}/statement: the signed-in owner's own statement, and nobody else's. */
+// covers AC1, AC2, AC5, AC7, T4; more-policies AC9, T1
 @IntegrationTest
 @AutoConfigureMockMvc
 class StatementEndpointTest {
@@ -37,7 +38,7 @@ class StatementEndpointTest {
         corrector.correct(paid.owner().policyId(), new CorrectCoverageCommand(CorrectionTestData.OCT_8,
                 CorrectionTestData.REASON), CorrectionTestData.brokerId(jdbc));
 
-        mvc.perform(get("/api/me/statement").cookie(paid.owner().session()))
+        mvc.perform(get(MePaths.statement(paid.owner().policyId())).cookie(paid.owner().session()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.header.businessName").value("Endpoint Bakery LLC"))
                 .andExpect(jsonPath("$.header.balanceCents").value(1_400))
@@ -61,20 +62,40 @@ class StatementEndpointTest {
         var a = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Owner A LLC");
         var b = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Owner B LLC");
 
-        mvc.perform(get("/api/me/statement").cookie(a.session()))
+        mvc.perform(get(MePaths.statement(a.policyId())).cookie(a.session()))
                 .andExpect(jsonPath("$.header.businessName").value("Statement Owner A LLC"));
-        mvc.perform(get("/api/me/statement").cookie(b.session()))
+        mvc.perform(get(MePaths.statement(b.policyId())).cookie(b.session()))
                 .andExpect(jsonPath("$.header.businessName").value("Statement Owner B LLC"));
+    }
+
+    // covers more-policies AC9, T1
+    @Test
+    void anotherOwnersPolicyIsNotFound() throws Exception {
+        var a = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Peeker A LLC");
+        var b = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Peeker B LLC");
+
+        mvc.perform(get(MePaths.statement(b.policyId())).cookie(a.session())).andExpect(status().isNotFound());
+        mvc.perform(get(MePaths.statement(Long.MAX_VALUE)).cookie(a.session())).andExpect(status().isNotFound());
+    }
+
+    // covers more-policies AC9, T1: the per-policy route replaces the one-policy route
+    @Test
+    void theOldRouteIsGone() throws Exception {
+        var a = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Old Statement Route LLC");
+
+        mvc.perform(get("/api/me/statement").cookie(a.session())).andExpect(status().isNotFound());
     }
 
     @Test
     void aBrokerIsForbidden() throws Exception {
-        mvc.perform(get("/api/me/statement").cookie(AuthTestSupport.signInAsBroker(mvc)))
+        var a = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Statement Broker Peek LLC");
+
+        mvc.perform(get(MePaths.statement(a.policyId())).cookie(AuthTestSupport.signInAsBroker(mvc)))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void signedOutIsUnauthorized() throws Exception {
-        mvc.perform(get("/api/me/statement")).andExpect(status().isUnauthorized());
+        mvc.perform(get(MePaths.statement(1))).andExpect(status().isUnauthorized());
     }
 }

@@ -3,11 +3,11 @@ package app.plainly.statement;
 import app.plainly.auth.SignedInUser;
 import app.plainly.billing.PaymentService;
 import app.plainly.billing.RefundListing;
-import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.ledger.EntryType;
 import app.plainly.ledger.LedgerLine;
 import app.plainly.me.MyCoverService.DueReason;
+import app.plainly.me.MyPoliciesService;
 import app.plainly.policy.PolicyService;
 import app.plainly.policy.PolicyViews;
 import app.plainly.statement.Statement.Banner;
@@ -40,11 +40,14 @@ import org.springframework.stereotype.Service;
 public class StatementService {
 
     private final PolicyService policies;
+    private final MyPoliciesService myPolicies;
     private final PaymentService payments;
     private final Today today;
 
-    public StatementService(PolicyService policies, PaymentService payments, Today today) {
+    public StatementService(PolicyService policies, MyPoliciesService myPolicies, PaymentService payments,
+            Today today) {
         this.policies = policies;
+        this.myPolicies = myPolicies;
         this.payments = payments;
         this.today = today;
     }
@@ -54,10 +57,9 @@ public class StatementService {
         return build(policies.detail(policyId));
     }
 
-    /** P3 for the signed-in owner: the statement of their own (latest) policy, never anyone else's. */
-    public Statement forOwner(SignedInUser me) {
-        return build(policies.latestForCustomer(me.customerId())
-                .orElseThrow(() -> new NotFoundException("You don't have a policy yet.")));
+    /** P3 for one of the signed-in owner's policies; 404 when it isn't theirs (AC9). */
+    public Statement forPolicy(SignedInUser me, long policyId) {
+        return forPolicy(myPolicies.ownedPolicy(me, policyId));
     }
 
     private Statement build(PolicyViews.Detail p) {

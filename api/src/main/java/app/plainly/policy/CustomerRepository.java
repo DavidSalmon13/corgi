@@ -1,5 +1,6 @@
 package app.plainly.policy;
 
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -11,6 +12,16 @@ public class CustomerRepository {
 
     public CustomerRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
+    }
+
+    /** A customer as B2 shows it read-only when the broker issues them another policy. */
+    public record Row(long id, String legalName, String businessDescription, String ownerName, String ownerEmail) {}
+
+    public Optional<Row> find(long customerId) {
+        return jdbc.sql("select id, legal_name, business_description, owner_name, owner_email from customers where id = ?")
+                .param(customerId)
+                .query((rs, n) -> new Row(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5)))
+                .optional();
     }
 
     /** What Stripe needs to know about a customer, and the Stripe customer if one was made. */

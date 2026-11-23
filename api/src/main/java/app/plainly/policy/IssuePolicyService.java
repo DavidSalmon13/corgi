@@ -1,6 +1,7 @@
 package app.plainly.policy;
 
 import app.plainly.auth.AccountService;
+import app.plainly.common.NotFoundException;
 import app.plainly.common.Today;
 import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
@@ -20,8 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Creates a customer and issues a one-year General Liability policy. {@link #preview} and
- * {@link #issue} share {@link #plan}, so the price shown before saving is the price posted.
+ * Issues a one-year General Liability policy: for a new customer ({@link #issue}), or for one we already have, as
+ * another policy or a rewrite of a cancelled one ({@link #issueForCustomer}). Previews and issues share
+ * {@link #plan}, so the price shown before saving is the price posted, and both issues share {@link #write}.
  */
 @Service
 public class IssuePolicyService {
@@ -29,6 +31,7 @@ public class IssuePolicyService {
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private static final int MAX_TEXT = 200;
     static final String EMAIL_TAKEN = "Another customer already uses this email.";
+    static final String REPLACED_NOT_FOUND = "We couldn't find the policy to replace.";
 
     private final CustomerRepository customers;
     private final PolicyRepository policies;
@@ -69,9 +72,13 @@ public class IssuePolicyService {
     /** Validates, then writes customer, policy, covers, the ISSUE transaction and its charges, all or nothing. */
     @Transactional
     public Issued issue(IssuePolicyCommand cmd, long brokerUserId) {
-        validate(cmd);
+        Map<String, String> errors = new LinkedHashMap<>();
+        checkCustomer(cmd, errors);
+        checkStart(cmd.startDate(), errors);
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
         IssuePlan plan = plan(cmd.startDate(), cmd.productLiability());
-        LocalDate recordedOn = today.date();
         String legalName = cmd.legalName().strip();
         String ownerName = cmd.ownerName().strip();
 
@@ -87,7 +94,67 @@ public class IssuePolicyService {
             throw new ValidationException(Map.of("ownerEmail", EMAIL_TAKEN));
         }
 
-        PolicyRepository.Created policy = policies.insert(customerId, plan.start(), plan.end());
+        return write(customerId, plan, null, brokerUserId);
+    }
+
+    /** Prices a new policy for a customer we already have (B2 customer mode), checking a rewrite as issuing would. */
+    @Transactional
+    public IssuePlan previewForCustomer(long customerId, IssueForCustomerCommand cmd) {
+        checkForCustomer(customerId, cmd);
+        return plan(cmd.startDate(), cmd.productLiability());
+    }
+
+    /**
+     * Issues another policy for a customer we already have: no customer or account rows are written (AC5). With
+     * {@code replacesPolicyId} it is a rewrite, allowed only for a cancelled policy of the same customer that isn't
+     * replaced yet. That policy's row is held until this commits, so two rewrites at once can't both pass the check,
+     * and the unique index on {@code replaces_policy_id} backs it up (AC3).
+     */
+    @Transactional
+    public Issued issueForCustomer(long customerId, IssueForCustomerCommand cmd, long brokerUserId) {
+        checkForCustomer(customerId, cmd);
+        IssuePlan plan = plan(cmd.startDate(), cmd.productLiability());
+        return write(customerId, plan, cmd.replacesPolicyId(), brokerUserId);
+    }
+
+    /** Throws NotFoundException for an unknown customer, else ValidationException with every problem found. */
+    private void checkForCustomer(long customerId, IssueForCustomerCommand cmd) {
+        if (customers.find(customerId).isEmpty()) {
+            throw new NotFoundException("No customer " + customerId + ".");
+        }
+        Map<String, String> errors = new LinkedHashMap<>();
+        checkStart(cmd.startDate(), errors);
+        if (cmd.replacesPolicyId() != null) {
+            checkReplaces(customerId, cmd.replacesPolicyId(), errors);
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+    }
+
+    /** Locks the policy being replaced, then applies the rewrite rules; a breach goes under {@code replaces}. */
+    private void checkReplaces(long customerId, long replacesPolicyId, Map<String, String> errors) {
+        policies.lockReplaceTarget(replacesPolicyId).ifPresentOrElse(old -> {
+            if (old.customerId() != customerId) {
+                errors.put("replaces", old.number() + " belongs to another customer.");
+            } else if (!"CANCELLED".equals(old.status())) {
+                errors.put("replaces", old.number() + " isn't cancelled. Cancel it before rewriting it.");
+            } else if (old.replacedByNumber() != null) {
+                errors.put("replaces", old.number() + " was already rewritten as " + old.replacedByNumber() + ".");
+            }
+        }, () -> errors.put("replaces", REPLACED_NOT_FOUND));
+    }
+
+    /** The steps both issues share: the policy, its ISSUE transaction and covers, the charges, and the email event. */
+    private Issued write(long customerId, IssuePlan plan, Long replacesPolicyId, long brokerUserId) {
+        LocalDate recordedOn = today.date();
+        PolicyRepository.Created policy;
+        try {
+            policy = policies.insert(customerId, plan.start(), plan.end(), replacesPolicyId);
+        } catch (DuplicateKeyException e) {
+            // Only replaces_policy_id is unique here (numbers come from a sequence). The lock above makes this rare.
+            throw new ValidationException(Map.of("replaces", "That policy was already rewritten."));
+        }
         long policyId = policy.id();
         PolicyTransactionRepository.Recorded tx = transactions.insert(policyId, "ISSUE", plan.start(), recordedOn, brokerUserId, null);
 
@@ -118,8 +185,8 @@ public class IssuePolicyService {
         return new IssuePlan.Line(kind, kind.label() + ", full year", calc, start, end);
     }
 
-    private void validate(IssuePolicyCommand cmd) {
-        Map<String, String> errors = new LinkedHashMap<>();
+    /** The new customer's details; the start date is checked apart, since every issue needs it. */
+    private void checkCustomer(IssuePolicyCommand cmd, Map<String, String> errors) {
         text(cmd.legalName(), "legalName", "Enter the business's legal name.", errors);
         text(cmd.businessDescription(), "businessDescription", "Say in a few words what the business does.", errors);
         text(cmd.ownerName(), "ownerName", "Enter the owner's name.", errors);
@@ -128,10 +195,6 @@ public class IssuePolicyService {
             errors.put("ownerEmail", "Enter an email like name@business.com.");
         } else if (emailTaken(email)) {
             errors.put("ownerEmail", EMAIL_TAKEN);
-        }
-        checkStart(cmd.startDate(), errors);
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
         }
     }
 

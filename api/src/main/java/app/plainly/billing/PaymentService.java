@@ -3,6 +3,7 @@ package app.plainly.billing;
 import app.plainly.auth.SignedInUser;
 import app.plainly.common.NotFoundException;
 import app.plainly.ledger.LedgerQueryService;
+import app.plainly.me.MyPoliciesService;
 import app.plainly.policy.CustomerRepository;
 import app.plainly.policy.CustomerService;
 import app.plainly.policy.PolicyService;
@@ -22,14 +23,16 @@ public class PaymentService {
 
     private final PaymentRepository payments;
     private final PolicyService policies;
+    private final MyPoliciesService myPolicies;
     private final CustomerService customers;
     private final StripeGateway stripe;
     private final LedgerQueryService ledger;
 
-    public PaymentService(PaymentRepository payments, PolicyService policies, CustomerService customers,
-            StripeGateway stripe, LedgerQueryService ledger) {
+    public PaymentService(PaymentRepository payments, PolicyService policies, MyPoliciesService myPolicies,
+            CustomerService customers, StripeGateway stripe, LedgerQueryService ledger) {
         this.payments = payments;
         this.policies = policies;
+        this.myPolicies = myPolicies;
         this.customers = customers;
         this.stripe = stripe;
         this.ledger = ledger;
@@ -59,7 +62,8 @@ public class PaymentService {
             Instant createdAt, String failureReason) {}
 
     /**
-     * Opens (or reopens) a payment for the balance due. The policy row is locked so two tabs can't open two
+     * Opens (or reopens) a payment for one policy's balance due; 404 when the owner doesn't hold it (AC9). Only that
+     * policy is paid: money never moves between policies. The policy row is locked so two tabs can't open two
      * intents at once. Reopening the pay page reuses the open intent while the amount is unchanged.
      *
      * <p>Before asking for money, every earlier intent nobody has finished paying (OPEN, or declined) is checked
@@ -68,12 +72,11 @@ public class PaymentService {
      * charge the customer again. None of this changes a payment's status: only webhooks do.
      */
     @Transactional
-    public Started start(SignedInUser me) {
+    public Started start(SignedInUser me, long policyId) {
         if (!stripe.enabled()) {
             throw StripeJavaGateway.paymentsOff();
         }
-        long policyId = policies.lockLatestForCustomer(me.customerId())
-                .orElseThrow(() -> new NotFoundException("You don't have a policy yet."));
+        policies.lock(myPolicies.ownedPolicy(me, policyId));
         if (payments.anyProcessing(policyId)) {
             throw PaymentProblem.inFlight();
         }

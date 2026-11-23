@@ -11,7 +11,7 @@
   - the covers' sum equals the statement's settled lines for those covers;
   - a re-correction shows the new state.
 - [x] T2 Timeline records + TimelineService.forOwner in app.plainly.timeline, built from PolicyService + StatementService (no repository). Add coverageId to Statement.Row only if matching by dates is ambiguous. T1 passes (service).
-- [ ] T3 MyTimelineController GET /api/me/timeline; TimelineEndpointTest with 200 for a policyholder, 403 for a broker and 404 with no policy (controller).
+- [x] T3 MyTimelineController GET /api/me/timeline; TimelineEndpointTest with 200 for a policyholder, 403 for a broker and 404 with no policy (controller).
 
 ## Web
 - [ ] T4 Timeline types in api/types.ts + lib/timelineCopy.ts, with timelineCopy.test.ts written first. It covers:

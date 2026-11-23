@@ -19,9 +19,12 @@ public class RefundRepository {
         this.jdbc = jdbc;
     }
 
-    /** A refund held for a send or a webhook, with what's needed to act on it. */
+    /**
+     * A refund held for a send or a webhook, with what's needed to act on it. {@code causeType}: the type of the
+     * policy transaction that owed it (CORRECT or CANCEL).
+     */
     public record Locked(long id, String displayId, long policyId, long paymentId, String intentId, String cardLast4,
-            long amountCents, String status, int attempt, String stripeRefundId) {}
+            long amountCents, String status, int attempt, String stripeRefundId, String causeType) {}
 
     /** How much has gone, or is on its way, back to one payment's card (failed refunds don't count). */
     public record Refunded(long paymentId, long amountCents) {}
@@ -57,13 +60,15 @@ public class RefundRepository {
     private Optional<Locked> select(long id, String lock) {
         return jdbc.sql("""
                 select r.id, r.display_id, r.policy_id, r.payment_id, p.stripe_payment_intent_id, p.card_last4,
-                       r.amount_cents, r.status, r.attempt, r.stripe_refund_id
-                from refunds r join payments p on p.id = r.payment_id
+                       r.amount_cents, r.status, r.attempt, r.stripe_refund_id, t.type
+                from refunds r
+                join payments p on p.id = r.payment_id
+                join policy_transactions t on t.id = r.policy_transaction_id
                 where r.id = ?""" + lock)
                 .param(id)
                 .query((rs, n) -> new Locked(rs.getLong(1), rs.getString(2), rs.getLong(3), rs.getLong(4),
                         rs.getString(5), rs.getString(6), rs.getLong(7), rs.getString(8), rs.getInt(9),
-                        rs.getString(10)))
+                        rs.getString(10), rs.getString(11)))
                 .optional();
     }
 

@@ -3,6 +3,7 @@ package app.plainly.policy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import app.plainly.FakeEmailGateway;
 import app.plainly.IntegrationTest;
 import app.plainly.TestData;
 import app.plainly.common.ValidationException;
@@ -24,6 +25,7 @@ class IssuePolicyServiceTest {
     @Autowired IssuePolicyService service;
     @Autowired LedgerQueryService ledger;
     @Autowired JdbcClient jdbc;
+    @Autowired FakeEmailGateway email;
 
     long brokerId() {
         return jdbc.sql("select id from app_users where role = 'BROKER' order by id limit 1").query(Long.class).single();
@@ -179,5 +181,33 @@ class IssuePolicyServiceTest {
 
     private long count(String table) {
         return jdbc.sql("select count(*) from " + table).query(Long.class).single();
+    }
+
+    // --- emails spec: the owner hears about their new cover ---
+
+    // covers emails AC2, T7
+    @Test
+    void issuingEmailsTheOwnerOnceAfterItCommits() {
+        IssuePolicyCommand cmd = juniper(true);
+
+        IssuePolicyService.Issued issued = service.issue(cmd, brokerId());
+
+        assertThat(email.sentTo(cmd.ownerEmail())).singleElement().satisfies(sent -> {
+            assertThat(sent.message().subject()).isEqualTo("Your cover with Plainly starts Sep 1, 2026");
+            assertThat(sent.message().text()).contains("Maya Okafor", "Juniper & Rye Bakery LLC",
+                    issued.policyNumber(), "$1,930.00 for the year");
+            assertThat(sent.idempotencyKey()).matches("POLICY_ISSUED/" + issued.policyId() + "/[0-9a-f-]{36}");
+        });
+    }
+
+    // covers emails AC2, T7
+    @Test
+    void anIssueThatIsRefusedSendsNoSecondEmail() {
+        IssuePolicyCommand cmd = juniper(false);
+        service.issue(cmd, brokerId());
+
+        assertThatThrownBy(() -> service.issue(cmd, brokerId())).isInstanceOf(ValidationException.class);
+
+        assertThat(email.sentTo(cmd.ownerEmail())).hasSize(1);
     }
 }

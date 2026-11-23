@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import app.plainly.FakeEmailGateway;
 import app.plainly.IntegrationTest;
 import app.plainly.PaymentTestData;
 import app.plainly.PaymentTestData.Owner;
@@ -35,6 +36,7 @@ class StripeWebhookTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcClient jdbc;
     @Autowired IssuePolicyService issue;
+    @Autowired FakeEmailGateway email;
 
     private Owner owner(String business) throws Exception {
         return PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issue, business);
@@ -314,5 +316,44 @@ class StripeWebhookTest {
 
         assertThat(recorded(eventId)).isFalse();
         assertThat(paymentStatus(jdbc, p.paymentId())).isEqualTo("OPEN");
+    }
+
+    // --- emails spec: a receipt for each payment, once ---
+
+    private List<FakeEmailGateway.Sent> receipts(Owner owner) {
+        return email.sentTo(owner.email()).stream()
+                .filter(sent -> sent.message().subject().startsWith("We got your payment")).toList();
+    }
+
+    // covers emails AC3, AC5, T8
+    @Test
+    void aSettledPaymentSendsOneReceiptHoweverOftenStripeSaysSo() throws Exception {
+        Owner owner = owner("Receipt Bakery LLC");
+        Started p = started(owner);
+        String body = StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(),
+                "4242", "pm_receipt");
+
+        deliver(body);
+        deliver(body);
+        deliver(StripeTestSupport.chargeSucceeded(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(),
+                "4242", "pm_receipt"));
+
+        assertThat(receipts(owner)).singleElement().satisfies(sent -> {
+            assertThat(sent.message().subject()).isEqualTo("We got your payment of $1,200.00");
+            assertThat(sent.message().text()).contains("card ending 4242", "You're all paid up");
+            assertThat(sent.idempotencyKey()).matches("PAYMENT_RECEIPT/" + p.paymentId() + "/[0-9a-f-]{36}");
+        });
+    }
+
+    // covers emails AC3, T8
+    @Test
+    void aDeclinedPaymentSendsNoReceipt() throws Exception {
+        Owner owner = owner("Declined Receipt Bakery LLC");
+        Started p = started(owner);
+
+        deliver(StripeTestSupport.chargeFailed(StripeTestSupport.newEventId(), p.intentId(), p.amountCents(), "0002",
+                "Your card was declined."));
+
+        assertThat(receipts(owner)).isEmpty();
     }
 }

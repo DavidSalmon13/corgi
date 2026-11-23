@@ -6,6 +6,7 @@ import app.plainly.common.ValidationException;
 import app.plainly.ledger.LedgerPostingService;
 import app.plainly.ledger.NewEntry;
 import app.plainly.ledger.PostedEntry;
+import app.plainly.notify.NotifyEvents;
 import app.plainly.pricing.ProRata;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +37,11 @@ public class IssuePolicyService {
     private final AccountService accounts;
     private final LedgerPostingService ledger;
     private final Today today;
+    private final ApplicationEventPublisher events;
 
     public IssuePolicyService(CustomerRepository customers, PolicyRepository policies, CoverageRepository coverages,
-            PolicyTransactionRepository transactions, AccountService accounts, LedgerPostingService ledger, Today today) {
+            PolicyTransactionRepository transactions, AccountService accounts, LedgerPostingService ledger, Today today,
+            ApplicationEventPublisher events) {
         this.customers = customers;
         this.policies = policies;
         this.coverages = coverages;
@@ -45,6 +49,7 @@ public class IssuePolicyService {
         this.accounts = accounts;
         this.ledger = ledger;
         this.today = today;
+        this.events = events;
     }
 
     /** What issuing created, with the ids the broker and the customer will see. */
@@ -92,6 +97,8 @@ public class IssuePolicyService {
             entries.add(NewEntry.charge(recordedOn, line.description(), coverageId, line.calc(), line.from(), line.to()));
         }
         List<PostedEntry> posted = ledger.post(policyId, tx.id(), entries);
+        // The owner is emailed once this commits (emails spec AC2).
+        events.publishEvent(new NotifyEvents.PolicyIssued(policyId, plan.totalCents()));
         return new Issued(policyId, policy.policyNumber(), tx.displayId(), posted, plan.totalCents());
     }
 

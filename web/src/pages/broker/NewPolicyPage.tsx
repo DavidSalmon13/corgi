@@ -1,8 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
-import type { IssuePlan, IssueRequest, Issued, ValidationBody } from '../../api/types';
+import type { CustomerRow, IssueForCustomerRequest, IssuePlan, IssueRequest, Issued, PolicyDetail, ValidationBody } from '../../api/types';
 import { Money } from '../../components/Money';
 import { Glossed } from '../../components/Glossed';
 import { Term } from '../../components/Term';
@@ -10,9 +10,10 @@ import { GLOSSARY } from '../../lib/glossary';
 import { daysBetween, formatDate } from '../../lib/dates';
 import { customerWillSee } from '../../lib/issueCopy';
 import { formatCents } from '../../lib/money';
+import { rewriteNote } from '../../lib/policiesCopy';
 import { useDebounced } from '../../lib/useDebounced';
 
-type Field = 'legalName' | 'businessDescription' | 'ownerName' | 'ownerEmail' | 'startDate';
+type Field = 'legalName' | 'businessDescription' | 'ownerName' | 'ownerEmail' | 'startDate' | 'replaces';
 type Form = Omit<IssueRequest, 'productLiability'>;
 
 const BASE_CENTS = 120_000;
@@ -110,11 +111,47 @@ function CoverChoice(props: {
   );
 }
 
-/** B2: create a customer and issue their policy, with the price shown live before anything is saved. */
+/** Whether the replaced policy still had product liability when it was cancelled, so its rewrite starts with it. */
+function hadProductLiability(p: PolicyDetail): boolean {
+  return p.coverages.some(
+    (c) => c.kind === 'PRODUCT_LIABILITY' && (!c.endedOn || (p.cancelledOn != null && c.endedOn >= p.cancelledOn)),
+  );
+}
+
+/** One read-only fact about the customer on B2 in customer mode. */
+function Fact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
+      <dt className="text-sm font-semibold text-ink-2">{label}</dt>
+      <dd className="m-0 break-words text-base font-semibold">{children}</dd>
+    </div>
+  );
+}
+
+/**
+ * B2: issue a policy, with the price shown live before anything is saved. At /broker/policies/new it creates the
+ * customer too. At /broker/customers/:customerId/policies/new (customer mode) the customer is read-only and only the
+ * coverage is asked; with ?replaces=:policyId it is the rewrite of that cancelled policy.
+ */
 export function NewPolicyPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const summaryRef = useRef<HTMLDivElement>(null);
+  const params = useParams();
+  const [search] = useSearchParams();
+  const customerId = params.customerId ? Number(params.customerId) : null;
+  const replacesId = customerId != null && search.get('replaces') ? Number(search.get('replaces')) : null;
+
+  const customer = useQuery({
+    queryKey: ['customer', customerId],
+    queryFn: () => api<CustomerRow>(`/api/broker/customers/${customerId}`),
+    enabled: customerId != null,
+  });
+  const replaced = useQuery({
+    queryKey: ['policy', String(replacesId)],
+    queryFn: () => api<PolicyDetail>(`/api/broker/policies/${replacesId}`),
+    enabled: replacesId != null,
+  });
 
   const [form, setForm] = useState<Form>({
     legalName: '',
@@ -124,6 +161,14 @@ export function NewPolicyPage() {
     startDate: todayIso(),
   });
   const [extra, setExtra] = useState(false);
+  // A rewrite starts with the cover the cancelled policy had; the broker can still change it.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (replaced.data && !prefilled.current) {
+      prefilled.current = true;
+      setExtra(hadProductLiability(replaced.data));
+    }
+  }, [replaced.data]);
   const [errors, setErrors] = useState<{ message: string; fields: Partial<Record<Field, string>> } | null>(null);
   // Bumped once per failed save, so focus moves to the summary then — not again while fields are being fixed.
   const [failedSaves, setFailedSaves] = useState(0);
@@ -138,26 +183,40 @@ export function NewPolicyPage() {
   const pricedStart = useDebounced(form.startDate, 250);
   const pricedExtra = useDebounced(extra, 250);
   const preview = useQuery({
-    queryKey: ['issue-preview', pricedStart, pricedExtra],
+    queryKey: ['issue-preview', customerId, replacesId, pricedStart, pricedExtra],
     queryFn: () =>
-      api<IssuePlan>('/api/broker/policies/preview', {
-        method: 'POST',
-        body: JSON.stringify({ startDate: pricedStart, productLiability: pricedExtra }),
-      }),
+      customerId != null
+        ? api<IssuePlan>(`/api/broker/customers/${customerId}/policies/preview`, {
+            method: 'POST',
+            body: JSON.stringify({ startDate: pricedStart, productLiability: pricedExtra, replacesPolicyId: replacesId } satisfies IssueForCustomerRequest),
+          })
+        : api<IssuePlan>('/api/broker/policies/preview', {
+            method: 'POST',
+            body: JSON.stringify({ startDate: pricedStart, productLiability: pricedExtra }),
+          }),
     enabled: pricedStart !== '',
     placeholderData: keepPreviousData,
     retry: false,
   });
   const previewProblem = validationOf(preview.error)?.fields.startDate;
-  const previewFailed = preview.isError && !previewProblem;
+  // A rewrite the rules refuse (not cancelled, already replaced…) shows under the note, not as a pricing failure.
+  const previewReplaces = validationOf(preview.error)?.fields.replaces;
+  const previewFailed = preview.isError && !previewProblem && !previewReplaces;
   const plan = form.startDate && !preview.isError ? preview.data : undefined;
   // True while the panel may not yet match the inputs, so Create can't issue a price the broker hasn't seen.
   const repricing = form.startDate !== '' && (pricedStart !== form.startDate || pricedExtra !== extra || preview.isFetching);
 
   const create = useMutation({
-    mutationFn: () => api<Issued>('/api/broker/policies', { method: 'POST', body: JSON.stringify({ ...form, productLiability: extra }) }),
+    mutationFn: () =>
+      customerId != null
+        ? api<Issued>(`/api/broker/customers/${customerId}/policies`, {
+            method: 'POST',
+            body: JSON.stringify({ startDate: form.startDate, productLiability: extra, replacesPolicyId: replacesId } satisfies IssueForCustomerRequest),
+          })
+        : api<Issued>('/api/broker/policies', { method: 'POST', body: JSON.stringify({ ...form, productLiability: extra }) }),
     onSuccess: (issued) => {
       queryClient.invalidateQueries({ queryKey: ['policies'] });
+      if (replacesId != null) queryClient.invalidateQueries({ queryKey: ['policy', String(replacesId)] });
       queryClient.invalidateQueries({ queryKey: ['demo-users'] });
       navigate(`/broker/policies/${issued.policyId}`);
     },
@@ -177,13 +236,15 @@ export function NewPolicyPage() {
   const open = errors ? Object.values(errors.fields).filter(Boolean).length : 0;
   const hadFieldErrors = errors ? Object.keys(errors.fields).length > 0 : false;
   const summary = !errors ? null : hadFieldErrors ? (open === 0 ? null : `${open} ${open === 1 ? 'thing' : 'things'} to fix before you can save.`) : errors.message;
-  const owner = form.ownerName.trim().split(/\s+/)[0];
+  const owner = (customer.data?.ownerName ?? form.ownerName).trim().split(/\s+/)[0];
   const period = plan ? `${formatDate(plan.start)} → ${formatDate(plan.end)}` : 'Starts on the effective date above';
 
   return (
     <>
       <div>
-        <h1 className="m-0 text-[32px] font-bold tracking-[-0.015em]">New customer and policy</h1>
+        <h1 className="m-0 text-[32px] font-bold tracking-[-0.015em]">
+          {customerId == null ? 'New customer and policy' : replacesId != null ? 'Rewrite a policy' : 'New policy for this customer'}
+        </h1>
         <p className="mt-1 text-base text-ink-2">The price updates as you type. Nothing is charged until the customer pays.</p>
       </div>
 
@@ -216,6 +277,41 @@ export function NewPolicyPage() {
           }}
           className="flex min-w-0 flex-[1_1_520px] flex-col gap-5"
         >
+          {customerId != null && (
+            <section aria-labelledby="customer-heading" className={CARD}>
+              <h2 id="customer-heading" className="m-0 text-lg font-bold">
+                The customer
+              </h2>
+              {customer.data ? (
+                <dl className="m-0 flex flex-wrap gap-x-6 gap-y-3">
+                  <Fact label="Business">{customer.data.legalName}</Fact>
+                  <Fact label="Owner">{customer.data.ownerName}</Fact>
+                  <Fact label="Email for receipts">{customer.data.ownerEmail}</Fact>
+                </dl>
+              ) : (
+                <p className="m-0 text-ink-2">{customer.isError ? "We couldn't find this customer." : 'Loading the customer…'}</p>
+              )}
+              {replacesId != null && (
+                <div id="replaces" tabIndex={-1} className="flex flex-col gap-1 rounded-card bg-bg px-4 py-3.5">
+                  <span className="text-xs font-semibold uppercase tracking-[.06em] text-ink-2">
+                    <Term explain={GLOSSARY.rewrite}>Rewrite</Term>
+                  </span>
+                  <p className="m-0 text-base font-medium">
+                    {replaced.data
+                      ? replaced.data.cancelledOn
+                        ? rewriteNote(replaced.data.policyNumber, replaced.data.cancelledOn)
+                        : `Replaces ${replaced.data.policyNumber}`
+                      : 'Loading the policy it replaces…'}
+                  </p>
+                  {(fieldError('replaces') ?? previewReplaces) && (
+                    <span className="text-sm font-semibold text-bad">{fieldError('replaces') ?? previewReplaces}</span>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {customerId == null && (
           <fieldset className={CARD}>
             <legend className={LEGEND}>The business</legend>
             <div className="flex flex-wrap gap-4">
@@ -227,6 +323,7 @@ export function NewPolicyPage() {
               <TextField id="ownerEmail" type="email" label="Email for receipts" value={form.ownerEmail} error={fieldError('ownerEmail')} autoComplete="email" onChange={set('ownerEmail')} />
             </div>
           </fieldset>
+          )}
 
           <fieldset className={CARD}>
             <legend className={LEGEND}>The coverage</legend>
@@ -316,6 +413,8 @@ export function NewPolicyPage() {
                     Try again
                   </button>
                 </>
+              ) : previewReplaces ? (
+                `${previewReplaces} Pick another policy to rewrite.`
               ) : previewProblem && form.startDate ? (
                 `${previewProblem} We'll show the price here, before anything is saved.`
               ) : (
@@ -330,10 +429,18 @@ export function NewPolicyPage() {
               disabled={create.isPending || repricing}
               className="inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-5 text-base font-bold text-on-accent disabled:opacity-60"
             >
-              {create.isPending ? 'Creating…' : owner ? `Create policy and invite ${owner}` : 'Create policy'}
+              {create.isPending
+                ? 'Creating…'
+                : customerId != null
+                  ? replacesId != null
+                    ? 'Create the rewrite'
+                    : 'Create policy'
+                  : owner
+                    ? `Create policy and invite ${owner}`
+                    : 'Create policy'}
             </button>
             <Link
-              to="/broker/policies"
+              to={replacesId != null ? `/broker/policies/${replacesId}` : '/broker/policies'}
               className="inline-flex min-h-11 items-center justify-center rounded-control border-[1.5px] border-line px-[18px] text-base font-semibold text-ink no-underline"
             >
               Cancel

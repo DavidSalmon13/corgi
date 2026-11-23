@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, ApiError } from '../../api/client';
-import type { CoverKind, PolicyDetail, RefundRetried, RefundView } from '../../api/types';
+import type { CoverKind, PolicyDetail, PolicyLink, RefundRetried, RefundView } from '../../api/types';
 import { CoverTimeline } from '../../components/CoverTimeline';
 import { LedgerTable } from '../../components/LedgerTable';
 import { Money } from '../../components/Money';
@@ -14,6 +14,8 @@ import { coverWasLabel, failedRefundDetail, failedRefundText } from '../../lib/c
 import { removedBarLabel } from '../../lib/removeCoverCopy';
 import { balanceNote, balanceText, policyPeriod, policyStatus } from '../../lib/policyCopy';
 import { ownerAccountLine } from '../../lib/accountCopy';
+import { canRewrite, NEW_POLICY_FOR_CUSTOMER, REWRITE_POLICY } from '../../lib/policiesCopy';
+import { newPolicyPath } from '../../lib/mePaths';
 import type { ChangeSavedState } from './ChangePolicyPage';
 
 const COVER_NAME: Record<CoverKind, string> = {
@@ -32,6 +34,35 @@ function BackLink() {
     <Link to="/broker/policies" className="text-[15px] font-semibold no-underline">
       ‹ All policies
     </Link>
+  );
+}
+
+/**
+ * more-policies AC4: "Replaces GL-…" on a rewrite and "Replaced by GL-…" on the cancelled policy it replaced, each a
+ * link to the other policy so the broker can follow the correction both ways.
+ */
+function RewriteLinks({ replaces, replacedBy }: { replaces?: PolicyLink | null; replacedBy?: PolicyLink | null }) {
+  if (!replaces && !replacedBy) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px] text-ink-2">
+      {replaces && (
+        <span className="tabular-nums">
+          <Term explain={GLOSSARY.rewrite}>Rewrite</Term> · replaces{' '}
+          <Link to={`/broker/policies/${replaces.policyId}`} className="font-semibold">
+            {replaces.policyNumber}
+          </Link>
+        </span>
+      )}
+      {replacedBy && (
+        <span className="tabular-nums">
+          Replaced by{' '}
+          <Link to={`/broker/policies/${replacedBy.policyId}`} className="font-semibold">
+            {replacedBy.policyNumber}
+          </Link>{' '}
+          (<Term explain={GLOSSARY.rewrite}>rewrite</Term>)
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -159,6 +190,8 @@ export function PolicyWorkspace() {
   const canRemove = canCorrect;
   // cancel-refund AC1: an active policy can be cancelled (B4 explains if a payment is still with the bank).
   const canCancel = p.status === 'ACTIVE';
+  // more-policies AC2: a cancelled policy nobody has replaced yet is rewritten from here, as its main action.
+  const rewritable = canRewrite(p);
   const failedRefunds = (p.refunds ?? []).filter((r) => r.status === 'FAILED');
   const refundPendingCents = (p.refunds ?? [])
     .filter((r) => r.status === 'PENDING')
@@ -191,6 +224,7 @@ export function PolicyWorkspace() {
             </span>
             <StatusPill tone={status.tone}>{status.label}</StatusPill>
           </div>
+          <RewriteLinks replaces={p.replaces} replacedBy={p.replacedBy} />
         </div>
         <div className="flex flex-wrap items-end gap-5">
           <div className="text-left md:text-right">
@@ -200,8 +234,12 @@ export function PolicyWorkspace() {
             </div>
             <div className="text-[13px] text-ink-2">{balanceNote(p.balanceCents, p.paymentWaiting, refundPendingCents)}</div>
           </div>
-          {(canAddCover || canCorrect || canRemove || canCancel) && (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+              {rewritable && (
+                <Link to={newPolicyPath(p.customerId, p.policyId)} className={ACTION_MAIN}>
+                  {REWRITE_POLICY}
+                </Link>
+              )}
               {canAddCover && (
                 <Link to={`/broker/policies/${p.policyId}/change`} className={ACTION}>
                   Add endorsement
@@ -222,8 +260,11 @@ export function PolicyWorkspace() {
                   Cancel
                 </Link>
               )}
+              {/* more-policies AC1: every policy can start another one for the same customer. */}
+              <Link to={newPolicyPath(p.customerId)} className={ACTION}>
+                {NEW_POLICY_FOR_CUSTOMER}
+              </Link>
             </div>
-          )}
         </div>
       </section>
 

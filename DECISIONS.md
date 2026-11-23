@@ -369,3 +369,7 @@ With several policies, "the" cover is ambiguous, and an alias would have to gues
 ## 2026-11-23: The owner email is checked at the edge with the service's pattern, not `@Email`
 
 Hibernate's `@Email` disagrees with `IssuePolicyService` both ways: it accepts `maya@juniperandrye` (no dot in the domain), which the service rejects, and it rejects `" lee@example.com "`, which the service trims and accepts (the web form sends the email as typed). Using `@Email` would either let a bad address reach the service or refuse one the broker typed with a stray space. `IssueRequest.ownerEmail` uses `@Pattern` built from the service's own `EMAIL_SHAPE`, with optional spaces around it, so the edge and the service accept exactly the same addresses and say the same "Enter an email like name@business.com.". The services' literal field messages became named constants so the annotations can reuse them.
+
+## 2026-11-23: Save-only rules use a validation group, so the live preview doesn't ask for a reason
+
+The correction, cancellation and cover-removal previews share their request record with the save, but the preview runs before the broker has written a reason. The reason's `@NotBlank` and `@Size` are in the `OnSave` group (`common/OnSave`). The preview binds with `@Valid` (the default group: only the date) and the save with `@Validated({Default.class, OnSave.class})`, which is Spring's form of `@Valid` that takes groups. This keeps one record per form instead of two near-identical ones, and matches what the services already do (`validate(..., saving)`).

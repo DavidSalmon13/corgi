@@ -3,6 +3,7 @@
 > Epic: statement-history
 > Spec: 2026-11-23-statement-clarity
 > Branch: feat/statement-history/statement-clarity
+> Reviewed: 2026-11-23 APPROVE WITH COMMENTS
 
 ## Statement API
 

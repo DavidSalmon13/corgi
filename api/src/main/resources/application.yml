@@ -34,3 +34,13 @@ plainly:
     secret-key: ${STRIPE_SECRET_KEY:}
     publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  email:
+    # Resend sandbox, from env (.env locally). Empty key or test inbox = emails are switched off.
+    api-key: ${RESEND_API_KEY:}
+    from: ${RESEND_FROM:Plainly <onboarding@resend.dev>}
+    # Without a verified domain Resend only delivers to the account owner, so all demo mail goes here (DECISIONS).
+    test-to: ${RESEND_TEST_TO:}
+    # Send after commit on a small background pool, so a slow Resend never holds a request. Off in tests.
+    send-async: true
+  # Where the web app lives, for links in emails.
+  web-url: ${PLAINLY_WEB_URL:http://localhost:5173}

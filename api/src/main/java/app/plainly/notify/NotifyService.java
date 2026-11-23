@@ -114,8 +114,11 @@ public class NotifyService implements DisposableBean {
     public void on(RefundSettled e) {
         queue(EmailKind.REFUND_RECEIPT, e.refundId(), () -> {
             PolicyService.Contact c = policies.contact(e.policyId());
-            RefundReason reason = "CANCEL".equals(e.causeType())
-                    ? RefundReason.CANCELLATION : RefundReason.CORRECTION;
+            RefundReason reason = switch (e.causeType()) {
+                case "CANCEL" -> RefundReason.CANCELLATION;
+                case "REMOVE_COVERAGE" -> RefundReason.COVER_REMOVED;
+                case null, default -> RefundReason.CORRECTION;
+            };
             return templates.refundReceipt(new RefundReceipt(c.ownerName(), c.ownerEmail(), e.amountCents(),
                     e.cardLast4(), reason));
         });

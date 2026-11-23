@@ -111,6 +111,17 @@ class NotifyServiceTest {
                         t -> assertThat(t).contains("$300.00", "your cover ended early"));
     }
 
+    // covers remove-cover AC7, T1
+    @Test
+    void aRefundForARemovedExtraCoverSaysTheCoverWasRemovedNotThatTheStartMoved() {
+        tx.executeWithoutResult(s -> events.publishEvent(
+                new RefundSettled(SOURCE.incrementAndGet(), policyId, 54_800, "4242", "REMOVE_COVERAGE")));
+
+        assertThat(email.sentTo(owner)).singleElement().extracting(sent -> sent.message().text())
+                .satisfies(t -> assertThat(t).contains("$548.00", "your extra cover was removed")
+                        .doesNotContain("start date", "ended early"));
+    }
+
     @Test
     void whenResendFailsTheChangeStandsAndTheEmailIsMarkedFailed() {
         long paymentId = SOURCE.incrementAndGet();

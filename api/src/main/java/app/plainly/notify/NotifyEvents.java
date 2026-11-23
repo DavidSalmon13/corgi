@@ -17,7 +17,7 @@ public final class NotifyEvents {
     public record PaymentSettled(long paymentId, long policyId, long amountCents, String cardLast4) {}
 
     /**
-     * A refund reached the card. {@code causeType}: the policy transaction that owed it, CORRECT or CANCEL.
+     * A refund reached the card. {@code causeType}: the policy transaction that owed it: CORRECT, CANCEL or REMOVE_COVERAGE.
      */
     public record RefundSettled(long refundId, long policyId, long amountCents, String cardLast4, String causeType) {}
 }

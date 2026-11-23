@@ -128,7 +128,7 @@ function Detail({ cover, term, onOpen }: { cover: TimelineCover; term: TimelineT
       </div>
       <div className={KV}>
         <span className="flex-none">
-          <Term explain="Pro-rata: you only pay for the days you’re covered, yearly price × days ÷ 365.">Charged by the day</Term>
+          <Term explain="Pro-rata: you only pay for the days you’re covered, yearly price × days covered ÷ the days in the policy year.">Charged by the day</Term>
         </span>
         <Charged cover={cover} term={term} onOpen={onOpen} />
       </div>

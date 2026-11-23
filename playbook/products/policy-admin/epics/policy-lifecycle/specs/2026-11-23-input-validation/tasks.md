@@ -19,7 +19,7 @@
 - [x] T7 For each unmerged endpoint that is on dev by then (remove-cover's removal request, more-policies' `/api/broker/customers/{id}/policies`): apply the same pattern to its request record; otherwise cancel this task with a note
 
 ## Docs
-- [ ] T8 DECISIONS.md: the three-layer model, the intentional edge/service overlap (DemoSeeder), and the database audit with no migration
+- [x] T8 DECISIONS.md: the three-layer model, the intentional edge/service overlap (DemoSeeder), and the database audit with no migration
 
 ## Verification
 - [ ] T9 Run the full API test suite; make every pre-existing endpoint test pass unchanged, or adjust only those that expected format and business errors in one response (testing skill)

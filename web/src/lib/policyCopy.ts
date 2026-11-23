@@ -3,13 +3,16 @@ import type { PillTone } from '../components/StatusPill';
 import { formatDate, formatShortDate, type IsoDate } from './dates';
 import { formatCents } from './money';
 
-/** The status pill for a policy: its state plus, while active, whether money is owed or on its way. */
+/** The status pill for a policy: its state plus, while active, whether money is owed or on its way; once cancelled, which policy rewrote it. */
 export function policyStatus(
   status: PolicyStatus,
   balanceCents: number,
   paymentWaiting = false,
+  replacedBy: string | null = null,
 ): { label: string; tone: PillTone } {
-  if (status === 'CANCELLED') return { label: 'Cancelled', tone: 'neutral' };
+  if (status === 'CANCELLED') {
+    return { label: replacedBy ? `Cancelled · replaced by ${replacedBy}` : 'Cancelled', tone: 'neutral' };
+  }
   if (paymentWaiting) return { label: 'Active · waiting for the bank', tone: 'wait' };
   return balanceCents > 0 ? { label: 'Active · balance due', tone: 'wait' } : { label: 'Active · paid up', tone: 'good' };
 }

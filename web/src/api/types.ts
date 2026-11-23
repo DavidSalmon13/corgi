@@ -89,6 +89,12 @@ export type IssueRequest = {
   productLiability: boolean;
 };
 
+/** POST /api/broker/customers/{id}/policies(/preview) body: B2 in customer mode. Set replacesPolicyId for a rewrite. */
+export type IssueForCustomerRequest = { startDate: string; productLiability: boolean; replacesPolicyId: number | null };
+
+/** policy.CustomerRepository.Row, from GET /api/broker/customers/{id}: shown read-only on B2 in customer mode. */
+export type CustomerRow = { id: number; legalName: string; businessDescription: string; ownerName: string; ownerEmail: string };
+
 export type Issued = { policyId: number; policyNumber: string; transactionDisplayId: string; totalCents: number };
 
 /** The arithmetic behind a charge: annualCents × days ÷ termDays, rounded once. */
@@ -129,7 +135,7 @@ export type DueReason =
   | 'CHANGE'
   | 'NOTHING_DUE';
 
-/** me.MyCoverController.MyCover, from GET /api/me/cover. */
+/** me.MyCoverController.MyCover, from GET /api/me/policies/{id}/cover. */
 export type MyCover = {
   business: { legalName: string; description: string; ownerName: string };
   /** {@code end} is the original term end; {@code cancelledOn} is the day all cover stopped, or null. */
@@ -152,6 +158,28 @@ export type MyCover = {
   /** False when Stripe isn't set up: the pay button explains instead of opening the card form. */
   paymentsEnabled: boolean;
 };
+
+/** One policy pointing at another: the one it replaces, or the one that replaced it (a rewrite). */
+export type PolicyLink = { policyId: number; policyNumber: string };
+
+/** me.MyPoliciesService row, from GET /api/me/policies, newest first. */
+export type MyPolicyRow = {
+  policyId: number;
+  policyNumber: string;
+  start: IsoDate;
+  end: IsoDate;
+  status: PolicyStatus;
+  /** Positive: they owe it. Negative: we owe them (a refund still on its way). */
+  balanceCents: number;
+  /** A payment for this policy is with the bank. */
+  paymentWaiting: boolean;
+  refundWaiting?: RefundWaiting | null;
+  replaces?: PolicyLink | null;
+  replacedBy?: PolicyLink | null;
+};
+
+/** GET /api/me/policies. {@code totalDueCents} adds up positive balances only: money never moves between policies. */
+export type MyPolicies = { policies: MyPolicyRow[]; totalDueCents: number };
 
 /** Where a payment stands. Only a Stripe webhook moves it past OPEN. */
 export type PaymentStatus = 'OPEN' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
@@ -197,6 +225,10 @@ export type PolicyListRow = {
   /** A payment is with the bank and not settled yet. */
   paymentWaiting: boolean;
   lastAction: { type: string; recordedOn: IsoDate } | null;
+  customerId: number;
+  /** The cancelled policy this one rewrites, and the policy that rewrote this one; null when none. */
+  replaces?: PolicyLink | null;
+  replacedBy?: PolicyLink | null;
 };
 
 /** policy.PolicyViews.Detail */
@@ -225,6 +257,10 @@ export type PolicyDetail = {
   transactions: PolicyTransaction[];
   /** Money going back to cards, oldest first. */
   refunds: RefundView[];
+  customerId: number;
+  /** The cancelled policy this one rewrites, and the policy that rewrote this one; null when none. */
+  replaces?: PolicyLink | null;
+  replacedBy?: PolicyLink | null;
 };
 
 /** policy.PolicyViews.Transaction. {@code reason}: the broker's words for a correction, shown as written. */
@@ -397,7 +433,7 @@ export type Cancellation = {
   settledOn: IsoDate | null;
 };
 
-// --- statement.MyStatementController, from GET /api/me/statement (P3, P4) ---
+// --- statement.MyStatementController, from GET /api/me/policies/{id}/statement (P3, P4) ---
 
 export type BannerState = 'OWES' | 'PAYMENT_WAITING' | 'REFUND_WAITING' | 'PAID_UP';
 export type MoneyStatus = 'PAID' | 'DECLINED' | 'WAITING' | 'REFUND_SENT' | 'REFUND_ON_ITS_WAY';
@@ -515,7 +551,7 @@ export type History = {
   today: IsoDate;
 };
 
-// --- timeline.MyTimelineController, from GET /api/me/timeline (P2) ---
+// --- timeline.MyTimelineController, from GET /api/me/policies/{id}/timeline (P2) ---
 
 export type TimelineTerm = {
   start: IsoDate;

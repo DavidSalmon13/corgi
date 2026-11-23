@@ -33,11 +33,15 @@ export function dueReasonText(reason: DueReason, latestChangeFrom: IsoDate | nul
 export function protectionSentence(
   businessDescription: string,
   hasExtra: boolean,
-  cancelled: { endsOn: IsoDate; today: IsoDate } | null = null,
+  cancelled: { endsOn: IsoDate; today: IsoDate; startsOn?: IsoDate } | null = null,
 ): string {
   const what = businessDescription.trim();
   const business = what ? `your business (${what.charAt(0).toLowerCase()}${what.slice(1)})` : 'your business';
   const ended = cancelled != null && cancelled.endsOn <= cancelled.today;
+  // more-policies AC11: cancelled on its start date (a flat cancellation), the policy never covered a day.
+  if (ended && cancelled.startsOn && cancelled.endsOn <= cancelled.startsOn) {
+    return `This policy was cancelled on its start date, ${formatDate(cancelled.endsOn)} (a flat cancellation), so it never covered your business.`;
+  }
   if (ended) {
     const extra = hasExtra ? ', or because of something you sold' : '';
     return `You were covered if someone was hurt or their property was damaged because of ${business}${extra}. That cover ended on ${formatDate(cancelled.endsOn)}.`;

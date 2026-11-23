@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Corgi work trial, **Track 1 · Policy administration**. The full brief and the recruiter's guidance are in `ASSIGNMENT.md`; decisions and assumptions go in `DECISIONS.md` (dated, a few sentences each).
+Corgi work trial, **Track 1 · Policy administration**. The full brief is in `ASSIGNMENT.md` (kept local, not committed); decisions and assumptions go in `DECISIONS.md` (dated, a few sentences each).
 
 ## Rules
 

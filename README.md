@@ -4,7 +4,7 @@ Business insurance, explained in plain language. A policy administration platfor
 
 - **Live app: https://corgi-production-8107a1f1.up.railway.app**
 - Sandbox evidence (Stripe, Resend): [`docs/evidence/`](docs/evidence/README.md)
-- Brief: [`ASSIGNMENT.md`](ASSIGNMENT.md) · Decisions and assumptions: [`DECISIONS.md`](DECISIONS.md)
+- Decisions and assumptions: [`DECISIONS.md`](DECISIONS.md)
 - Screen designs: [`design/plainly/`](design/plainly/README.md)
 - Product and specs: [`playbook/products/policy-admin/`](playbook/products/policy-admin/mission.md)
 

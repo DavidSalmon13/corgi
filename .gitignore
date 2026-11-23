@@ -1,2 +1,5 @@
 .claude/hooks/playbook/sessions/
 .env
+
+# The trial brief stays local; it is not part of the submission
+ASSIGNMENT.md

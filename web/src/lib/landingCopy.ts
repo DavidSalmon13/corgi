@@ -4,7 +4,6 @@ import { DEMO_ACCOUNTS } from '../pages/SignIn';
 // insurance term in them (general liability, premium, endorsement, pro-rata, ledger) gets its "?" explanation.
 
 export const SIGN_IN = 'Sign in';
-export const DEMO_BADGE = 'Demo · fictional people and money';
 
 /** AC3: what Plainly is, in one sentence. */
 export const HERO_TITLE = 'Insurance for your business, in plain words.';
@@ -53,6 +52,3 @@ export function reviewerEntries(): { label: string; note: string; href: string; 
     };
   });
 }
-
-/** AC8: the same test-mode note as sign-in. */
-export const FOOTER = "This is a demo. No real insurance is sold, and payments use Stripe's test mode.";

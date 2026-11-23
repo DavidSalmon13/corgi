@@ -1,12 +1,10 @@
 import { Link } from 'react-router';
+import { DemoBadge, DemoFooter } from '../components/DemoChrome';
 import { Glossed } from '../components/Glossed';
 import { Mark } from '../components/Mark';
-import { ThemeToggle } from '../components/ThemeToggle';
 import {
   CREATE_ACCOUNT,
   CREATE_ACCOUNT_NOTE,
-  DEMO_BADGE,
-  FOOTER,
   HERO_LEAD,
   HERO_TITLE,
   HOW_IT_WORKS,
@@ -48,9 +46,8 @@ export function Landing() {
           <Reviewer />
         </main>
 
-        <footer className="mt-auto flex items-end justify-between gap-4">
-          <p className="m-0 text-sm leading-normal text-ink-2">{FOOTER}</p>
-          <ThemeToggle />
+        <footer className="mt-auto flex">
+          <DemoFooter className="w-full" />
         </footer>
       </div>
     </div>
@@ -62,9 +59,7 @@ function Hero() {
   return (
     <section aria-labelledby="landing-title" className="grid gap-[18px] sm:grid-cols-[1fr_300px] sm:items-center sm:gap-10">
       <div className="flex flex-col gap-[18px]">
-        <span className="self-start rounded-full bg-accent-soft px-2.5 py-1 text-xs font-bold uppercase tracking-[.06em] text-accent-ink">
-          {DEMO_BADGE}
-        </span>
+        <DemoBadge small />
         <h1 id="landing-title" className="m-0 text-4xl leading-[1.1] font-bold tracking-[-0.025em] sm:text-5xl">
           {HERO_TITLE}
         </h1>

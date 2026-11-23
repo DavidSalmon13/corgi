@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { usePublicCoverages } from '../api/client';
+import { BrokerContact } from '../components/BrokerContact';
 import { DemoBadge, DemoFooter } from '../components/DemoChrome';
 import { Glossed } from '../components/Glossed';
 import { Mark } from '../components/Mark';
@@ -12,9 +13,11 @@ import {
   NO_BUY_ONLINE,
   OFFER_INTRO,
   OFFER_TITLE,
+  OUR_BROKER,
+  OUR_BROKER_HEADING,
+  OUR_BROKER_NOTE,
   PRICES_LOADING,
   PRICES_UNAVAILABLE,
-  PREVIEW,
   REVIEWER_TITLE,
   SHOWS,
   SHOWS_TITLE,
@@ -63,10 +66,10 @@ export function Landing() {
   );
 }
 
-/** AC3: the one-sentence promise, shown beside a miniature of the policyholder's cover page. */
+/** AC3: the one-sentence promise. */
 function Hero() {
   return (
-    <section aria-labelledby="landing-title" className="grid gap-[18px] sm:grid-cols-[1fr_320px] sm:items-center sm:gap-10">
+    <section aria-labelledby="landing-title" className="flex flex-col gap-[18px] sm:max-w-[620px]">
       <div className="flex flex-col gap-[18px]">
         <DemoBadge small />
         <h1 id="landing-title" className="m-0 text-4xl leading-[1.1] font-bold tracking-[-0.025em] sm:text-5xl">
@@ -76,26 +79,7 @@ function Hero() {
           <Glossed>{HERO_LEAD}</Glossed>
         </p>
       </div>
-      <Preview />
     </section>
-  );
-}
-
-/** A still picture of P1's "you owe … and why" card: the promise shown, not told. Its terms keep their "?". */
-function Preview() {
-  return (
-    <figure className="relative m-0 pr-[18px] pb-[14px]" aria-label="Example of a policy page">
-      <div aria-hidden="true" className={`${CARD} absolute inset-[14px_0_0_18px] bg-track`} />
-      <div className={`${CARD} relative flex min-h-[136px] flex-col gap-1.5`}>
-        <span className="text-[13px] text-ink-2">{PREVIEW.label}</span>
-        <span className="text-[17px] leading-[1.35]">
-          You owe <b className="text-accent-ink">{PREVIEW.owe}</b>. <Glossed>{PREVIEW.why}</Glossed>
-        </span>
-        <span className="mt-auto self-start border-b-[1.5px] border-dotted border-accent-ink text-sm font-semibold text-accent-ink">
-          {PREVIEW.how}
-        </span>
-      </div>
-    </figure>
   );
 }
 
@@ -143,6 +127,9 @@ function Offer() {
         </ul>
       )}
       <p className="m-0 mt-3 text-sm text-ink-2">{NO_BUY_ONLINE}</p>
+      <div className={`${CARD} mt-3`}>
+        <BrokerContact heading={OUR_BROKER_HEADING} note={OUR_BROKER_NOTE} broker={OUR_BROKER} />
+      </div>
     </section>
   );
 }

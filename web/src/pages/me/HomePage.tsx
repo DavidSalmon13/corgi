@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { api, ApiError, useSession } from '../../api/client';
 import type { MyCover } from '../../api/types';
+import { BrokerContact } from '../../components/BrokerContact';
 import { CoverTimeline } from '../../components/CoverTimeline';
 import { Glossed } from '../../components/Glossed';
 import { Mark } from '../../components/Mark';
@@ -353,9 +354,12 @@ export function HomePage() {
           </span>
           <Chevron />
         </Link>
-        <div className="flex flex-col border-t border-line px-[18px] py-3.5">
-          <span className="font-semibold">Your broker, {c.broker.name}</span>
-          <span className="text-sm text-ink-2">Questions about your coverage? Your broker set up this policy and can help.</span>
+        <div className="border-t border-line px-[18px] py-3.5">
+          <BrokerContact
+            heading={`Your broker, ${c.broker.name}`}
+            note="Questions about your coverage? Your broker set up this policy and can help."
+            broker={c.broker}
+          />
         </div>
       </nav>
 

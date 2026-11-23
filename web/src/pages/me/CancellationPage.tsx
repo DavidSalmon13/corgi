@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { BrokerContact } from '../../components/BrokerContact';
 import type { ReactNode } from 'react';
 import { HeaderEnd, usePolicyId } from './MeNav';
 import { meApiPath, mePolicyPath, myCoverKey } from '../../lib/mePaths';
@@ -194,9 +195,9 @@ export function CancellationPage() {
 
       <WorkedOut rows={workedOutRows(k, c.amountDueCents)} />
 
-      <p className="m-0 text-sm leading-snug text-ink-2">
-        Questions? Your broker, {c.broker.name}, can help.
-      </p>
+      <div className="rounded-2xl border border-line bg-card px-[18px] py-3.5">
+        <BrokerContact heading={`Your broker, ${c.broker.name}`} note="Questions about this cancellation? Your broker can help." broker={c.broker} />
+      </div>
     </Shell>
   );
 }

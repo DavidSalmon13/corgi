@@ -12,13 +12,6 @@ export const HERO_TITLE = 'Insurance for your business, in plain words.';
 export const HERO_LEAD =
   "General liability cover for small businesses, where you always see what you're covered for, what you owe and why.";
 
-/** The miniature P1 card beside the hero: shows the promise rather than telling it. */
-export const PREVIEW = {
-  label: 'Your cover · Juniper & Rye Bakery',
-  owe: '$14.00',
-  why: 'Your broker moved the start of your product liability endorsement a week earlier.',
-  how: 'How we got this: 7 days × $2.00',
-} as const;
 
 /** AC4: how someone becomes a policyholder. */
 export const HOW_IT_WORKS = 'How it works';
@@ -74,6 +67,14 @@ export function offerPrice(annualPremiumCents: number): { amount: string; per: s
 
 /** AC6: no buying online yet. */
 export const NO_BUY_ONLINE = "You can't buy online yet. Ask your broker for a policy.";
+
+/**
+ * Who a guest asks for a policy: the demo broker, Sam Reyes, at the email he signs in with and a fictional phone
+ * number (555-0100 to 555-0199 is reserved for fiction). The same details the API gives a policyholder (V14).
+ */
+export const OUR_BROKER = { name: 'Sam Reyes', email: 'sam@plainly.test', phone: '(415) 555-0142' } as const;
+export const OUR_BROKER_HEADING = `Our broker, ${OUR_BROKER.name}`;
+export const OUR_BROKER_NOTE = 'Sets up your policy, answers questions about cover, and makes any change you need.';
 
 /** AC7: one-tap demo entry, built from SignIn's own account list. */
 export const REVIEWER_TITLE = 'Reviewing this demo?';

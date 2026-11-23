@@ -417,3 +417,11 @@ A cancellation splits its refund over every payment, newest first, so a card tha
 **Refunds stay immediate.** A correction that lowers the price is still refunded to the card straight away (see 2026-11-22 "A correction that lowers the price is refunded automatically"), even though a refund followed by a new charge for a later correction churns money through the card. Holding small credits on account is a separate feature and out of scope here.
 
 **Taxes and fees are out of scope.** The statement has no tax, surcharge or fee lines; premiums are the only charges Plainly posts.
+
+## 2026-11-23: Final clean-ups: broker contact, no landing preview, a way back everywhere
+
+**Brokers have contact details.** We tell guests and policyholders to talk to their broker, so we now say how. V14 adds a nullable `phone` to `app_users`; P1 and P6 get the issuing broker's email and phone from the API (`broker.email`, `broker.phone`) and show them as mailto/tel links. The demo broker Sam Reyes keeps the email he signs in with, `sam@plainly.test`, and gets `(415) 555-0142`, from the 555-0100–0199 range reserved for fiction. The landing page shows the same details as a constant, since a guest has no policy to read them from. This replaces 2026-11-22 "P1 broker contact and how we got this for now", where P1 showed only the broker's name.
+
+**No preview card on the landing page.** The miniature "You owe $14.00 … How we got this" card beside the hero repeated what "What your policy page shows you" already says, with numbers a guest has no context for. It is gone; the hero is the promise on its own.
+
+**Every page has a way back.** Sign-in and sign-up now link back to the home page, and the broker's new-policy / rewrite form has a back link at the top (to the replaced policy for a rewrite, else to all policies), not only Cancel at the bottom. Every other page already had one.

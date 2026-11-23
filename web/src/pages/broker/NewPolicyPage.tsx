@@ -239,9 +239,13 @@ export function NewPolicyPage() {
   const owner = (customer.data?.ownerName ?? form.ownerName).trim().split(/\s+/)[0];
   const period = plan ? `${formatDate(plan.start)} → ${formatDate(plan.end)}` : 'Starts on the effective date above';
 
+  const back = replacesId != null ? `/broker/policies/${replacesId}` : '/broker/policies';
   return (
     <>
-      <div>
+      <div className="flex flex-col gap-1.5">
+        <Link to={back} className="self-start text-[15px] font-semibold no-underline">
+          {replacesId != null ? '‹ Back to the policy' : '‹ All policies'}
+        </Link>
         <h1 className="m-0 text-[32px] font-bold tracking-[-0.015em]">
           {customerId == null ? 'New customer and policy' : replacesId != null ? 'Rewrite a policy' : 'New policy for this customer'}
         </h1>
@@ -440,7 +444,7 @@ export function NewPolicyPage() {
                     : 'Create policy'}
             </button>
             <Link
-              to={replacesId != null ? `/broker/policies/${replacesId}` : '/broker/policies'}
+              to={back}
               className="inline-flex min-h-11 items-center justify-center rounded-control border-[1.5px] border-line px-[18px] text-base font-semibold text-ink no-underline"
             >
               Cancel

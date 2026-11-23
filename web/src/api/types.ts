@@ -159,7 +159,8 @@ export type MyCover = {
   refundWaiting?: RefundWaiting | null;
   /** How the cancellation was worked out; null unless the policy is cancelled. */
   cancellation?: Cancellation | null;
-  broker: { name: string };
+  /** The broker who set up the policy; email and phone are null when none is on file. */
+  broker: { name: string; email: string | null; phone: string | null };
   today: IsoDate;
   /** The latest payment the owner submitted; null before their first one. */
   payment: PaymentSummary | null;

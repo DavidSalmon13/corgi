@@ -22,6 +22,8 @@ type Props = {
   onMove: (date: IsoDate) => void;
   /** The day the handle lands on (a release, a tap or a key), which the form prices. */
   onCommit: (date: IsoDate) => void;
+  /** A drag that ended where it began, or was interrupted: drop the dragged day, price nothing. */
+  onCancel: () => void;
 };
 
 /**
@@ -29,11 +31,14 @@ type Props = {
  * hold one value, so a broker can drag roughly and type the exact day. A drag only reports its day as it goes; the
  * money is worked out once, when the handle is let go.
  */
-export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, invalid, onMove, onCommit }: Props) {
+export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, invalid, onMove, onCommit, onCancel }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const last = useRef<IsoDate | null>(null);
+  // The day the handle was on when the press began, and how far from its centre it was grabbed.
+  const from = useRef<IsoDate | null>(null);
+  const grab = useRef(0);
 
   const at = value || currentFrom;
   const handlePct = positionPct(start, end, at);
@@ -46,7 +51,7 @@ export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, 
   };
 
   const move = (clientX: number) => {
-    const day = dayAt(clientX);
+    const day = dayAt(clientX - grab.current);
     if (day === last.current) return;
     last.current = day;
     onMove(day);
@@ -56,17 +61,30 @@ export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, 
     if (e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    handleRef.current?.focus({ preventScroll: true });
+    const handle = handleRef.current;
+    handle?.focus({ preventScroll: true });
     last.current = null;
+    from.current = at;
     setDragging(true);
-    move(e.clientX);
+    // Grabbing the handle keeps it under the finger instead of jumping it to the pointer; a tap on the bar jumps.
+    if (handle && handle.contains(e.target as Node)) {
+      const r = handle.getBoundingClientRect();
+      grab.current = e.clientX - (r.left + r.width / 2);
+    } else {
+      grab.current = 0;
+      move(e.clientX);
+    }
   };
 
-  const finish = () => {
+  const finish = (cancelled: boolean) => {
     if (!dragging) return;
     setDragging(false);
-    if (last.current) onCommit(last.current);
+    const day = last.current;
     last.current = null;
+    if (!day) return;
+    // Back where it started, or interrupted by the system: nothing new to price.
+    if (cancelled || day === from.current) onCancel();
+    else onCommit(day);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -99,9 +117,9 @@ export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, 
         ref={trackRef}
         onPointerDown={onPointerDown}
         onPointerMove={(e) => dragging && move(e.clientX)}
-        onPointerUp={finish}
-        onPointerCancel={finish}
-        onLostPointerCapture={finish}
+        onPointerUp={() => finish(false)}
+        onPointerCancel={() => finish(true)}
+        onLostPointerCapture={() => finish(true)}
         className={`relative h-11 cursor-pointer touch-none select-none rounded-[10px] bg-track ${dragging ? 'cursor-grabbing' : ''}`}
       >
         <div
@@ -151,7 +169,7 @@ export function EffectiveDateSlider({ start, end, currentFrom, value, min, max, 
       </div>
 
       <p className={`${HINT} m-0 tabular-nums`}>
-        {value ? (
+        {value && value >= min && value <= max ? (
           <>
             <Term explain={GLOSSARY.proRata}>Pro-rata</Term>: {coveredDaysLine(start, end, currentFrom, value)}
           </>

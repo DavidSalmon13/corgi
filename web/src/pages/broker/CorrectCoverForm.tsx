@@ -184,6 +184,7 @@ export function CorrectCoverForm({ p, back }: { p: PolicyDetail; back: string })
             invalid={!!startError && draft === null}
             onMove={setDraft}
             onCommit={pickStart}
+            onCancel={() => setDraft(null)}
           />
           <div className="flex flex-wrap items-start gap-4">
             <div className="flex min-w-0 flex-[1_1_160px] flex-col gap-1.5">

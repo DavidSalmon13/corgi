@@ -4,7 +4,7 @@
 > Spec: 2026-11-22-correct-effective-date
 > Branch: feat/policy-lifecycle/drag-effective-date
 > PR: https://github.com/DavidSalmon13/corgi/pull/48 · https://github.com/DavidSalmon13/corgi/pull/100 (AC15)
-> Reviewed: 2026-11-22 · code-reviewer · REQUEST CHANGES → HIGH (unclear Stripe answer could refund twice) and both MEDIUMs (stuck PENDING refunds; settle vs correction ordering) fixed in T17–T18; retry audit (LOW) open (stale — spec changed 2026-11-24)
+> Reviewed: 2026-11-24 APPROVE · code-reviewer on PR #100 (AC15) → MEDIUM (handle jumped to the pointer on press) and both LOWs (pro-rata line for out-of-range dates; pointercancel committed) fixed in T22
 > SecurityReviewed: 2026-11-22 · security-reviewer · FAIL → HIGH and MEDIUM fixed in T17–T18, amount/intent check (LOW) fixed; retried_by audit (LOW) and FAILED-in-cap (INFO) open (stale — spec changed 2026-11-24)
 
 ## Failing tests first
@@ -45,3 +45,4 @@
 - [x] T19 Write failing `web/src/lib/dateSlider.test.ts`: position → snapped day clamped to min/max; arrow/Page/Home/End steps (month step clamps to month end); "Pro-rata: 328 of 365 days · 7 more than now" and fewer/same variants; slider value text
 - [x] T20 `lib/dateSlider.ts` + `EffectiveDateSlider.tsx` (pointer drag with capture, tap-to-jump, keyboard slider, dashed "now" outline, shaded covered stretch) wired into `CorrectCoverForm` with two-way sync and price-on-release
 - [x] T21 Run typecheck, lint and tests; check the Correct tab in the browser at desktop and phone width
+- [x] T22 Review fixes: grabbing the handle keeps it under the pointer and a press that ends where it began picks nothing; a cancelled drag reverts (`onCancel`); the pro-rata line shows only for dates inside the limits

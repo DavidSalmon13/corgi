@@ -1,5 +1,6 @@
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { loadStripe, type Stripe } from '@stripe/stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js/pure';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -13,7 +14,11 @@ import { PRIMARY, PaymentProgress, SECONDARY, type Submitted } from './PaymentPr
 
 const CARD = 'rounded-2xl border border-line bg-card';
 
-/** One Stripe.js instance per publishable key, loaded only when someone opens the pay page. */
+/**
+ * One Stripe.js instance per publishable key, loaded only when someone opens the pay page. The `/pure` import is what
+ * makes that true: the plain `@stripe/stripe-js` import adds Stripe's script (and its fraud-signal calls to
+ * m.stripe.com) to every page the moment the app starts, broker pages included.
+ */
 const stripes = new Map<string, Promise<Stripe | null>>();
 function stripeFor(key: string): Promise<Stripe | null> {
   let s = stripes.get(key);

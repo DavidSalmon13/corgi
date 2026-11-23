@@ -3,6 +3,7 @@
 > Epic: statement-history
 > Spec: 2026-11-23-broker-history
 > Branch: feat/statement-history/broker-history
+> PR: https://github.com/DavidSalmon13/corgi/pull/56
 
 ## History API
 - [x] T1 Failing HistoryServiceTest for AC2–AC6 and AC8: one action per change/payment/refund oldest first, actor names, correction card net (Oct 15 → Oct 8 = +$14.00), settled sum = ledger balance = statement last balance, pending outside the sum, failed refund + decline reason (testing skill, TDD)

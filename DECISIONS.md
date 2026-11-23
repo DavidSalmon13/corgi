@@ -400,6 +400,14 @@ The security review found that the owner-email `@Pattern` backtracked for second
 
 Self-serve quote and buy is Phase 2. The page lists the covers and their premiums but offers no "Get a quote" or "Buy"; one quiet line under the prices says buying online isn't available yet and to ask your broker. The only calls to action are "Create your account" (for owners whose broker already issued a policy) and "Sign in".
 
+## 2026-11-23: A term's "?" marks its first mention on a screen, not every mention
+
+Every insurance term carried its "?" every time it appeared, so the statement showed 21 marks and the broker workspace 23; sentences read like "endorsement ? 's start" and the marks crowded out the numbers. Now only the first mention of each term on a screen carries the "?" (`components/GlossScope.tsx`); later mentions keep the same explanation on hover and tap, without the mark, so every term is still explained. A dialog starts its own scope, because the page behind it is inert. Across 13 desktop screens the marks went from 170 to 82. The "?" is now glued to its word, so it can't start a line on its own, and copy no longer puts a possessive right after a term ("the effective date of your endorsement", not "your endorsement's effective date").
+
+## 2026-11-23: Failed refunds show as one banner, named after the change that owed them
+
+A cancellation splits its refund over every payment, newest first, so a card that refused it raised one red banner per payment, each saying "The correction is saved", even after a cancellation. B3 now shows one banner per policy: the total, the change named from its own transaction ("The cancellation is saved (PTX-0009)"), each refund's id, amount and attempt underneath, and one retry button for all of them. The customer keeps seeing the refund as on its way while the broker retries (P1, P3 and P6 already counted failed refunds as unsettled), and the banner now says that instead of quoting a sentence that only the correction flow shows.
+
 ## 2026-11-23: Statement clarity: reversed lines aren't struck, money is due on receipt, refunds stay immediate
 
 **No strikethrough on a reversed line.** A line a correction later reversed was a real charge that counted in the balance until the reversal was posted. Striking it through read as "deleted" and contradicted the statement's own rule that we never edit a line. On the statement (P3), the broker's ledger and B5 History, a reversed line now keeps its weight, muted, with a "Reversed by correction · LE-…" tag that jumps to the correction. Inside a correction card the original is shown again only as a reference ("Replaces: … · posted <date> above"), with no balance and marked "not counted again". The card shows one "Balance after" in place of a balance per line, because the balance in the middle of a correction (−$678.00) read as "we owe you $678".

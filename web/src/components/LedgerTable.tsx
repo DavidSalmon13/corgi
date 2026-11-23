@@ -104,7 +104,7 @@ export function LedgerTable({
               <td className={TD}>
                 <Title row={r} />
               </td>
-              <td className={`${TD} tabular-nums ${TONE[r.calcTone]}`}>
+              <td className={`${TD} whitespace-nowrap tabular-nums ${TONE[r.calcTone]}`}>
                 <Glossed>{r.calc}</Glossed>
               </td>
               <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.reversedBy ? 'text-ink-2' : ''}`}>

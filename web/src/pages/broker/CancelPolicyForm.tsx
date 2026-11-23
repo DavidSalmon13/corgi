@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { GlossScope } from '../../components/GlossScope';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../../api/client';
@@ -263,28 +264,30 @@ export function CancelPolicyForm({ p, back }: { p: PolicyDetail; back: string })
         onClose={() => setConfirming(false)}
         className="m-auto w-[calc(100%-32px)] max-w-[480px] rounded-2xl bg-card p-6 text-ink shadow-[0_20px_50px_rgba(0,0,0,.25)] backdrop:bg-[rgba(21,24,31,.45)] md:p-7"
       >
-        {plan && confirm && (
-          <div className="flex flex-col gap-4">
-            <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
-              {confirm.title}
-            </h2>
-            <p className="m-0 text-base leading-normal">
-              <Glossed>{confirm.sentence}</Glossed>
-            </p>
-            <div className="flex flex-wrap gap-2.5">
-              <button type="button" onClick={() => save.mutate()} disabled={save.isPending} className={BTN}>
-                {save.isPending
-                  ? 'Cancelling…'
-                  : plan.refundTotalCents > 0
-                    ? `Yes, cancel and refund ${formatCents(plan.refundTotalCents)}`
-                    : 'Yes, cancel the policy'}
-              </button>
-              <button type="button" onClick={() => setConfirming(false)} className={BTN2}>
-                Go back
-              </button>
+        <GlossScope>
+          {plan && confirm && (
+            <div className="flex flex-col gap-4">
+              <h2 id="confirm-heading" className="m-0 text-[22px] font-bold">
+                {confirm.title}
+              </h2>
+              <p className="m-0 text-base leading-normal">
+                <Glossed>{confirm.sentence}</Glossed>
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                <button type="button" onClick={() => save.mutate()} disabled={save.isPending} className={BTN}>
+                  {save.isPending
+                    ? 'Cancelling…'
+                    : plan.refundTotalCents > 0
+                      ? `Yes, cancel and refund ${formatCents(plan.refundTotalCents)}`
+                      : 'Yes, cancel the policy'}
+                </button>
+                <button type="button" onClick={() => setConfirming(false)} className={BTN2}>
+                  Go back
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </GlossScope>
       </dialog>
     </>
   );

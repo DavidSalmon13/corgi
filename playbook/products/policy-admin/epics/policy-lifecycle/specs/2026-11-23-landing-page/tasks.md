@@ -10,7 +10,7 @@
 
 ## Public coverages API
 
-- [ ] T8 Failing PublicCoveragesEndpointTest for AC13: signed out gets 200 with both covers (kind, label, role, annualPremiumCents matching CoverKind), no customer data; /api/me and /api/broker still 401 signed out (testing skill, TDD)
+- [x] T8 Failing PublicCoveragesEndpointTest for AC13: signed out gets 200 with both covers (kind, label, role, annualPremiumCents matching CoverKind), no customer data; /api/me and /api/broker still 401 signed out (testing skill, TDD)
 - [ ] T9 CoverageCatalogService + Coverage record in app.plainly.catalog, PublicCoverageController GET /api/public/coverages, `/api/public` open prefix in AuthFilter; T8 passes (service + controller)
 
 ## Page

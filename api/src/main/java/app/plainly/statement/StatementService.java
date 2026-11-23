@@ -62,6 +62,14 @@ public class StatementService {
         return forPolicy(myPolicies.ownedPolicy(me, policyId));
     }
 
+    /**
+     * The posting date of the oldest line still unpaid: payments, credits and reversals pay off the oldest open
+     * charges first, and a credit left over pays the next charge. Null when nothing is owed.
+     */
+    static LocalDate oldestUnpaid(List<Row> settledOldestFirst) {
+        return null; // T2
+    }
+
     private Statement build(PolicyViews.Detail p) {
         return new Builder(p, policies.actorNames(p.policyId()), payments.sentForPolicy(p.policyId()), today)
                 .build();
@@ -100,8 +108,9 @@ public class StatementService {
                 rows.add(ledgerRow(l));
             }
             rows.addAll(pendingRows());
-            return new Statement(new Statement.Header(p.customer().legalName(), p.policyNumber(), p.balanceCents()),
-                    banner(), List.copyOf(rows), corrections, p.today());
+            Statement.Header header = new Statement.Header(p.customer().legalName(), p.policyNumber(),
+                    p.balanceCents(), null, null, null, null); // T2 fills the term, statement and due dates
+            return new Statement(header, banner(), List.copyOf(rows), corrections, p.today());
         }
 
         // --- the banner (AC3) ---
@@ -144,7 +153,7 @@ public class StatementService {
                 out.add(new Correction(tx.displayId(), tx.recordedOn(), original.coverFrom(), rebill.coverFrom(),
                         rebill.calcDays() - original.calcDays(), undo.amountCents() + rebill.amountCents(), perDay,
                         tx.reason(), actors.get(tx.displayId()), original.displayId(), undo.displayId(),
-                        rebill.displayId()));
+                        rebill.displayId(), 0)); // T2 fills the balance after the card
             }
             return List.copyOf(out);
         }

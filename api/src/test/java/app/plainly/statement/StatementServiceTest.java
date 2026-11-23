@@ -45,7 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * Moving its start to Oct 8 undoes $642.00 and charges $730.00 × 328 ÷ 365 = $656.00 (net +$14.00, 7 more days ×
  * $2.00); moving it to Oct 22 charges $730.00 × 314 ÷ 365 = $628.00 (net −$14.00, refunded to card ending 4242).
  */
-// covers AC2, AC3, AC4, AC5, AC6, AC7, T1
+// covers AC2, AC3, AC4, AC5, AC6, AC7, T1 (2026-11-22-statement); AC3, AC5, AC7, T1 (2026-11-23-statement-clarity)
 @IntegrationTest
 @AutoConfigureMockMvc
 class StatementServiceTest {
@@ -453,6 +453,149 @@ class StatementServiceTest {
         assertThat(c.dayDelta()).isEqualTo(-7);
         assertThat(c.netCents()).isEqualTo(71_604 - 73_000); // $730.00 × 359 ÷ 366 = $716.04
         assertThat(c.perDayCents()).isNull();
+    }
+
+    // --- statement clarity: one balance per correction card, credits included (clarity AC3) ---
+
+    @Test
+    void theTrialCorrectionCardShowsTheBalanceAfterItsLastLine() throws Exception {
+        long id = paid("Card Balance Bakery LLC").owner().policyId();
+        CorrectCoverageService.Corrected saved = correct(id, OCT_8);
+
+        Statement s = service.forPolicy(id);
+
+        Statement.Correction c = s.corrections().getFirst();
+        assertThat(c.balanceAfterCents()).isEqualTo(1_400)
+                .isEqualTo(row(s, saved.rebillDisplayId()).balanceAfterCents());
+    }
+
+    @Test
+    void theMinusFourteenDollarCardSaysTheCustomerWasInCredit() throws Exception {
+        long id = paid("Card Credit Bakery LLC").owner().policyId();
+        CorrectCoverageService.Corrected saved = correct(id, OCT_22);
+        refundSettles(refund(saved.refunds().getFirst().displayId()));
+
+        Statement s = service.forPolicy(id);
+
+        // The refund came later and is its own line; the card's own balance is the $14.00 credit.
+        assertThat(s.corrections().getFirst().balanceAfterCents()).isEqualTo(-1_400);
+        assertThat(settled(s).getLast().balanceAfterCents()).isZero();
+        assertThat(s.header().balanceCents()).isEqualTo(ledger.balance(id)).isZero();
+    }
+
+    @Test
+    void eachCorrectionCardHasItsOwnBalanceAfter() throws Exception {
+        long id = paid("Two Cards Bakery LLC").owner().policyId();
+        correct(id, OCT_8);  // +$14.00
+        correct(id, OCT_22); // −$28.00
+
+        Statement s = service.forPolicy(id);
+
+        assertThat(s.corrections()).extracting(Statement.Correction::balanceAfterCents)
+                .containsExactly(1_400L, -1_400L);
+        assertThat(s.corrections().getLast().balanceAfterCents()).isEqualTo(ledger.balance(id));
+    }
+
+    // --- statement clarity: a real statement header (clarity AC5) ---
+
+    @Test
+    void theHeaderShowsTheStatementDateAndThePolicyTerm() throws Exception {
+        long id = paid("Header Term Bakery LLC").owner().policyId();
+
+        Statement.Header h = service.forPolicy(id).header();
+
+        assertThat(h.statementDate()).isEqualTo(TODAY);
+        assertThat(h.inceptionDate()).isEqualTo(SEP_1);
+        assertThat(h.expiryDate()).isEqualTo(POLICY_END);
+    }
+
+    @Test
+    void aBalanceDueIsDueOnThePostingDateOfTheOldestUnpaidLine() throws Exception {
+        Owner owner = PaymentTestData.ownerWithBalanceDue(mvc, jdbc, issuer, "Due Date Bakery LLC");
+
+        Statement s = service.forPolicy(owner.policyId());
+
+        // P1 says "Due now" exactly when the balance is positive; the statement names the day.
+        assertThat(s.header().balanceCents()).isPositive();
+        assertThat(s.header().dueDate()).isEqualTo(settled(s).getFirst().date()).isNotNull();
+    }
+
+    @Test
+    void afterACorrectionTheDueDateIsTheCorrectedLinesPostingDate() throws Exception {
+        long id = paid("Due After Fix Bakery LLC").owner().policyId();
+        CorrectCoverageService.Corrected saved = correct(id, OCT_8);
+
+        Statement s = service.forPolicy(id);
+
+        assertThat(s.header().dueDate()).isEqualTo(row(s, saved.rebillDisplayId()).date());
+    }
+
+    @Test
+    void nothingIsDueWhenPaidUpOrInCredit() throws Exception {
+        long paidUp = paid("No Due Bakery LLC").owner().policyId();
+        long inCredit = paid("Credit No Due Bakery LLC").owner().policyId();
+        correct(inCredit, OCT_22);
+
+        assertThat(service.forPolicy(paidUp).header().dueDate()).isNull();
+        assertThat(service.forPolicy(inCredit).header().balanceCents()).isEqualTo(-1_400);
+        assertThat(service.forPolicy(inCredit).header().dueDate()).isNull();
+    }
+
+    static final LocalDate D1 = LocalDate.of(2026, 9, 1);
+    static final LocalDate D2 = LocalDate.of(2026, 9, 2);
+    static final LocalDate D3 = LocalDate.of(2026, 10, 15);
+    static final LocalDate D4 = LocalDate.of(2026, 11, 22);
+
+    static Row posted(LocalDate date, long amountCents) {
+        return new Row("LE-" + date + "-" + amountCents, amountCents >= 0 ? EntryType.CHARGE : EntryType.PAYMENT,
+                date, "line", amountCents, 0, false, null, null, null, null);
+    }
+
+    @Test
+    void paymentsPayOffTheOldestChargesFirst() {
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 120_000), posted(D2, -120_000),
+                posted(D3, 64_200)))).isEqualTo(D3);
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 10_000), posted(D2, 10_000),
+                posted(D3, -10_000)))).isEqualTo(D2);
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 10_000), posted(D2, -4_000),
+                posted(D3, 10_000)))).isEqualTo(D1);
+    }
+
+    @Test
+    void aLeftOverCreditPaysTheNextChargeFirst() {
+        // Paid in full, then a correction: the reversal leaves a credit that pays most of the rebill.
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 64_200), posted(D2, -64_200),
+                posted(D4, -64_200), posted(D4, 65_600)))).isEqualTo(D4);
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 64_200), posted(D2, -64_200),
+                posted(D3, -64_200), posted(D4, 62_800)))).isNull();
+        assertThat(StatementService.oldestUnpaid(List.of())).isNull();
+        assertThat(StatementService.oldestUnpaid(List.of(posted(D1, 10_000), posted(D2, 0)))).isEqualTo(D1);
+    }
+
+    // --- statement clarity: a whole-dollar cover with an uneven daily rate leaves no stray cent (clarity AC7) ---
+
+    @Test
+    void aThousandDollarCoverCorrectedBySevenDaysLeavesNoStrayCent() throws Exception {
+        long id = paid("Stray Cent Bakery LLC").owner().policyId();
+        // Re-price the extra cover at $1,000.00 a year ($2.7397… a day); the next correction re-bills at that price.
+        jdbc.sql("update coverages set annual_premium_cents = 100000 where policy_id = ? and kind = 'PRODUCT_LIABILITY'")
+                .param(id).update();
+        correct(id, OCT_22); // re-billed at $1,000.00 × 314 ÷ 365 = $860.27
+        CorrectCoverageService.Corrected saved = correct(id, OCT_15); // $1,000.00 × 321 ÷ 365 = $879.45
+
+        Statement s = service.forPolicy(id);
+
+        Statement.Correction c = s.corrections().getLast();
+        long original = row(s, c.originalLineId()).amountCents();
+        long reversal = row(s, saved.undoDisplayId()).amountCents();
+        long rebill = row(s, saved.rebillDisplayId()).amountCents();
+        assertThat(original).isEqualTo(86_027);
+        assertThat(reversal).isEqualTo(-original);
+        assertThat(rebill).isEqualTo(87_945);
+        assertThat(c.dayDelta()).isEqualTo(7);
+        assertThat(c.netCents()).isEqualTo(rebill - original).isEqualTo(1_918);
+        assertThat(c.perDayCents()).isNull();
+        assertThat(c.balanceAfterCents()).isEqualTo(ledger.balance(id));
     }
 
     // --- every amount has a trace with its references (AC7) ---

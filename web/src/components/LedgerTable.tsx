@@ -27,13 +27,30 @@ function Refs({ refs }: { refs: string[] }) {
   );
 }
 
+/** Scrolls to the correction that reversed a line: its reversal row, in whichever layout is showing. */
+function goTo(anchor: string) {
+  const target = [...document.querySelectorAll<HTMLElement>(`[data-anchor="${anchor}"]`)].find((el) => el.offsetParent !== null);
+  target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  target?.focus({ preventScroll: true });
+}
+
 function Title({ row }: { row: LedgerRow }) {
+  const reversed = row.reversedBy;
   return (
     <>
-      <span className={`font-semibold ${row.reversedBy ? 'text-ink-2 line-through' : ''}`}>
+      <span className={`font-semibold ${reversed ? 'text-ink-2' : ''}`}>
         <Glossed>{row.title}</Glossed>
       </span>
-      {row.note && (
+      {reversed ? (
+        <button
+          type="button"
+          onClick={() => goTo(reversed.anchor)}
+          className="mt-1 flex min-h-6 cursor-pointer items-center gap-1 rounded-md border-none bg-track px-1.5 font-[inherit] text-[12.5px] font-semibold text-accent-ink hover:bg-accent-soft"
+        >
+          Reversed
+          <span className="font-normal text-ink-2">· by correction {reversed.displayId}</span>
+        </button>
+      ) : row.note && (
         <span className="block text-[13px] text-ink-2">
           <Glossed>{row.note}</Glossed>
         </span>
@@ -58,6 +75,8 @@ export function LedgerTable({
   transactions?: Pick<PolicyTransaction, 'displayId' | 'type'>[];
 }) {
   const rows = toLedgerRows(lines, transactions);
+  // The reversal row each "Reversed" tag points at (clarity AC1).
+  const anchorOf = new Map(rows.flatMap((r) => (r.reversedBy ? [[r.reversedBy.displayId, r.reversedBy.anchor] as const] : [])));
   if (rows.length === 0) {
     return <p className="text-[15px] text-ink-2">No lines yet.</p>;
   }
@@ -80,7 +99,7 @@ export function LedgerTable({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.key} className={r.correction ? 'bg-accent-soft' : undefined}>
+            <tr key={r.key} data-anchor={anchorOf.get(r.key)} tabIndex={anchorOf.has(r.key) ? -1 : undefined} className={`outline-none ${r.correction ? 'bg-accent-soft' : ''}`}>
               <td className={`${TD} whitespace-nowrap text-ink-2 tabular-nums`}>{r.date}</td>
               <td className={TD}>
                 <Title row={r} />
@@ -88,7 +107,7 @@ export function LedgerTable({
               <td className={`${TD} tabular-nums ${TONE[r.calcTone]}`}>
                 <Glossed>{r.calc}</Glossed>
               </td>
-              <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.reversedBy ? 'line-through' : ''}`}>
+              <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.reversedBy ? 'text-ink-2' : ''}`}>
                 {r.amount}
               </td>
               <td className={`${TD} whitespace-nowrap text-right tabular-nums`}>{r.balance}</td>
@@ -104,11 +123,13 @@ export function LedgerTable({
         {rows.map((r) => (
           <li
             key={r.key}
-            className={`flex flex-col gap-1 border-b border-dashed border-line py-3 ${r.correction ? '-mx-2 bg-accent-soft px-2' : ''}`}
+            data-anchor={anchorOf.get(r.key)}
+            tabIndex={anchorOf.has(r.key) ? -1 : undefined}
+            className={`flex flex-col gap-1 border-b outline-none border-dashed border-line py-3 ${r.correction ? '-mx-2 bg-accent-soft px-2' : ''}`}
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[13px] text-ink-2 tabular-nums">{r.date}</span>
-              <span className={`text-[15px] font-semibold tabular-nums ${r.reversedBy ? 'line-through' : ''}`}>{r.amount}</span>
+              <span className={`text-[15px] font-semibold tabular-nums ${r.reversedBy ? 'text-ink-2' : ''}`}>{r.amount}</span>
             </div>
             <div className="text-[15px]">
               <Title row={r} />

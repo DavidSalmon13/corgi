@@ -53,15 +53,15 @@ function TraceAmount({ row, text, onOpen, className = '' }: { row: StatementRow;
   );
 }
 
-/** A ledger line chip (LE-…) that opens the drawer for that line; struck when a later line undid it. */
+/** A ledger line chip (LE-…) that opens the drawer for that line; muted, never struck, when a later line reversed it. */
 function Chip({ row, undone, onOpen }: { row: StatementRow; undone: boolean; onOpen: OpenTrace }) {
   return (
     <button
       type="button"
       onClick={(e) => onOpen(row, e.currentTarget)}
       aria-label={`Line ${row.id}${undone ? ', reversed later' : ''}. How we got this`}
-      className={`cursor-pointer whitespace-nowrap rounded-[5px] border-none bg-track px-1.5 py-px font-mono text-[12.5px] text-ink hover:bg-accent-soft ${
-        undone ? 'line-through decoration-[1.5px]' : ''
+      className={`cursor-pointer whitespace-nowrap rounded-[5px] border-none bg-track px-1.5 py-px font-mono text-[12.5px] hover:bg-accent-soft ${
+        undone ? 'text-ink-2' : 'text-ink'
       }`}
     >
       {row.id}

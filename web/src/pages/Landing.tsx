@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { usePublicCoverages } from '../api/client';
 import { DemoBadge, DemoFooter } from '../components/DemoChrome';
 import { Glossed } from '../components/Glossed';
 import { Mark } from '../components/Mark';
@@ -9,12 +10,19 @@ import {
   HERO_TITLE,
   HOW_IT_WORKS,
   NO_BUY_ONLINE,
+  OFFER_INTRO,
+  OFFER_TITLE,
+  PRICES_LOADING,
+  PRICES_UNAVAILABLE,
   PREVIEW,
   REVIEWER_TITLE,
   SHOWS,
   SHOWS_TITLE,
   SIGN_IN,
   STEPS,
+  offerDescription,
+  offerPrice,
+  offerRole,
   reviewerEntries,
 } from '../lib/landingCopy';
 
@@ -41,6 +49,7 @@ export function Landing() {
 
         <main className="flex flex-col gap-10 sm:gap-14">
           <Hero />
+          <Offer />
           <HowItWorks />
           <Shows />
           <Reviewer />
@@ -66,7 +75,6 @@ function Hero() {
         <p className="m-0 text-lg leading-[1.45] text-ink-2">
           <Glossed>{HERO_LEAD}</Glossed>
         </p>
-        <p className="m-0 text-sm text-ink-2">{NO_BUY_ONLINE}</p>
       </div>
       <Preview />
     </section>
@@ -88,6 +96,52 @@ function Preview() {
         </span>
       </div>
     </figure>
+  );
+}
+
+/**
+ * AC12: every cover from GET /api/public/coverages, priced from the same CoverKind the broker charges. If the
+ * request fails the rest of the page still works, with one quiet line instead of the prices.
+ */
+function Offer() {
+  const coverages = usePublicCoverages();
+  return (
+    <section aria-labelledby="offer-title">
+      <h2 id="offer-title" className={SECTION_HEAD}>
+        {OFFER_TITLE}
+      </h2>
+      <p className="m-0 mb-3 text-[15px] text-ink-2">
+        <Glossed>{OFFER_INTRO}</Glossed>
+      </p>
+      {coverages.isPending && <p className="m-0 text-[15px] text-ink-2">{PRICES_LOADING}</p>}
+      {coverages.isError && <p className="m-0 text-[15px] text-ink-2">{PRICES_UNAVAILABLE}</p>}
+      {coverages.data && (
+        <ul className="m-0 grid list-none gap-2.5 p-0 sm:grid-cols-2">
+          {coverages.data.map((c) => {
+            const price = offerPrice(c.annualPremiumCents);
+            return (
+              <li key={c.kind} className={`${CARD} flex flex-col gap-1.5`}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="m-0 text-lg font-bold">
+                    <Glossed>{c.label}</Glossed>
+                  </h3>
+                  <span className="text-xs font-bold uppercase tracking-[.05em] text-ink-2">
+                    <Glossed>{offerRole(c.role)}</Glossed>
+                  </span>
+                </div>
+                <p className="m-0 text-[15px] leading-[1.45] text-ink-2">
+                  <Glossed>{offerDescription(c.kind)}</Glossed>
+                </p>
+                <p className="m-0 mt-auto text-[22px] font-bold tabular-nums">
+                  {price.amount} <span className="text-[15px] font-medium text-ink-2">{price.per}</span>
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="m-0 mt-3 text-sm text-ink-2">{NO_BUY_ONLINE}</p>
+    </section>
   );
 }
 

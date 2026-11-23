@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_ACCOUNTS } from '../pages/SignIn';
-import { HERO_LEAD, NO_BUY_ONLINE, SHOWS, STEPS, reviewerEntries } from './landingCopy';
+import { glossParts } from '../components/Glossed';
+import {
+  HERO_LEAD,
+  NO_BUY_ONLINE,
+  OFFER_INTRO,
+  PRICES_UNAVAILABLE,
+  SHOWS,
+  STEPS,
+  offerDescription,
+  offerPrice,
+  offerRole,
+  reviewerEntries,
+} from './landingCopy';
 
 // covers AC3, AC4, AC5, AC6, AC7, T2
 describe('landingCopy', () => {
@@ -32,5 +44,31 @@ describe('landingCopy', () => {
       initials: 'MO',
     });
     expect(entries[1].label).toBe('Try as Sam, the broker');
+  });
+});
+
+// covers AC12, T3.2
+describe('landingCopy: what we offer', () => {
+  it('shows the per-day price only when the annual premium splits into whole cents', () => {
+    expect(offerPrice(73_000)).toEqual({ amount: '$730.00', per: 'a year · $2.00 a day' });
+    expect(offerPrice(120_000)).toEqual({ amount: '$1,200.00', per: 'a year' });
+  });
+
+  it('calls general liability the policy and product liability an endorsement', () => {
+    expect(offerRole('BASE')).toBe('The policy');
+    expect(offerRole('ENDORSEMENT')).toBe('Endorsement');
+  });
+
+  it('says what each cover pays for, and that product liability is charged pro-rata from its start', () => {
+    expect(offerDescription('BASE')).toMatch(/hurt/);
+    expect(offerDescription('PRODUCT_LIABILITY')).toMatch(/pro-rata from the day it starts/);
+  });
+
+  it('marks the premium term in the intro so it gets its "?"', () => {
+    expect(glossParts(OFFER_INTRO).some((p) => typeof p !== 'string' && p.term === 'annualPremium')).toBe(true);
+  });
+
+  it('has a quiet line for when prices cannot be loaded', () => {
+    expect(PRICES_UNAVAILABLE).toMatch(/aren't available right now/);
   });
 });

@@ -101,6 +101,7 @@ const correctionCard: StatementCorrection = {
   originalLineId: 'LE-0003',
   reversalLineId: 'LE-0006',
   rebillLineId: 'LE-0007',
+  balanceAfterCents: 1_400,
 };
 
 const correction = action({

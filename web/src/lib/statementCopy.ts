@@ -1,5 +1,5 @@
 import type { MoneyStatus, RefKind, Statement, StatementCorrection, StatementRow, StatementCause } from '../api/types';
-import { formatDate, formatShortDate } from './dates';
+import { daysBetween, formatDate, formatShortDate } from './dates';
 import { formatCents } from './money';
 import { dueReasonText, refundOnItsWay } from './myCoverCopy';
 import { removalCreditTitle } from './removeCoverCopy';
@@ -42,20 +42,60 @@ const ROW_STATUS: Record<MoneyStatus, string> = {
   PAID: 'Paid',
   DECLINED: "Didn't go through · no money moved",
   WAITING: 'Waiting for your bank',
-  REFUND_SENT: 'Refund sent · banks take 5–10 days to show it',
-  REFUND_ON_ITS_WAY: 'Refund on its way',
+  REFUND_SENT: 'Refund to you · sent · banks take 5–10 days to show it',
+  REFUND_ON_ITS_WAY: 'Refund to you · on its way',
 };
 
-/** The small line under a row's title: its arithmetic, or where the money stands. */
+/** "the line effective Oct 15": a reversal names the line it reverses by that line's effective date. */
+function reversedLine(m: StatementRow['trace']['maths']): string {
+  return m.from ? `the line effective ${formatShortDate(m.from)}` : 'an earlier line';
+}
+
+/**
+ * The small line under a row's title: its arithmetic and effective date, or where the money stands. Every date is
+ * labelled: "effective" is when the change applies from, "posted" is when the line went on the ledger.
+ */
 export function rowNote(row: StatementRow): string {
   if (row.status) return ROW_STATUS[row.status];
   const m = row.trace.maths;
-  if (row.kind === 'REVERSAL') {
-    return m.from ? `Reversal of the ${formatShortDate(m.from)} line in full` : 'Reversal of an earlier line in full';
-  }
+  if (row.kind === 'REVERSAL') return `Reversal in full of ${reversedLine(m)}`;
   const calc = m.annualCents != null ? `${formatCents(m.annualCents)} × ${m.days} ÷ ${m.termDays}` : '';
-  const undone = row.undoneOn ? `reversed ${formatShortDate(row.undoneOn)}` : '';
-  return [calc, undone].filter(Boolean).join(' · ');
+  const from = row.trace.cause.effectiveDate ?? m.from;
+  const effective = from && m.annualCents != null ? `effective ${formatShortDate(from)}` : '';
+  const undone = row.undoneOn ? `reversed, posted ${formatShortDate(row.undoneOn)}` : '';
+  return [calc, effective, undone].filter(Boolean).join(' · ');
+}
+
+/**
+ * AC1: a reversed line still counted until its reversal, so it keeps its weight and gets a tag naming the reversal,
+ * which links to the correction card that made it. Null when nothing reversed the line.
+ */
+export function reversedBy(row: StatementRow, corrections: StatementCorrection[]): { tag: string; anchor: string } | null {
+  if (!row.undoneOn) return null;
+  const c = corrections.find((x) => x.originalLineId === row.id);
+  return c ? { tag: `Reversed by correction · ${c.reversalLineId}`, anchor: `correction-${c.transactionDisplayId}` } : null;
+}
+
+/** AC2: the original line repeated inside a correction card, as a reference to where it was posted, not a new line. */
+export function replacesLabel(original: StatementRow): string {
+  return `Replaces: ${rowTitle(original)} · posted ${formatShortDate(original.date)} above`;
+}
+
+/** AC3: the one balance a correction card shows, after its last line; a negative balance is a credit to the customer. */
+export function balanceAfterCopy(cents: number): string {
+  if (cents > 0) return `Balance after: ${formatCents(cents)} due`;
+  if (cents < 0) return `Balance after: ${formatCents(cents, { abs: true })} credit`;
+  return `Balance after: ${formatCents(0)}`;
+}
+
+/** AC5: the statement's header: when it was made, the policy period, and when what's owed is due. */
+export function statementHeaderCopy(h: Statement['header']): { statementDate: string; term: string; due: string | null } {
+  const days = daysBetween(h.inceptionDate, h.expiryDate);
+  return {
+    statementDate: `Statement date: ${formatDate(h.statementDate)}`,
+    term: `Policy period: ${formatDate(h.inceptionDate)} (inception) → ${formatDate(h.expiryDate)} (expiry) · ${days} days`,
+    due: h.balanceCents > 0 && h.dueDate ? `Due ${formatDate(h.dueDate)} · due on receipt` : null,
+  };
 }
 
 /** "Oct 15 → Oct 8 · 7 more days × $2.00"; the daily price only when it is a whole number of cents. */
@@ -192,7 +232,7 @@ function plainSentence(row: StatementRow, v: Voice): string {
     case 'CREDIT':
       return cause.transactionType === 'REMOVE_COVERAGE' ? v.removedCredit : v.credit;
     case 'REVERSAL':
-      return `A reversal of the ${m.from ? formatShortDate(m.from) + ' ' : ''}line, in full. ${v.undoTail}`;
+      return `A reversal in full of ${reversedLine(m)}. ${v.undoTail}`;
     case 'PAYMENT':
       if (row.status === 'DECLINED') return v.declined;
       if (row.status === 'WAITING') return v.waiting;

@@ -50,6 +50,7 @@ const CORRECTION: StatementCorrection = {
   originalLineId: 'LE-0004',
   reversalLineId: 'LE-0006',
   rebillLineId: 'LE-0007',
+  balanceAfterCents: 1_400,
 };
 
 // covers AC2, T4

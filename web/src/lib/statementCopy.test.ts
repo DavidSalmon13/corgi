@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { Statement, StatementCorrection, StatementRow, StatementTrace } from '../api/types';
-import { bannerCopy, correctionNetMaths, correctionSummary, drawerCopy, rowNote, rowTitle } from './statementCopy';
+import {
+  balanceAfterCopy,
+  bannerCopy,
+  correctionNetMaths,
+  correctionSummary,
+  drawerCopy,
+  replacesLabel,
+  reversedBy,
+  rowNote,
+  rowTitle,
+  statementHeaderCopy,
+} from './statementCopy';
 
 // covers AC3, AC4, AC5, AC6, AC7, T5 — the words on P3 "Your statement" and P4 "How we got this"
+// covers statement-clarity AC1–AC7, T4 — reversed lines tagged not struck, labelled dates, one balance per card, the header
 
 const noMaths = {
   annualCents: null,
@@ -135,6 +147,7 @@ const correction: StatementCorrection = {
   originalLineId: 'LE-0003',
   reversalLineId: 'LE-0006',
   rebillLineId: 'LE-0007',
+  balanceAfterCents: 1_400,
 };
 
 function banner(over: Partial<Statement['banner']>): Statement['banner'] {
@@ -183,23 +196,35 @@ describe('statement rows', () => {
     expect(rowTitle(waiting)).toBe('Payment, card ending 4242');
   });
 
-  it('shows the arithmetic under a charge, and when it was undone', () => {
-    expect(rowNote(rebill)).toBe('$730.00 × 328 ÷ 365');
-    expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).toBe('$730.00 × 328 ÷ 365 · reversed Nov 5');
+  it('shows the arithmetic under a charge with its effective date, and when its reversal was posted (clarity AC4)', () => {
+    expect(rowNote(rebill)).toBe('$730.00 × 328 ÷ 365 · effective Oct 8');
+    expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).toBe('$730.00 × 328 ÷ 365 · effective Oct 8 · reversed, posted Nov 5');
+    expect(rowNote({ ...rebill, undoneOn: '2026-11-05' })).not.toMatch(/reversed \w{3} \d/);
+  });
+
+  it('falls back to the cover start when the change has no effective date', () => {
+    const issued = row({ trace: { maths: { ...noMaths, annualCents: 120_000, days: 365, termDays: 365, from: '2026-09-01', to: '2027-09-01', resultCents: 120_000 } } });
+    expect(rowNote(issued)).toBe('$1,200.00 × 365 ÷ 365 · effective Sep 1');
   });
 
   it('marks money on its way and a declined try', () => {
     expect(rowNote(row({ kind: 'PAYMENT', pending: true, status: 'WAITING' }))).toBe('Waiting for your bank');
-    expect(rowNote(row({ kind: 'REFUND', pending: true, status: 'REFUND_ON_ITS_WAY' }))).toBe('Refund on its way');
+    expect(rowNote(row({ kind: 'REFUND', pending: true, status: 'REFUND_ON_ITS_WAY' }))).toBe('Refund to you · on its way');
     expect(rowNote(row({ kind: 'PAYMENT', amountCents: 0, status: 'DECLINED' }))).toBe(
       "Didn't go through · no money moved",
     );
     expect(rowNote(payment)).toBe('Paid');
-    expect(rowNote(refund)).toBe('Refund sent · banks take 5–10 days to show it');
+    expect(rowNote(refund)).toBe('Refund to you · sent · banks take 5–10 days to show it');
+  });
+
+  it('says a refund row is money to you, with its amount and sign unchanged (clarity AC6)', () => {
+    expect(rowNote(refund).split(' · ')[0]).toBe('Refund to you');
+    expect(refund.amountCents).toBe(1_400);
+    expect(drawerCopy(refund).amount).toBe('+$14.00');
   });
 
   it('says a reversal undoes a line in full', () => {
-    expect(rowNote(reversal)).toBe('Reversal of the Oct 15 line in full');
+    expect(rowNote(reversal)).toBe('Reversal in full of the line effective Oct 15');
   });
 });
 
@@ -244,7 +269,7 @@ describe('how we got this', () => {
   it('explains a reversal with the undone numbers and what it undoes', () => {
     const d = drawerCopy(reversal);
     expect(d.amount).toBe('−$642.00');
-    expect(d.plain).toBe("A reversal of the Oct 15 line, in full. We don't edit lines, so the original stays on your statement.");
+    expect(d.plain).toBe("A reversal in full of the line effective Oct 15. We don't edit lines, so the original stays on your statement.");
     expect(d.formula).toBe('Reverses $730.00 × 321 ÷ 365 = $642.00');
     expect(d.formulaNote).toBe('The same numbers as the original line, with the sign flipped.');
     expect(d.refs.map((r) => r.label)).toEqual(['Change', 'Line', 'Reverses']);
@@ -362,7 +387,7 @@ describe('how we got this, for the broker', () => {
     expect(d.actionWho).toBe('Sam Reyes · Nov 5, 2026');
     expect(d.noMoney).toBe('No money moved for this line on its own. It adds to the balance, which the customer pays by card.');
     expect(drawerCopy(reversal, 'broker').plain).toBe(
-      "A reversal of the Oct 15 line, in full. Lines are never edited, so the original stays on the statement.",
+      "A reversal in full of the line effective Oct 15. Lines are never edited, so the original stays on the statement.",
     );
   });
 
@@ -427,7 +452,7 @@ describe('a product liability removal on the statement', () => {
 
   it('titles the row as a removal, not a refund', () => {
     expect(rowTitle(removal)).toBe('Product liability removed, return premium');
-    expect(rowNote(removal)).toBe('$730.00 × 274 ÷ 365');
+    expect(rowNote(removal)).toBe('$730.00 × 274 ÷ 365 · effective Dec 1');
   });
 
   it('explains it by the removal for the policyholder', () => {
@@ -453,5 +478,78 @@ describe('a product liability removal on the statement', () => {
     const cancel = { ...removal, trace: { ...removal.trace, cause: { ...removalCause, transactionType: 'CANCEL' } } };
     expect(rowTitle(cancel)).toBe('Product liability return premium');
     expect(drawerCopy(cancel).plain).toBe("Return premium for the days you won't be covered, because your policy ends early.");
+  });
+});
+
+describe('statement clarity', () => {
+  const original = row({
+    id: 'LE-0003',
+    date: '2026-10-15',
+    title: 'Product liability endorsement from Oct 15',
+    amountCents: 64_200,
+    balanceAfterCents: 64_200,
+    undoneOn: '2026-11-05',
+    correctionId: 'PTX-0003',
+  });
+
+  it('tags a reversed line with the correction that reversed it, never a strikethrough (AC1)', () => {
+    expect(reversedBy(original, [correction])).toEqual({
+      tag: 'Reversed by correction · LE-0006',
+      anchor: 'correction-PTX-0003',
+    });
+    expect(reversedBy(rebill, [correction])).toBeNull();
+  });
+
+  it('points a twice-corrected line at the later correction, not the one that made it (AC1)', () => {
+    const second: StatementCorrection = { ...correction, transactionDisplayId: 'PTX-0004', originalLineId: 'LE-0007', reversalLineId: 'LE-0009', rebillLineId: 'LE-0010' };
+    expect(reversedBy({ ...rebill, undoneOn: '2026-11-06' }, [correction, second])).toEqual({
+      tag: 'Reversed by correction · LE-0009',
+      anchor: 'correction-PTX-0004',
+    });
+  });
+
+  it('labels the repeated original inside a card as a reference to the line above (AC2)', () => {
+    expect(replacesLabel(original)).toBe('Replaces: Product liability endorsement from Oct 15 · posted Oct 15 above');
+  });
+
+  it('gives each card one balance after it, a credit included (AC3)', () => {
+    expect(balanceAfterCopy(1_400)).toBe('Balance after: $14.00 due');
+    expect(balanceAfterCopy(-1_400)).toBe('Balance after: $14.00 credit');
+    expect(balanceAfterCopy(0)).toBe('Balance after: $0.00');
+  });
+
+  const header: Statement['header'] = {
+    businessName: 'Corner Bakery LLC',
+    policyNumber: 'GL-2026-0002',
+    balanceCents: 1_400,
+    inceptionDate: '2026-09-01',
+    expiryDate: '2027-09-01',
+    statementDate: '2026-11-22',
+    dueDate: '2026-11-22',
+  };
+
+  it('heads the statement with its date, the policy period and when money is due (AC5)', () => {
+    expect(statementHeaderCopy(header)).toEqual({
+      statementDate: 'Statement date: Nov 22, 2026',
+      term: 'Policy period: Sep 1, 2026 (inception) → Sep 1, 2027 (expiry) · 365 days',
+      due: 'Due Nov 22, 2026 · due on receipt',
+    });
+  });
+
+  it('counts a leap-year policy period as 366 days', () => {
+    expect(statementHeaderCopy({ ...header, inceptionDate: '2027-03-01', expiryDate: '2028-03-01' }).term).toBe(
+      'Policy period: Mar 1, 2027 (inception) → Mar 1, 2028 (expiry) · 366 days',
+    );
+  });
+
+  it('says nothing is due when paid up or in credit (AC5)', () => {
+    expect(statementHeaderCopy({ ...header, balanceCents: 0, dueDate: null }).due).toBeNull();
+    expect(statementHeaderCopy({ ...header, balanceCents: -1_400, dueDate: null }).due).toBeNull();
+  });
+
+  it('leaves out the per-day price for a $1,000.00 cover, whose daily rate is not whole cents (AC7)', () => {
+    const thousand: StatementCorrection = { ...correction, oldStart: '2026-10-22', newStart: '2026-10-15', netCents: 1_918, perDayCents: null };
+    expect(correctionSummary(thousand)).toBe('Oct 22 → Oct 15 · 7 more days');
+    expect(correctionNetMaths(-86_027, 87_945)).toBe('−$860.27 + $879.45 = +$19.18');
   });
 });

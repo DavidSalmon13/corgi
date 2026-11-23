@@ -503,10 +503,23 @@ export type StatementCorrection = {
   originalLineId: string;
   reversalLineId: string;
   rebillLineId: string;
+  /** The running balance after the card's last line; negative is a credit. One per card, not one per line. */
+  balanceAfterCents: number;
 };
 
 export type Statement = {
-  header: { businessName: string; policyNumber: string; balanceCents: number };
+  header: {
+    businessName: string;
+    policyNumber: string;
+    balanceCents: number;
+    /** The policy period: inception up to expiry (the expiry day isn't counted). */
+    inceptionDate: IsoDate;
+    expiryDate: IsoDate;
+    /** The day the statement was made (today). */
+    statementDate: IsoDate;
+    /** Posting date of the oldest line not yet paid off ("due on receipt"); null when nothing is owed. */
+    dueDate: IsoDate | null;
+  };
   banner: { state: BannerState; amountCents: number; dueReason: DueReason | null; cardLast4: string | null };
   rows: StatementRow[];
   corrections: StatementCorrection[];

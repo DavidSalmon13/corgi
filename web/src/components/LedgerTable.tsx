@@ -30,7 +30,7 @@ function Refs({ refs }: { refs: string[] }) {
 function Title({ row }: { row: LedgerRow }) {
   return (
     <>
-      <span className={`font-semibold ${row.struck ? 'text-ink-2 line-through' : ''}`}>
+      <span className={`font-semibold ${row.reversedBy ? 'text-ink-2 line-through' : ''}`}>
         <Glossed>{row.title}</Glossed>
       </span>
       {row.note && (
@@ -88,7 +88,7 @@ export function LedgerTable({
               <td className={`${TD} tabular-nums ${TONE[r.calcTone]}`}>
                 <Glossed>{r.calc}</Glossed>
               </td>
-              <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.struck ? 'line-through' : ''}`}>
+              <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums ${r.reversedBy ? 'line-through' : ''}`}>
                 {r.amount}
               </td>
               <td className={`${TD} whitespace-nowrap text-right tabular-nums`}>{r.balance}</td>
@@ -108,7 +108,7 @@ export function LedgerTable({
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-[13px] text-ink-2 tabular-nums">{r.date}</span>
-              <span className={`text-[15px] font-semibold tabular-nums ${r.struck ? 'line-through' : ''}`}>{r.amount}</span>
+              <span className={`text-[15px] font-semibold tabular-nums ${r.reversedBy ? 'line-through' : ''}`}>{r.amount}</span>
             </div>
             <div className="text-[15px]">
               <Title row={r} />

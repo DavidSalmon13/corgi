@@ -34,12 +34,13 @@ describe('toLedgerRows', () => {
       amount: '+$1,200.00',
       balance: '$1,200.00',
       refs: ['LE-0001', 'PTX-0001'],
-      struck: false,
+      reversedBy: null,
       correction: false,
     });
   });
 
-  it('strikes through a line that was undone and says what undid it', () => {
+  // covers statement-clarity AC1, T4: a reversed line still counted, so it is tagged, never struck through
+  it('tags a line that was reversed with the correction that reversed it', () => {
     const rows = toLedgerRows([
       line({ displayId: 'LE-0003', policyTransactionDisplayId: 'PTX-0002', reversedByDisplayId: 'LE-0006' }),
       line({
@@ -49,7 +50,12 @@ describe('toLedgerRows', () => {
       }),
       line({ id: 7, displayId: 'LE-0007', amountCents: 65_600, calcAnnualCents: 73_000, calcDays: 328, policyTransactionDisplayId: 'PTX-0003' }),
     ]);
-    expect(rows[0]).toMatchObject({ struck: true, note: 'Reversed by LE-0006', correction: false });
+    expect(rows[0]).toMatchObject({
+      reversedBy: { displayId: 'LE-0006', anchor: 'correction-PTX-0003' },
+      note: 'Reversed by correction · LE-0006',
+      correction: false,
+    });
+    expect(rows[0]).not.toHaveProperty('struck');
     expect(rows[1]).toMatchObject({ calc: 'Reversal of LE-0003', amount: '−$642.00', balance: '−$642.00', correction: true });
     expect(rows[2]).toMatchObject({ calc: '$730.00 × 328 ÷ 365', correction: true });
   });
@@ -109,7 +115,7 @@ describe('toLedgerRows', () => {
       amount: '+$14.00',
       balance: '$0.00',
       refs: ['LE-0009', 'RF-0001', 're_3Qabc'],
-      struck: false,
+      reversedBy: null,
       correction: false,
     });
   });
@@ -130,7 +136,7 @@ describe('toLedgerRows', () => {
       amount: '−$900.82',
       balance: '−$886.82',
       refs: ['LE-0009', 'PTX-0004'],
-      struck: false,
+      reversedBy: null,
       correction: false,
     });
   });
@@ -177,7 +183,7 @@ describe('a product liability removal on the ledger', () => {
       calc: '$730.00 × 274 ÷ 365',
       amount: '−$548.00',
       refs: ['LE-0012', 'PTX-0005'],
-      struck: false,
+      reversedBy: null,
       correction: false,
     });
     expect(row.title).not.toMatch(/refunded/);

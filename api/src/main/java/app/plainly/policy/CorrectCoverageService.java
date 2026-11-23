@@ -119,6 +119,12 @@ public class CorrectCoverageService {
         return new Loaded(policy, cover, policies.hasPaymentProcessing(policyId));
     }
 
+    /** A removed cover keeps its start: the removal's credit was priced from it (AC5). */
+    static String removed(LocalDate endedOn) {
+        return CoverKind.PRODUCT_LIABILITY.label() + " was removed on " + LONG.format(endedOn)
+                + ", so its effective date can't be corrected.";
+    }
+
     /**
      * A problem with the policy itself stands alone, since no field fixes it. Otherwise every field to fix is
      * reported at once, in form order. The preview doesn't need the reason yet.
@@ -126,6 +132,7 @@ public class CorrectCoverageService {
     private static void validate(Loaded loaded, LocalDate start, String reason, boolean saving) {
         String policyProblem = !"ACTIVE".equals(loaded.policy().status()) ? CANCELLED
                 : loaded.cover() == null ? NO_EXTRA_COVER
+                : loaded.cover().endedOn() != null ? removed(loaded.cover().endedOn())
                 : loaded.paymentWaiting() ? PAYMENT_WAITING
                 : null;
         if (policyProblem != null) {

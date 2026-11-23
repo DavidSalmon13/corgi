@@ -40,3 +40,10 @@ specs:
       - api/src/main/java/**/notify/**
       - api/src/main/resources/db/migration/V10__sent_emails.sql
       - api/src/main/resources/templates/email/**
+  - folder: 2026-11-23-statement-clarity
+    slug: statement-clarity
+    status: shaped
+    branch: feat/statement-history/statement-clarity
+    covers:
+      - web/src/components/LedgerTable.tsx
+      - web/src/lib/ledgerRows.ts

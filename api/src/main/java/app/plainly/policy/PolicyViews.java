@@ -21,9 +21,12 @@ public final class PolicyViews {
     public record Customer(String legalName, String businessDescription, String ownerName, String ownerEmail,
             OffsetDateTime ownerSignedUpAt) {}
 
-    /** {@code previousStart}: when a correction replaced this cover, the start of the row it replaced; else null. */
+    /**
+     * {@code previousStart}: when a correction replaced this cover, the start of the row it replaced; else null.
+     * {@code endedOn}: the day a removal stopped this cover (start of that day); null while it runs.
+     */
     public record Coverage(long id, CoverKind kind, String label, long annualPremiumCents, LocalDate from, LocalDate to,
-            LocalDate previousStart) {}
+            LocalDate previousStart, LocalDate endedOn) {}
 
     /** {@code reason}: the broker's words for a correction, shown to the customer as written; null otherwise. */
     public record Transaction(String displayId, String type, LocalDate effectiveDate, LocalDate recordedOn,

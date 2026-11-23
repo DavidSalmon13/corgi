@@ -59,7 +59,7 @@ class CancellationRepositoryTest {
         coverages.markReplaced(oldExtra, newExtra);
 
         assertThat(coverages.listLive(policyId)).containsExactly(
-                new CoverageRepository.Live(base, CoverKind.BASE, 120_000, SEP_1, SEP_1_NEXT),
-                new CoverageRepository.Live(newExtra, CoverKind.PRODUCT_LIABILITY, 73_000, LocalDate.of(2026, 10, 8), SEP_1_NEXT));
+                new CoverageRepository.Live(base, CoverKind.BASE, 120_000, SEP_1, SEP_1_NEXT, null),
+                new CoverageRepository.Live(newExtra, CoverKind.PRODUCT_LIABILITY, 73_000, LocalDate.of(2026, 10, 8), SEP_1_NEXT, null));
     }
 }

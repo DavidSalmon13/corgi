@@ -263,3 +263,7 @@ T7 planned a "Cover timeline" row in the More card. P1's design (and AC1) puts "
 ## 2026-11-23: The cover timeline takes its money from the statement, and counts only lines still in force
 
 P2 is not a second calculation. `TimelineService` has no repository and no SQL: it reads the policy from `PolicyService` and the statement from `StatementService`, so every amount on the timeline is a statement row to the cent, and its "how we got this" drawer is that row's. A cover's "Charged by the day" is the sum of its CHARGE and CREDIT rows that are settled (not pending) and not undone. An undone line and its undo cancel out, so the corrected line is what counts. A cancellation credit is subtracted, so a cancelled cover shows what was kept. Rows are matched to a cover by the ledger line's own `coverage_id` (from `PolicyService`'s ledger view), not by comparing dates, so `Statement.Row` needed no new field. Payments and refunds are left out: they move money but don't change what the cover cost.
+
+## 2026-11-23: After several corrections, P2 explains each cover's latest one
+
+AC4's "each gets its sentence" means each corrected cover, not each correction: the timeline draws a cover's latest correction as the dashed outline and gives that one a sentence and a link to its statement card. Earlier corrections stay on the statement, where every correction has its own card. This keeps P2 about where your cover stands now, and the statement about everything that happened.

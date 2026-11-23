@@ -3,6 +3,8 @@
 > Epic: statement-history
 > Spec: 2026-11-23-cover-timeline
 > Branch: feat/statement-history/cover-timeline
+> PR: https://github.com/DavidSalmon13/corgi/pull/61
+> Reviewed: 2026-11-23 APPROVE WITH COMMENTS
 
 ## Timeline API
 - [x] T1 Failing TimelineServiceTest for AC2–AC5, AC7 and AC9 (testing skill, TDD). Cases:
@@ -41,5 +43,5 @@
 - [x] T8 DECISIONS.md: the timeline reuses StatementService for its money (one calculation), and "charged by the day" counts only in-force settled lines.
 
 ## Verification
-- [ ] T9 Run both suites with coverage on the changed files (testing skill)
-- [ ] T10 Run QA against AC1–AC9, incl. the Oct 15 → Oct 8 scenario, a live re-correction and a cancellation, at 390 px light and dark and on desktop (qa skill)
+- [x] T9 Run both suites with coverage on the changed files (testing skill)
+- [x] T10 Run QA against AC1–AC9, incl. the Oct 15 → Oct 8 scenario, a live re-correction and a cancellation, at 390 px light and dark and on desktop (qa skill)
